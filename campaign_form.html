@@ -1,0 +1,189 @@
+{% extends "base/base.html" %}
+{% block title %}{% if t %}تعديل القالب{% else %}حملة جديدة{% endif %} – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-plus-circle me-2"></i>إنشاء حملة جديدة{% endblock %}
+
+{% block extra_css %}
+<style>
+  #preview-area { border: 1px solid #e2e8f0; border-radius: 8px; min-height: 200px; padding: 1rem; }
+  #char-count { font-size: .78rem; color: #718096; }
+  .var-badge { cursor:pointer; transition: background .15s; }
+  .var-badge:hover { background: #2a5298 !important; color:#fff !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="form-card">
+      <form method="post" id="campaignForm">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label">اسم الحملة *</label>
+          <input type="text" name="name" class="form-control" placeholder="مثال: حملة التسجيل – يونيو 2025" required>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">القائمة البريدية *</label>
+            <select name="mailing_list" class="form-select" required>
+              <option value="">-- اختر القائمة --</option>
+              {% for ml in lists %}
+              <option value="{{ ml.pk }}">{{ ml.name }} ({{ ml.active_count }} مستلم)</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">استيراد من قالب</label>
+            <select name="template" id="templateSelect" class="form-select">
+              <option value="">-- اختياري --</option>
+              {% for tmpl in templates %}
+              <option value="{{ tmpl.pk }}"
+                      data-subject="{{ tmpl.subject }}"
+                      data-html="{{ tmpl.body_html|escapejs }}"
+                      data-text="{{ tmpl.body_text|escapejs }}">
+                {{ tmpl.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">عنوان الرسالة (Subject) *</label>
+          <input type="text" name="subject" id="subjectInput" class="form-control"
+                 placeholder="مثال: تهانينا بالتسجيل في دورة {{course_name}}" required>
+        </div>
+
+        <div class="mb-1">
+          <label class="form-label">محتوى الرسالة (HTML) *</label>
+          <div class="d-flex gap-1 flex-wrap mb-2">
+            {% for var in supported_vars %}
+            <span class="badge bg-light text-dark border var-badge" onclick="insertVar('{{ var }}')" style="font-size:.8rem;">{{ var }}</span>
+            {% endfor %}
+          </div>
+          <textarea name="body_html" id="bodyHtml" class="form-control" rows="10"
+                    placeholder="<p>مرحباً {{name}}،</p>" required></textarea>
+        </div>
+        <div class="text-end mb-3"><span id="char-count">0 حرف</span></div>
+
+        <div class="mb-4">
+          <label class="form-label">محتوى نصي (Text) – اختياري</label>
+          <textarea name="body_text" class="form-control" rows="4"
+                    placeholder="نسخة نصية للبريد بدون HTML..."></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">جدولة الإرسال (اختياري)</label>
+          <input type="datetime-local" name="scheduled_at" class="form-control">
+          <div class="form-text">اتركها فارغة لحفظ كمسودة</div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" name="send_now" value="0" class="btn btn-outline-secondary flex-fill">
+            <i class="bi bi-save me-1"></i>حفظ كمسودة
+          </button>
+          <button type="submit" name="send_now" value="1" class="btn btn-inexc flex-fill"
+                  onclick="return confirm('هل تريد إرسال الحملة الآن؟')">
+            <i class="bi bi-send-fill me-1"></i>إرسال الآن
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="col-lg-4">
+    <!-- Test Send -->
+    <div class="form-card mb-3">
+      <h6 class="fw-bold text-primary mb-3"><i class="bi bi-flask me-2"></i>إرسال رسالة اختبارية</h6>
+      <input type="email" id="testEmail" class="form-control mb-2" placeholder="your@email.com">
+      <button class="btn btn-outline-primary btn-sm w-100" onclick="sendTest()">
+        <i class="bi bi-send me-1"></i>إرسال اختبار
+      </button>
+      <div id="testResult" class="mt-2"></div>
+    </div>
+
+    <!-- Preview -->
+    <div class="form-card">
+      <h6 class="fw-bold text-primary mb-3"><i class="bi bi-eye me-2"></i>معاينة الرسالة</h6>
+      <button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="updatePreview()">
+        تحديث المعاينة
+      </button>
+      <div id="preview-area" class="text-muted small">اكتب محتوى الرسالة لمعاينتها هنا...</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const bodyHtml = document.getElementById('bodyHtml');
+const charCount = document.getElementById('char-count');
+
+// Update character count
+bodyHtml.addEventListener('input', () => {
+  charCount.textContent = bodyHtml.value.length + ' حرف';
+});
+
+// Insert variable at cursor
+function insertVar(v) {
+  const start = bodyHtml.selectionStart;
+  const end   = bodyHtml.selectionEnd;
+  bodyHtml.value = bodyHtml.value.substring(0, start) + v + bodyHtml.value.substring(end);
+  bodyHtml.focus();
+  bodyHtml.setSelectionRange(start + v.length, start + v.length);
+}
+
+// Load template into form
+document.getElementById('templateSelect').addEventListener('change', function() {
+  const opt = this.options[this.selectedIndex];
+  if (opt.value) {
+    document.getElementById('subjectInput').value = opt.dataset.subject || '';
+    bodyHtml.value = opt.dataset.html || '';
+    charCount.textContent = bodyHtml.value.length + ' حرف';
+  }
+});
+
+// Preview
+function updatePreview() {
+  const html = bodyHtml.value
+    .replace(/{{name}}/g,           'محمد علي')
+    .replace(/{{email}}/g,          'test@example.com')
+    .replace(/{{phone}}/g,          '0501234567')
+    .replace(/{{course_name}}/g,    'دورة Python')
+    .replace(/{{custom_message}}/g, 'رسالة مخصصة');
+  document.getElementById('preview-area').innerHTML = html || '<em class="text-muted">لا يوجد محتوى للمعاينة</em>';
+}
+
+// Send test email
+function sendTest() {
+  const email = document.getElementById('testEmail').value.trim();
+  if (!email) { alert('أدخل بريدك الإلكتروني أولاً'); return; }
+
+  const result = document.getElementById('testResult');
+  result.innerHTML = '<span class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>جارٍ الإرسال...</span>';
+
+  fetch('{% url "campaigns:send_test" %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({
+      email:     email,
+      subject:   document.getElementById('subjectInput').value,
+      body_html: bodyHtml.value,
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      result.innerHTML = '<span class="text-success small"><i class="bi bi-check-circle me-1"></i>تم الإرسال بنجاح!</span>';
+    } else {
+      result.innerHTML = `<span class="text-danger small"><i class="bi bi-x-circle me-1"></i>${data.error}</span>`;
+    }
+  });
+}
+
+// Supported vars for template form
+const supported_vars = {{ supported_vars|default:"[]"|safe }};
+</script>
+{% endblock %}

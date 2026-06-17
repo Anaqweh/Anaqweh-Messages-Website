@@ -1,0 +1,136 @@
+{% extends "base/base.html" %}
+{% block title %}{{ campaign.name }} – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-megaphone me-2"></i>{{ campaign.name }}{% endblock %}
+
+{% block top_actions %}
+<span class="badge bg-{{ campaign.get_status_color }} fs-6">{{ campaign.get_status_display }}</span>
+{% if campaign.status in 'draft,paused' %}
+<a href="{% url 'campaigns:campaign_action' campaign.pk 'start' %}" class="btn btn-success btn-sm">
+  <i class="bi bi-play-fill me-1"></i>تشغيل
+</a>
+{% endif %}
+{% if campaign.status == 'running' %}
+<a href="{% url 'campaigns:campaign_action' campaign.pk 'pause' %}" class="btn btn-warning btn-sm">
+  <i class="bi bi-pause-fill me-1"></i>إيقاف مؤقت
+</a>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  #statsBar { transition: all .3s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Stats -->
+<div class="row g-3 mb-4" id="statsBar">
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value" id="s-total">{{ stats.total }}</div>
+      <div class="stat-label">إجمالي المستلمين</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value text-success" id="s-sent">{{ stats.sent }}</div>
+      <div class="stat-label">تم الإرسال</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value text-danger" id="s-failed">{{ stats.failed }}</div>
+      <div class="stat-label">فاشل</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card text-center">
+      <div class="stat-value text-warning" id="s-pending">{{ stats.pending }}</div>
+      <div class="stat-label">قيد الإرسال</div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress -->
+{% if stats.total > 0 %}
+<div class="form-card mb-4">
+  <div class="d-flex justify-content-between mb-1">
+    <span class="fw-bold small">تقدم الإرسال</span>
+    <span class="small text-muted" id="s-rate">{{ stats.rate }}%</span>
+  </div>
+  <div class="progress" style="height:12px;">
+    <div class="progress-bar bg-success" id="s-bar" style="width:{{ stats.rate }}%;"></div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Export + Filter -->
+<div class="data-table">
+  <div class="p-3 border-bottom d-flex gap-2 flex-wrap align-items-center">
+    <form method="get" class="d-flex gap-2 flex-grow-1">
+      <input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="بحث...">
+      <select name="status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+        <option value="">كل الحالات</option>
+        <option value="sent"    {% if status_filter == 'sent'    %}selected{% endif %}>مرسل</option>
+        <option value="failed"  {% if status_filter == 'failed'  %}selected{% endif %}>فاشل</option>
+        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>قيد الانتظار</option>
+      </select>
+      <button class="btn btn-sm btn-outline-primary">بحث</button>
+    </form>
+    <a href="{% url 'reports:export_csv' campaign.pk %}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-filetype-csv me-1"></i>CSV
+    </a>
+    <a href="{% url 'reports:export_xlsx' campaign.pk %}" class="btn btn-sm btn-outline-success">
+      <i class="bi bi-file-earmark-excel me-1"></i>Excel
+    </a>
+  </div>
+
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th>الاسم</th><th>البريد الإلكتروني</th><th>الحالة</th>
+        <th>المحاولات</th><th>وقت الإرسال</th><th>ملاحظات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.recipient_name|default:"—" }}</td>
+        <td class="small">{{ log.recipient_email }}</td>
+        <td><span class="badge bg-{{ log.get_status_color }}">{{ log.get_status_display }}</span></td>
+        <td class="text-center">{{ log.attempts }}</td>
+        <td class="small text-muted">
+          {% if log.sent_at %}{{ log.sent_at|date:"Y/m/d H:i" }}{% else %}—{% endif %}
+        </td>
+        <td class="small text-danger">{{ log.error_message|truncatechars:50 }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted py-5">لا توجد سجلات</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+{% if campaign.status == 'running' %}
+function refreshStats() {
+  fetch('{% url "campaigns:campaign_stats" campaign.pk %}')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('s-total').textContent   = d.total;
+      document.getElementById('s-sent').textContent    = d.sent;
+      document.getElementById('s-failed').textContent  = d.failed;
+      document.getElementById('s-pending').textContent = d.pending;
+      const rateEl = document.getElementById('s-rate');
+      const barEl  = document.getElementById('s-bar');
+      if (rateEl) rateEl.textContent = d.rate + '%';
+      if (barEl)  barEl.style.width  = d.rate + '%';
+      if (d.status !== 'running') location.reload();
+    });
+}
+setInterval(refreshStats, 5000);
+{% endif %}
+</script>
+{% endblock %}
