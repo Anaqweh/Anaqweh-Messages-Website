@@ -1,0 +1,13 @@
+{% extends "base/base.html" %}
+{% block title %}تحديد العمود{% endblock %}
+{% block page_title %}تحديد عمود البريد الإلكتروني{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-8"><div class="form-card">
+  <div class="alert alert-warning">لم يتمكن النظام من تحديد عمود البريد تلقائياً. حدده يدوياً.</div>
+  <form method="post">{% csrf_token %}
+    <div class="mb-3"><label class="form-label fw-bold">اختر عمود البريد</label><select name="email_column" class="form-select" required><option value="">-- اختر --</option>{% for col in columns %}<option value="{{ col }}">{{ col }}</option>{% endfor %}</select></div>
+    <button type="submit" class="btn btn-inexc">تأكيد واستيراد</button>
+    <a href="{% url 'recipients:list_detail' ml.pk %}" class="btn btn-outline-secondary">إلغاء</a>
+  </form>
+</div></div></div>
+{% endblock %}

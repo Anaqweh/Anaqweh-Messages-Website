@@ -1,14 +1,11 @@
 version: '3.9'
-
 services:
-
-  # ─── PostgreSQL ────────────────────────────────────────────────
   db:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       ${DB_NAME:-inexc_email}
-      POSTGRES_USER:     ${DB_USER:-postgres}
+      POSTGRES_DB: ${DB_NAME:-inexc_email}
+      POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -18,7 +15,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Redis ────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -30,7 +26,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Django App ───────────────────────────────────────────────
   app:
     build: .
     restart: unless-stopped
@@ -45,7 +40,6 @@ services:
     volumes:
       - .:/app
       - media_data:/app/media
-      - static_data:/app/staticfiles
     depends_on:
       db:
         condition: service_healthy
@@ -53,12 +47,9 @@ services:
         condition: service_healthy
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py collectstatic --no-input &&
-             python manage.py create_admin &&
-             python manage.py load_demo_data &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+             python manage.py collectstatic --no-input --clear 2>/dev/null || true &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"
 
-  # ─── Celery Worker ────────────────────────────────────────────
   celery_worker:
     build: .
     restart: unless-stopped
@@ -75,9 +66,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: celery -A config worker --loglevel=info --concurrency=4 -Q celery
+    command: celery -A config worker --loglevel=info --concurrency=2
 
-  # ─── Celery Beat (Scheduler) ──────────────────────────────────
   celery_beat:
     build: .
     restart: unless-stopped
@@ -99,4 +89,3 @@ volumes:
   postgres_data:
   redis_data:
   media_data:
-  static_data:

@@ -1,0 +1,40 @@
+{% extends "base/base.html" %}
+{% block title %}التقارير – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-bar-chart-fill me-2"></i>التقارير والإحصائيات{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-lg-8"><div class="form-card"><h6 class="fw-bold text-primary mb-3">نشاط آخر 14 يوم</h6><canvas id="activityChart" height="100"></canvas></div></div>
+  <div class="col-lg-4"><div class="form-card"><h6 class="fw-bold text-primary mb-3">توزيع الحالات</h6><canvas id="statusChart" height="200"></canvas></div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+fetch("{% url 'reports:analytics_api' %}").then(r=>r.json()).then(d=>{
+  new Chart(document.getElementById('activityChart'),{type:'line',data:{labels:d.days,datasets:[{label:'مرسل',data:d.sent,borderColor:'#1e3a6e',backgroundColor:'rgba(30,58,110,.1)',fill:true,tension:.3},{label:'مفتوح',data:d.opened,borderColor:'#00b4d8',backgroundColor:'rgba(0,180,216,.1)',fill:true,tension:.3}]},options:{responsive:true,plugins:{legend:{labels:{font:{family:'Tajawal'}}}}}});
+  new Chart(document.getElementById('statusChart'),{type:'doughnut',data:{labels:['مرسل','مفتوح','منقور','فاشل','انتظار'],datasets:[{data:[d.status.sent,d.status.opened,d.status.clicked,d.status.failed,d.status.pending],backgroundColor:['#198754','#0d6efd','#6f42c1','#dc3545','#ffc107']}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'Tajawal'}}}}}});
+});
+</script>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value">{{ stats.total_campaigns }}</div><div class="stat-label">إجمالي الحملات</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-success">{{ stats.total_sent }}</div><div class="stat-label">رسائل مرسلة</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-danger">{{ stats.total_failed }}</div><div class="stat-label">فاشلة</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-primary">{{ stats.overall_rate }}%</div><div class="stat-label">معدل النجاح</div></div></div>
+</div>
+<div class="data-table mb-4">
+  <div class="p-3 border-bottom fw-bold" style="color:#1e3a6e">تقرير الحملات</div>
+  <table class="table table-hover"><thead><tr><th>الحملة</th><th>الحالة</th><th>الإجمالي</th><th>مرسل</th><th>فاشل</th><th>النجاح</th><th>تقرير</th></tr></thead><tbody>
+    {% for cs in campaign_stats %}
+    <tr><td class="fw-bold">{{ cs.campaign.name }}</td><td><span class="badge bg-{{ cs.campaign.get_status_color }}">{{ cs.campaign.get_status_display }}</span></td><td>{{ cs.total }}</td><td class="text-success fw-bold">{{ cs.sent }}</td><td class="text-danger">{{ cs.failed }}</td><td>{{ cs.rate }}%</td>
+      <td><a href="{% url 'reports:campaign_report' cs.campaign.pk %}" class="btn btn-xs btn-outline-primary"><i class="bi bi-eye"></i></a> <a href="{% url 'reports:export_csv' cs.campaign.pk %}" class="btn btn-xs btn-outline-success">CSV</a> <a href="{% url 'reports:export_xlsx' cs.campaign.pk %}" class="btn btn-xs btn-outline-success">XLS</a></td>
+    </tr>
+    {% empty %}<tr><td colspan="7" class="text-center text-muted py-4">لا توجد حملات</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% if failed_logs %}
+<div class="data-table"><div class="p-3 border-bottom fw-bold text-danger">آخر الرسائل الفاشلة</div>
+  <table class="table table-hover"><thead><tr><th>البريد</th><th>الحملة</th><th>سبب الفشل</th></tr></thead><tbody>
+    {% for log in failed_logs %}<tr><td class="small">{{ log.recipient_email }}</td><td class="small text-muted">{{ log.campaign.name }}</td><td class="small text-danger">{{ log.error_message|truncatechars:80 }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base/base.html" %}
+{% block title %}{{ campaign.name }} – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-megaphone me-2"></i>{{ campaign.name }}{% endblock %}
+{% block top_actions %}
+<span class="badge bg-{{ campaign.get_status_color }} fs-6">{{ campaign.get_status_display }}</span>
+{% if campaign.status in 'draft,paused' %}<a href="{% url 'campaigns:campaign_action' campaign.pk 'start' %}" class="btn btn-success btn-sm">تشغيل</a>{% endif %}
+{% if campaign.status == 'running' %}<a href="{% url 'campaigns:campaign_action' campaign.pk 'pause' %}" class="btn btn-warning btn-sm">إيقاف</a>{% endif %}
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value">{{ stats.total }}</div><div class="stat-label">إجمالي المستلمين</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-success">{{ stats.sent }}</div><div class="stat-label">تم الإرسال</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-danger">{{ stats.failed }}</div><div class="stat-label">فاشل</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-warning">{{ stats.pending }}</div><div class="stat-label">قيد الإرسال</div></div></div>
+</div>
+<div class="data-table">
+  <div class="p-3 border-bottom d-flex gap-2"><span class="fw-bold align-self-center" style="color:#1e3a6e">السجلات</span><div class="flex-grow-1"></div><a href="{% url 'reports:export_csv' campaign.pk %}" class="btn btn-sm btn-outline-success">CSV</a><a href="{% url 'reports:export_xlsx' campaign.pk %}" class="btn btn-sm btn-outline-success">Excel</a></div>
+  <table class="table table-hover"><thead><tr><th>الاسم</th><th>البريد</th><th>الحالة</th><th>المحاولات</th><th>وقت الإرسال</th><th>ملاحظات</th></tr></thead><tbody>
+    {% for log in logs %}
+    <tr><td>{{ log.recipient_name|default:"—" }}</td><td class="small">{{ log.recipient_email }}</td><td><span class="badge bg-{{ log.get_status_color }}">{{ log.get_status_display }}</span></td><td class="text-center">{{ log.attempts }}</td><td class="small text-muted">{% if log.sent_at %}{{ log.sent_at|date:"Y/m/d H:i" }}{% else %}—{% endif %}</td><td class="small text-danger">{{ log.error_message|truncatechars:50 }}</td></tr>
+    {% empty %}<tr><td colspan="6" class="text-center text-muted py-5">لا توجد سجلات</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% if campaign.status == 'running' %}<script>setInterval(()=>{fetch('{% url "campaigns:campaign_stats" campaign.pk %}').then(r=>r.json()).then(d=>{if(d.status!=='running')location.reload()})},5000)</script>{% endif %}
+{% endblock %}

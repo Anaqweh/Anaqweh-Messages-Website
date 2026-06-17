@@ -1,0 +1,13 @@
+{% extends "base/base.html" %}
+{% block title %}إضافة مستلمين{% endblock %}
+{% block page_title %}إضافة مستلمين إلى {{ ml.name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6"><div class="form-card">
+  <form method="post">{% csrf_token %}
+    <div class="mb-3"><label class="form-label fw-bold">البريد الإلكتروني *</label><textarea name="emails" class="form-control" rows="6" placeholder="بريد واحد أو عدة بريدات مفصولة بفاصلة أو سطر جديد" required></textarea></div>
+    <div class="mb-3"><label class="form-label fw-bold">الاسم (لبريد واحد)</label><input type="text" name="name" class="form-control"></div>
+    <div class="mb-4"><label class="form-label fw-bold">الهاتف</label><input type="text" name="phone" class="form-control"></div>
+    <button type="submit" class="btn btn-inexc w-100">إضافة</button>
+  </form>
+</div></div></div>
+{% endblock %}

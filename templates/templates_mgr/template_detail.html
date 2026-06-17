@@ -1,0 +1,17 @@
+{% extends "base/base.html" %}
+{% block title %}{{ t.name }} – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-file-earmark-richtext me-2"></i>{{ t.name }}{% endblock %}
+{% block top_actions %}<a href="{% url 'templates_mgr:template_edit' t.pk %}" class="btn btn-inexc btn-sm">تعديل</a>{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8"><div class="form-card">
+    <div class="mb-3"><span class="text-muted small fw-bold">العنوان:</span><div class="p-2 bg-light rounded mt-1 fw-bold">{{ t.subject }}</div></div>
+    <div><span class="text-muted small fw-bold">معاينة:</span><iframe srcdoc="{{ t.body_html }}" style="width:100%;min-height:350px;border:1px solid #e2e8f0;border-radius:8px;margin-top:.5rem"></iframe></div>
+  </div></div>
+  <div class="col-lg-4"><div class="form-card">
+    <h6 class="fw-bold text-primary mb-3">المتغيرات المدعومة</h6>
+    {% for v in supported_vars %}<div class="mb-1"><code class="bg-light px-2 py-1 rounded small">{{ v }}</code></div>{% endfor %}
+    <hr><a href="{% url 'campaigns:campaign_create' %}" class="btn btn-outline-primary btn-sm w-100">إنشاء حملة بهذا القالب</a>
+  </div></div>
+</div>
+{% endblock %}

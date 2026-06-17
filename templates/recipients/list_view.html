@@ -1,0 +1,21 @@
+{% extends "base/base.html" %}
+{% block title %}القوائم – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-people-fill me-2"></i>القوائم البريدية{% endblock %}
+{% block top_actions %}<a href="{% url 'recipients:list_create' %}" class="btn btn-inexc btn-sm">+ قائمة جديدة</a>{% endblock %}
+{% block content %}
+<div class="row g-3">
+  {% for ml in mailing_lists %}
+  <div class="col-md-4">
+    <div class="stat-card h-100">
+      <div class="d-flex justify-content-between mb-2"><h6 class="fw-bold">{{ ml.name }}</h6></div>
+      <p class="text-muted small">{{ ml.description|default:"بدون وصف"|truncatechars:50 }}</p>
+      <span class="badge bg-primary fs-6">{{ ml.active_count }} مستلم</span>
+      <div class="d-flex gap-1 mt-3">
+        <a href="{% url 'recipients:list_detail' ml.pk %}" class="btn btn-sm btn-inexc flex-fill">إدارة</a>
+        <a href="{% url 'recipients:recipient_add' ml.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-person-plus-fill"></i></a>
+      </div>
+    </div>
+  </div>
+  {% empty %}<div class="col-12 text-center py-5"><i class="bi bi-people text-muted" style="font-size:3rem;"></i><p class="text-muted mt-2">لا توجد قوائم. <a href="{% url 'recipients:list_create' %}">أنشئ قائمة</a></p></div>{% endfor %}
+</div>
+{% endblock %}

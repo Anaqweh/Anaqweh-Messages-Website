@@ -1,0 +1,16 @@
+{% extends "base/base.html" %}
+{% block title %}تعديل مستلم{% endblock %}
+{% block page_title %}تعديل بيانات المستلم{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6"><div class="form-card">
+  <form method="post">{% csrf_token %}
+    <div class="mb-3"><label class="form-label fw-bold">الاسم</label><input type="text" name="name" class="form-control" value="{{ r.name }}"></div>
+    <div class="mb-3"><label class="form-label fw-bold">البريد *</label><input type="email" name="email" class="form-control" value="{{ r.email }}" required></div>
+    <div class="mb-3"><label class="form-label fw-bold">الهاتف</label><input type="text" name="phone" class="form-control" value="{{ r.phone }}"></div>
+    <div class="mb-3"><label class="form-label fw-bold">اسم الدورة</label><input type="text" name="custom_field_1" class="form-control" value="{{ r.custom_field_1 }}"></div>
+    <div class="mb-4"><label class="form-label fw-bold">رسالة مخصصة</label><input type="text" name="custom_field_2" class="form-control" value="{{ r.custom_field_2 }}"></div>
+    <button type="submit" class="btn btn-inexc flex-fill">حفظ</button>
+    <a href="{% url 'recipients:list_detail' r.mailing_list_id %}" class="btn btn-outline-secondary">إلغاء</a>
+  </form>
+</div></div></div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base/base.html" %}
+{% block title %}القوالب – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-file-earmark-richtext-fill me-2"></i>القوالب البريدية{% endblock %}
+{% block top_actions %}<a href="{% url 'templates_mgr:template_create' %}" class="btn btn-inexc btn-sm">+ قالب جديد</a>{% endblock %}
+{% block content %}
+<div class="row g-3">
+  {% for t in templates %}
+  <div class="col-md-4">
+    <div class="stat-card h-100">
+      <div class="d-flex justify-content-between mb-2"><h6 class="fw-bold">{{ t.name }}</h6><span class="badge bg-{% if t.is_active %}success{% else %}secondary{% endif %}">{% if t.is_active %}نشط{% else %}معطل{% endif %}</span></div>
+      <p class="text-muted small">{{ t.subject|truncatechars:50 }}</p>
+      <div class="d-flex gap-1 mt-3">
+        <a href="{% url 'templates_mgr:template_detail' t.pk %}" class="btn btn-sm btn-inexc flex-fill">عرض</a>
+        <a href="{% url 'templates_mgr:template_edit' t.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+        <a href="{% url 'templates_mgr:template_delete' t.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('حذف؟')"><i class="bi bi-trash"></i></a>
+      </div>
+    </div>
+  </div>
+  {% empty %}<div class="col-12 text-center py-5"><i class="bi bi-file-earmark-richtext text-muted" style="font-size:3rem;"></i><p class="text-muted mt-2">لا توجد قوالب. <a href="{% url 'templates_mgr:template_create' %}">أنشئ قالباً</a></p></div>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base/base.html" %}
+{% block title %}قائمة جديدة – INEXC{% endblock %}
+{% block page_title %}إنشاء قائمة جديدة{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6"><div class="form-card">
+  <form method="post">{% csrf_token %}
+    <div class="mb-3"><label class="form-label fw-bold">اسم القائمة *</label><input type="text" name="name" class="form-control" required autofocus></div>
+    <div class="mb-4"><label class="form-label fw-bold">الوصف</label><textarea name="description" class="form-control" rows="3"></textarea></div>
+    <button type="submit" class="btn btn-inexc w-100">إنشاء القائمة</button>
+  </form>
+</div></div></div>
+{% endblock %}

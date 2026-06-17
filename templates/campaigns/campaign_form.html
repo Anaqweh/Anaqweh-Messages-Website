@@ -1,0 +1,38 @@
+{% extends "base/base.html" %}
+{% block title %}حملة جديدة – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-plus-circle me-2"></i>إنشاء حملة جديدة{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8"><div class="form-card">
+    <form method="post">{% csrf_token %}
+      <div class="mb-3"><label class="form-label fw-bold">اسم الحملة *</label><input type="text" name="name" class="form-control" required></div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6"><label class="form-label fw-bold">القائمة *</label><select name="mailing_list" class="form-select" required><option value="">-- اختر --</option>{% for ml in lists %}<option value="{{ ml.pk }}">{{ ml.name }} ({{ ml.active_count }})</option>{% endfor %}</select></div>
+        <div class="col-md-6"><label class="form-label fw-bold">من قالب</label><select id="ts" class="form-select"><option value="">-- اختياري --</option>{% for t in templates %}<option value="{{ t.pk }}" data-s="{{ t.subject }}" data-h="{{ t.body_html|escapejs }}">{{ t.name }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="mb-3"><label class="form-label fw-bold">العنوان *</label><input type="text" name="subject" id="si" class="form-control" required></div>
+      <div class="mb-2"><label class="form-label fw-bold">محتوى HTML *</label>
+        <div class="d-flex gap-1 flex-wrap mb-2">{% for v in supported_vars %}<span class="badge bg-light text-dark border" style="cursor:pointer" onclick="ins('{{ v }}')">{{ v }}</span>{% endfor %}</div>
+        <textarea name="body_html" id="bh" class="form-control" rows="10" required></textarea>
+      </div>
+      <div class="mb-3"><label class="form-label fw-bold">محتوى نصي</label><textarea name="body_text" class="form-control" rows="3"></textarea></div>
+      <div class="mb-3"><label class="form-label fw-bold">جدولة (اختياري)</label><input type="datetime-local" name="scheduled_at" class="form-control"></div>
+      <div class="d-flex gap-2">
+        <button type="submit" name="send_now" value="0" class="btn btn-outline-secondary flex-fill">حفظ كمسودة</button>
+        <button type="submit" name="send_now" value="1" class="btn btn-inexc flex-fill" onclick="return confirm('إرسال الآن؟')">إرسال الآن</button>
+      </div>
+    </form>
+  </div></div>
+  <div class="col-lg-4">
+    <div class="form-card mb-3"><h6 class="fw-bold text-primary mb-3">رسالة اختبارية</h6><input type="email" id="te" class="form-control mb-2" placeholder="your@email.com"><button class="btn btn-outline-primary btn-sm w-100" onclick="st()">إرسال اختبار</button><div id="tr" class="mt-2 small"></div></div>
+    <div class="form-card"><h6 class="fw-bold text-primary mb-3">معاينة</h6><button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="pv()">تحديث</button><iframe id="pf" style="width:100%;min-height:250px;border:1px solid #e2e8f0;border-radius:8px"></iframe></div>
+  </div>
+</div>
+<script>
+const bh=document.getElementById('bh');
+function ins(v){const s=bh.selectionStart;bh.value=bh.value.substring(0,s)+v+bh.value.substring(bh.selectionEnd);bh.focus()}
+document.getElementById('ts').addEventListener('change',function(){const o=this.options[this.selectedIndex];if(o.value){document.getElementById('si').value=o.dataset.s||'';bh.value=o.dataset.h||''}});
+function pv(){document.getElementById('pf').srcdoc=bh.value.replace(/{{name}}/g,'أحمد').replace(/{{course_name}}/g,'دورة Python').replace(/{{email}}/g,'a@b.com').replace(/{{phone}}/g,'0501234567').replace(/{{custom_message}}/g,'رسالة')}
+function st(){const e=document.getElementById('te').value.trim();if(!e){alert('أدخل بريدك');return}const r=document.getElementById('tr');r.innerHTML='جارٍ الإرسال...';fetch('{% url "campaigns:send_test" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},body:JSON.stringify({email:e,subject:document.getElementById('si').value,body_html:bh.value})}).then(r=>r.json()).then(d=>{r.innerHTML=d.success?'<span class="text-success">تم الإرسال!</span>':'<span class="text-danger">'+d.error+'</span>'})}
+</script>
+{% endblock %}

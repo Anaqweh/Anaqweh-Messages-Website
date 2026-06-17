@@ -1,0 +1,13 @@
+{% extends "base/base.html" %}
+{% block title %}مستخدم جديد{% endblock %}
+{% block page_title %}إضافة مستخدم جديد{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6"><div class="form-card">
+  <form method="post">{% csrf_token %}
+    <div class="mb-3"><label class="form-label fw-bold">اسم المستخدم *</label><input type="text" name="username" class="form-control" required></div>
+    <div class="mb-3"><label class="form-label fw-bold">كلمة المرور *</label><input type="text" name="password" class="form-control" required></div>
+    <div class="mb-4"><label class="form-label fw-bold">الصلاحية</label><select name="role" class="form-select"><option value="staff">موظف (وصول عادي)</option><option value="admin">مدير (كل الصلاحيات)</option></select></div>
+    <button type="submit" class="btn btn-inexc w-100">إنشاء المستخدم</button>
+  </form>
+</div></div></div>
+{% endblock %}

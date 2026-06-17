@@ -1,0 +1,52 @@
+{% extends "base/base.html" %}
+{% block title %}لوحة التحكم – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-grid-fill me-2"></i>لوحة التحكم{% endblock %}
+{% block top_actions %}
+<a href="{% url 'campaigns:campaign_create' %}" class="btn btn-inexc btn-sm">+ حملة جديدة</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-2"><div class="stat-card"><div class="stat-value">{{ stats.total_campaigns }}</div><div class="stat-label">إجمالي الحملات</div></div></div>
+  <div class="col-md-2"><div class="stat-card"><div class="stat-value text-primary">{{ stats.running }}</div><div class="stat-label">جارية</div></div></div>
+  <div class="col-md-2"><div class="stat-card"><div class="stat-value text-success">{{ stats.completed }}</div><div class="stat-label">مكتملة</div></div></div>
+  <div class="col-md-2"><div class="stat-card"><div class="stat-value text-success">{{ stats.total_emails_sent }}</div><div class="stat-label">رسائل مرسلة</div></div></div>
+  <div class="col-md-2"><div class="stat-card"><div class="stat-value text-danger">{{ stats.total_failed }}</div><div class="stat-label">فاشلة</div></div></div>
+  <div class="col-md-2"><div class="stat-card"><div class="stat-value text-warning">{{ stats.total_pending }}</div><div class="stat-label">انتظار</div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="data-table">
+      <div class="p-3 border-bottom d-flex justify-content-between"><span class="fw-bold" style="color:#1e3a6e;">آخر الحملات</span><a href="{% url 'campaigns:campaign_list' %}" class="btn btn-sm btn-outline-secondary">عرض الكل</a></div>
+      <table class="table table-hover">
+        <thead><tr><th>الحملة</th><th>الحالة</th><th>معدل النجاح</th></tr></thead>
+        <tbody>
+          {% for c in campaigns %}
+          <tr>
+            <td><a href="{% url 'campaigns:campaign_detail' c.pk %}" class="fw-bold text-decoration-none text-dark">{{ c.name }}</a><div class="text-muted small">{{ c.created_at|date:"Y/m/d" }}</div></td>
+            <td><span class="badge bg-{{ c.get_status_color }}">{{ c.get_status_display }}</span></td>
+            <td><div class="d-flex align-items-center gap-2"><div class="progress flex-grow-1" style="height:6px;"><div class="progress-bar bg-success" style="width:{{ c.success_rate }}%"></div></div><small>{{ c.success_rate }}%</small></div></td>
+          </tr>
+          {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">لا توجد حملات بعد</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="data-table">
+      <div class="p-3 border-bottom"><span class="fw-bold" style="color:#1e3a6e;">آخر عمليات الإرسال</span></div>
+      <table class="table table-hover">
+        <thead><tr><th>البريد</th><th>الحملة</th><th>الحالة</th></tr></thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td class="small">{{ log.recipient_email }}</td>
+            <td class="small text-muted">{{ log.campaign.name|truncatechars:25 }}</td>
+            <td><span class="badge bg-{{ log.get_status_color }}">{{ log.get_status_display }}</span></td>
+          </tr>
+          {% empty %}<tr><td colspan="3" class="text-center text-muted py-4">لا توجد سجلات</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base/base.html" %}
+{% block title %}{{ ml.name }} – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-people-fill me-2"></i>{{ ml.name }}{% endblock %}
+{% block top_actions %}<a href="{% url 'recipients:recipient_add' ml.pk %}" class="btn btn-inexc btn-sm">+ إضافة مستلم</a>{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8"><div class="data-table">
+    <div class="p-3 border-bottom d-flex gap-2"><form method="get" class="d-flex gap-2 flex-grow-1"><input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="بحث..."><button class="btn btn-sm btn-outline-primary">بحث</button></form><span class="badge bg-primary align-self-center">{{ recipients.count }}</span></div>
+    <table class="table table-hover"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>
+      {% for r in recipients %}
+      <tr><td>{{ r.name|default:"—" }}</td><td class="small">{{ r.email }}</td><td class="small text-muted">{{ r.phone|default:"—" }}</td>
+        <td>{% if r.is_unsubscribed %}<span class="badge bg-secondary">ملغى</span>{% else %}<span class="badge bg-success">نشط</span>{% endif %}</td>
+        <td><a href="{% url 'recipients:recipient_edit' r.pk %}" class="btn btn-xs btn-outline-secondary"><i class="bi bi-pencil"></i></a> <a href="{% url 'recipients:recipient_delete' r.pk %}" class="btn btn-xs btn-outline-danger" onclick="return confirm('حذف؟')"><i class="bi bi-trash"></i></a></td>
+      </tr>
+      {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">لا يوجد مستلمون</td></tr>{% endfor %}
+    </tbody></table>
+  </div></div>
+  <div class="col-lg-4"><div class="form-card">
+    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-upload me-2"></i>رفع ملف</h6>
+    <form method="post" action="{% url 'recipients:upload_file' ml.pk %}" enctype="multipart/form-data">{% csrf_token %}
+      <input type="file" name="file" class="form-control mb-2" accept=".xlsx,.xls,.csv,.tsv" required>
+      <small class="text-muted">Excel، CSV مدعومة</small>
+      <button type="submit" class="btn btn-inexc btn-sm w-100 mt-3">رفع واستيراد</button>
+    </form>
+    {% if batches %}<hr><h6 class="fw-bold small">آخر الرفع</h6>{% for b in batches %}<div class="small d-flex justify-content-between mb-1"><span class="text-truncate" style="max-width:140px">{{ b.original_name }}</span><span class="text-success">+{{ b.imported }}</span></div>{% endfor %}{% endif %}
+  </div></div>
+</div>
+{% endblock %}

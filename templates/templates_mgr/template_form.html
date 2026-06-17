@@ -1,0 +1,29 @@
+{% extends "base/base.html" %}
+{% block title %}قالب – INEXC{% endblock %}
+{% block page_title %}{% if t %}تعديل: {{ t.name }}{% else %}قالب جديد{% endif %}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="form-card">
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3"><label class="form-label fw-bold">اسم القالب *</label><input type="text" name="name" class="form-control" value="{{ t.name|default:'' }}" required></div>
+        <div class="mb-3"><label class="form-label fw-bold">عنوان الرسالة *</label><input type="text" name="subject" class="form-control" value="{{ t.subject|default:'' }}" required></div>
+        <div class="mb-2"><label class="form-label fw-bold">محتوى HTML *</label>
+          <div class="d-flex gap-1 flex-wrap mb-2">{% for v in supported_vars %}<span class="badge bg-light text-dark border" style="cursor:pointer" onclick="ins('{{ v }}')">{{ v }}</span>{% endfor %}</div>
+          <textarea name="body_html" id="bh" class="form-control" rows="12" required>{{ t.body_html|default:'' }}</textarea>
+        </div>
+        <div class="mb-4"><label class="form-label fw-bold">محتوى نصي</label><textarea name="body_text" class="form-control" rows="4">{{ t.body_text|default:'' }}</textarea></div>
+        <button type="submit" class="btn btn-inexc">حفظ القالب</button>
+        <a href="{% url 'templates_mgr:template_list' %}" class="btn btn-outline-secondary">إلغاء</a>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-4"><div class="form-card"><h6 class="fw-bold text-primary mb-3">معاينة</h6><button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="pv()">تحديث</button><iframe id="pf" style="width:100%;min-height:300px;border:1px solid #e2e8f0;border-radius:8px"></iframe></div></div>
+</div>
+<script>
+const bh=document.getElementById('bh');
+function ins(v){const s=bh.selectionStart;bh.value=bh.value.substring(0,s)+v+bh.value.substring(bh.selectionEnd);bh.focus()}
+function pv(){document.getElementById('pf').srcdoc=bh.value.replace(/{{name}}/g,'أحمد').replace(/{{email}}/g,'a@b.com').replace(/{{course_name}}/g,'دورة Python').replace(/{{phone}}/g,'0501234567').replace(/{{custom_message}}/g,'رسالة')}
+</script>
+{% endblock %}
