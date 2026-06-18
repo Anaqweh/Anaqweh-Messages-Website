@@ -1,0 +1,48 @@
+{% extends "base/base.html" %}
+{% block title %}تنظيف القائمة – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-shield-check me-2"></i>تنظيف: {{ ml.name }}{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-success">{{ results.valid|length }}</div><div class="stat-label">صحيح</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-danger">{{ results.invalid|length }}</div><div class="stat-label">صيغة خاطئة</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-warning">{{ results.disposable|length }}</div><div class="stat-label">وهمي/مؤقت</div></div></div>
+  <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value text-info">{{ results.typo|length }}</div><div class="stat-label">خطأ إملائي</div></div></div>
+</div>
+
+<div class="d-flex gap-2 mb-4">
+  {% if results.invalid or results.disposable %}
+  <form method="post"><input type="hidden" name="action" value="remove_bad">{% csrf_token %}
+    <button class="btn btn-danger" onclick="return confirm('حذف كل الإيميلات غير الصالحة والوهمية؟')"><i class="bi bi-trash me-1"></i>حذف غير الصالح والوهمي ({{ results.invalid|length|add:results.disposable|length }})</button>
+  </form>
+  {% endif %}
+  {% if results.typo %}
+  <form method="post"><input type="hidden" name="action" value="fix_typos">{% csrf_token %}
+    <button class="btn btn-success" onclick="return confirm('تصحيح الأخطاء الإملائية تلقائياً؟')"><i class="bi bi-magic me-1"></i>تصحيح الأخطاء الإملائية ({{ results.typo|length }})</button>
+  </form>
+  {% endif %}
+  <a href="{% url 'recipients:list_detail' ml.pk %}" class="btn btn-outline-secondary">رجوع</a>
+</div>
+
+{% if results.typo %}
+<div class="data-table mb-3">
+  <div class="p-3 border-bottom fw-bold text-info">أخطاء إملائية مقترح تصحيحها</div>
+  <table class="table table-hover"><thead><tr><th>الحالي</th><th>المقترح</th></tr></thead><tbody>
+    {% for x in results.typo %}<tr><td class="text-danger">{{ x.recipient.email }}</td><td class="text-success">{{ x.suggestion }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endif %}
+
+{% if results.invalid or results.disposable %}
+<div class="data-table">
+  <div class="p-3 border-bottom fw-bold text-danger">إيميلات للحذف</div>
+  <table class="table table-hover"><thead><tr><th>البريد</th><th>السبب</th></tr></thead><tbody>
+    {% for x in results.invalid %}<tr><td>{{ x.recipient.email }}</td><td class="text-danger small">{{ x.reason }}</td></tr>{% endfor %}
+    {% for x in results.disposable %}<tr><td>{{ x.recipient.email }}</td><td class="text-warning small">{{ x.reason }}</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endif %}
+
+{% if not results.invalid and not results.disposable and not results.typo %}
+<div class="text-center py-5"><i class="bi bi-shield-check text-success" style="font-size:3rem;"></i><p class="text-muted mt-2">القائمة نظيفة تماماً! كل الإيميلات صحيحة.</p></div>
+{% endif %}
+{% endblock %}

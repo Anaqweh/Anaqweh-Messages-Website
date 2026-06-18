@@ -12,6 +12,8 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user and user.is_staff:
             login(request, user)
+            from apps.accounts.audit import log_action
+            log_action(request, 'تسجيل دخول', f'دخل المستخدم {username}')
             return redirect(request.GET.get('next','campaigns:dashboard'))
         messages.error(request, 'بيانات الدخول غير صحيحة.')
     return render(request, 'accounts/login.html')
@@ -65,3 +67,11 @@ def user_delete(request, pk):
     else:
         messages.error(request, 'لا يمكن حذف مدير.')
     return redirect('accounts:user_list')
+
+
+from apps.accounts.audit import AuditLog
+
+@user_passes_test(is_superuser)
+def audit_log_view(request):
+    logs = AuditLog.objects.all()[:300]
+    return render(request, 'accounts/audit_log.html', {'logs': logs})

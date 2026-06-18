@@ -5,6 +5,25 @@ from django.utils import timezone
 from django.conf import settings
 logger = logging.getLogger(__name__)
 
+
+
+def check_deliverability_guard():
+    """Returns (can_send, reason) based on daily limit and failure rate."""
+    from apps.campaigns.models import EmailLog
+    from django.conf import settings
+    from django.utils import timezone
+    from datetime import timedelta
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    daily_sent = EmailLog.objects.filter(sent_at__gte=today_start, status__in=['sent','opened','clicked']).count()
+    if daily_sent >= settings.DAILY_SEND_LIMIT:
+        return False, f'تم بلوغ الحد اليومي ({settings.DAILY_SEND_LIMIT})'
+    last_hour = now - timedelta(hours=1)
+    recent_failures = EmailLog.objects.filter(last_attempt_at__gte=last_hour, status='failed').count()
+    if recent_failures >= settings.FAILURE_THRESHOLD:
+        return False, f'فشل متكرر ({recent_failures}) - إيقاف وقائي'
+    return True, 'OK'
+
 @shared_task(bind=True, max_retries=3)
 def send_single_email_task(self, log_id):
     from apps.campaigns.models import EmailLog
@@ -17,6 +36,11 @@ def send_single_email_task(self, log_id):
         return
     if log.status == 'sent':
         return
+    can_send, guard_reason = check_deliverability_guard()
+    if not can_send:
+        log.error_message = f'حماية: {guard_reason}'
+        log.save(update_fields=['error_message'])
+        raise self.retry(countdown=600)
     log.status = 'sending'
     log.attempts += 1
     log.last_attempt_at = timezone.now()
@@ -56,6 +80,14 @@ def send_single_email_task(self, log_id):
             log.status = 'failed'
             log.error_message = error
             log.emailjs_response = result.get('raw_response',{})
+            # Blacklist permanently failed emails to protect sender reputation
+            try:
+                from apps.recipients.models import UnsubscribeList, Recipient
+                if 'bounce' in error.lower() or 'invalid' in error.lower() or log.attempts >= 3:
+                    UnsubscribeList.objects.get_or_create(email=log.recipient_email, defaults={'reason':'فشل إرسال متكرر (حماية تلقائية)'})
+                    Recipient.objects.filter(email=log.recipient_email).update(is_unsubscribed=True)
+            except Exception:
+                pass
     log.save(update_fields=['status','sent_at','message_id','emailjs_response','error_message','attempts'])
 
 @shared_task(bind=True)

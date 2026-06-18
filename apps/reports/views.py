@@ -97,3 +97,19 @@ def analytics_api(request):
         'pending': EmailLog.objects.filter(status__in=['pending','sending']).count(),
     }
     return JsonResponse({'days': days, 'sent': sent_data, 'opened': opened_data, 'status': status_counts})
+
+
+def heatmap_api(request):
+    """Activity heatmap: opens by day-of-week x hour."""
+    from apps.campaigns.models import EmailLog
+    grid = [[0]*24 for _ in range(7)]
+    logs = EmailLog.objects.filter(opened_at__isnull=False).values_list('opened_at', flat=True)
+    for dt in logs:
+        if dt:
+            grid[dt.weekday()][dt.hour] += 1
+    sent_grid = [[0]*24 for _ in range(7)]
+    sent = EmailLog.objects.filter(sent_at__isnull=False).values_list('sent_at', flat=True)
+    for dt in sent:
+        if dt:
+            sent_grid[dt.weekday()][dt.hour] += 1
+    return JsonResponse({'opens': grid, 'sent': sent_grid})

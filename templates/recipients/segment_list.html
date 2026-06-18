@@ -1,0 +1,46 @@
+{% extends "base/base.html" %}
+{% block title %}تجزئة المستلمين – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-diagram-3 me-2"></i>تجزئة: {{ ml.name }}{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="form-card">
+      <h6 class="fw-bold text-primary mb-3">شروط التصفية</h6>
+      <form method="get">
+        <div class="mb-3">
+          <label class="form-label fw-bold">الهاتف</label>
+          <select name="has_phone" class="form-select">
+            <option value="">الكل</option>
+            <option value="1" {% if has_phone == '1' %}selected{% endif %}>لديهم هاتف</option>
+            <option value="0" {% if has_phone == '0' %}selected{% endif %}>بدون هاتف</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">اسم الدورة يحتوي</label>
+          <input type="text" name="course" value="{{ course }}" class="form-control" placeholder="مثال: Python">
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-bold">الاسم يحتوي</label>
+          <input type="text" name="name_contains" value="{{ name_contains }}" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-inexc w-100"><i class="bi bi-funnel me-1"></i>تطبيق التصفية</button>
+      </form>
+      <hr>
+      <form method="post">{% csrf_token %}
+        <label class="form-label fw-bold">حفظ النتيجة كقائمة جديدة</label>
+        <input type="text" name="segment_name" class="form-control mb-2" placeholder="اسم الشريحة" required>
+        <button type="submit" class="btn btn-success w-100"><i class="bi bi-save me-1"></i>إنشاء شريحة ({{ total }})</button>
+      </form>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="data-table">
+      <div class="p-3 border-bottom d-flex justify-content-between"><span class="fw-bold" style="color:#1e3a6e">النتائج</span><span class="badge bg-primary">{{ total }} مستلم</span></div>
+      <table class="table table-hover"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>الدورة</th></tr></thead><tbody>
+        {% for r in recipients %}<tr><td>{{ r.name|default:"—" }}</td><td class="small">{{ r.email }}</td><td class="small text-muted">{{ r.phone|default:"—" }}</td><td class="small">{{ r.custom_field_1|default:"—" }}</td></tr>
+        {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">لا نتائج مطابقة</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+  </div>
+</div>
+{% endblock %}

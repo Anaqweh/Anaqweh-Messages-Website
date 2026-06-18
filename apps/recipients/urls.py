@@ -12,4 +12,6 @@ urlpatterns = [
     path('recipient/<int:pk>/delete/', views.recipient_delete, name='recipient_delete'),
     path('unsubscribe/', views.unsubscribe_list_view, name='unsubscribe_list'),
     path('unsubscribe/<str:email>/', views.unsubscribe_public, name='unsubscribe'),
+    path('<int:pk>/clean/', views.clean_list, name='clean_list'),
+    path('<int:pk>/segment/', views.segment_list, name='segment_list'),
 ]

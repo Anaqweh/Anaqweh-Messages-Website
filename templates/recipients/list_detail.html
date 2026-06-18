@@ -1,7 +1,7 @@
 {% extends "base/base.html" %}
 {% block title %}{{ ml.name }} – INEXC{% endblock %}
 {% block page_title %}<i class="bi bi-people-fill me-2"></i>{{ ml.name }}{% endblock %}
-{% block top_actions %}<a href="{% url 'recipients:recipient_add' ml.pk %}" class="btn btn-inexc btn-sm">+ إضافة مستلم</a>{% endblock %}
+{% block top_actions %}<a href="{% url 'recipients:segment_list' ml.pk %}" class="btn btn-outline-info btn-sm me-2"><i class="bi bi-diagram-3 me-1"></i>تجزئة</a><a href="{% url 'recipients:clean_list' ml.pk %}" class="btn btn-outline-warning btn-sm me-2"><i class="bi bi-shield-check me-1"></i>تنظيف القائمة</a><a href="{% url 'recipients:recipient_add' ml.pk %}" class="btn btn-inexc btn-sm">+ إضافة مستلم</a>{% endblock %}
 {% block content %}
 <div class="row g-3">
   <div class="col-lg-8"><div class="data-table">

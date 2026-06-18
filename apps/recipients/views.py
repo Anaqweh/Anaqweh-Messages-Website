@@ -209,3 +209,66 @@ def unsubscribe_public(request, email):
     UnsubscribeList.objects.get_or_create(email=email.lower())
     Recipient.objects.filter(email=email.lower()).update(is_unsubscribed=True)
     return render(request, 'recipients/unsubscribed.html', {'email': email})
+
+
+from apps.recipients.cleaner import analyze_email
+
+@login_required
+def clean_list(request, pk):
+    ml = get_object_or_404(MailingList, pk=pk)
+    results = {'valid':[], 'invalid':[], 'disposable':[], 'typo':[]}
+    for r in ml.recipients.all():
+        a = analyze_email(r.email)
+        a['recipient'] = r
+        results[a['status']].append(a)
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'remove_bad':
+            ids = [x['recipient'].id for x in results['invalid']+results['disposable']]
+            Recipient.objects.filter(id__in=ids).delete()
+            messages.success(request, f'تم حذف {len(ids)} إيميل غير صالح/وهمي.')
+            return redirect('recipients:list_detail', pk=pk)
+        elif action == 'fix_typos':
+            fixed = 0
+            for x in results['typo']:
+                r = x['recipient']
+                r.email = x['suggestion']
+                r.save()
+                fixed += 1
+            messages.success(request, f'تم تصحيح {fixed} إيميل.')
+            return redirect('recipients:list_detail', pk=pk)
+    return render(request, 'recipients/clean_list.html', {'ml':ml,'results':results})
+
+
+@login_required
+def segment_list(request, pk):
+    ml = get_object_or_404(MailingList, pk=pk)
+    recipients = ml.recipients.filter(is_active=True, is_unsubscribed=False)
+    has_phone = request.GET.get('has_phone')
+    course = request.GET.get('course', '').strip()
+    name_contains = request.GET.get('name_contains', '').strip()
+    if has_phone == '1':
+        recipients = recipients.exclude(phone='')
+    elif has_phone == '0':
+        recipients = recipients.filter(phone='')
+    if course:
+        recipients = recipients.filter(custom_field_1__icontains=course)
+    if name_contains:
+        recipients = recipients.filter(name__icontains=name_contains)
+
+    if request.method == 'POST':
+        new_name = request.POST.get('segment_name', '').strip()
+        if new_name:
+            new_ml = MailingList.objects.create(name=new_name, description=f'شريحة من: {ml.name}')
+            count = 0
+            for r in recipients:
+                Recipient.objects.get_or_create(mailing_list=new_ml, email=r.email,
+                    defaults={'name':r.name,'phone':r.phone,'custom_field_1':r.custom_field_1,'custom_field_2':r.custom_field_2})
+                count += 1
+            messages.success(request, f'تم إنشاء شريحة "{new_name}" بـ {count} مستلم.')
+            return redirect('recipients:list_detail', pk=new_ml.pk)
+
+    return render(request, 'recipients/segment_list.html', {
+        'ml': ml, 'recipients': recipients[:200], 'total': recipients.count(),
+        'has_phone': has_phone, 'course': course, 'name_contains': name_contains,
+    })

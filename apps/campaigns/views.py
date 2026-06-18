@@ -9,6 +9,7 @@ from .models import Campaign, EmailLog
 from apps.templates_mgr.models import EmailTemplate
 from apps.recipients.models import MailingList
 from .tasks import run_campaign_task, send_test_email_task
+from apps.accounts.audit import log_action
 
 @login_required
 def dashboard(request):
@@ -56,6 +57,7 @@ def campaign_create(request):
             campaign.status = 'running'
             campaign.save()
             run_campaign_task.delay(campaign.id)
+            log_action(request, 'إطلاق حملة', f'الحملة: {name}')
             messages.success(request, f'تم إطلاق الحملة "{name}"!')
         elif scheduled_at:
             campaign.status = 'scheduled'
@@ -82,6 +84,7 @@ def campaign_detail(request, pk):
 @login_required
 def campaign_action(request, pk, action):
     campaign = get_object_or_404(Campaign, pk=pk)
+    log_action(request, f'حملة: {action}', f'الحملة: {campaign.name}')
     if action == 'start' and campaign.status in ('draft','paused'):
         campaign.status = 'running'
         campaign.save()

@@ -1,0 +1,12 @@
+{% extends "base/base.html" %}
+{% block title %}سجل النشاط – INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-journal-text me-2"></i>سجل نشاط المشرفين{% endblock %}
+{% block content %}
+<div class="data-table">
+  <table class="table table-hover"><thead><tr><th>المستخدم</th><th>العملية</th><th>التفاصيل</th><th>IP</th><th>الوقت</th></tr></thead><tbody>
+    {% for log in logs %}
+    <tr><td class="fw-bold">{{ log.username }}</td><td><span class="badge bg-primary">{{ log.action }}</span></td><td class="small text-muted">{{ log.details|truncatechars:60 }}</td><td class="small text-muted">{{ log.ip_address }}</td><td class="small text-muted">{{ log.created_at|date:"Y/m/d H:i" }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">لا يوجد نشاط مسجّل</td></tr>{% endfor %}
+  </tbody></table>
+</div>
+{% endblock %}

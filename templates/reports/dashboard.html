@@ -2,6 +2,28 @@
 {% block title %}التقارير – INEXC{% endblock %}
 {% block page_title %}<i class="bi bi-bar-chart-fill me-2"></i>التقارير والإحصائيات{% endblock %}
 {% block content %}
+<div class="form-card mb-4">
+  <h6 class="fw-bold text-primary mb-3">خريطة نشاط الفتح (اليوم × الساعة)</h6>
+  <div id="heatmapGrid" style="overflow-x:auto"></div>
+  <small class="text-muted">الألوان الأغمق = نشاط فتح أعلى. يساعدك تحديد أفضل وقت للإرسال.</small>
+</div>
+<script>
+fetch("{% url 'reports:heatmap_api' %}").then(r=>r.json()).then(d=>{
+  const days=['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت','الأحد'];
+  let max=1; d.opens.forEach(r=>r.forEach(v=>{if(v>max)max=v}));
+  let html='<table style="border-collapse:collapse;font-size:11px"><tr><td></td>';
+  for(let h=0;h<24;h++)html+=`<td style="padding:2px;text-align:center;color:#888">${h}</td>`;
+  html+='</tr>';
+  d.opens.forEach((row,i)=>{
+    html+=`<tr><td style="padding:4px;font-weight:600;white-space:nowrap">${days[i]}</td>`;
+    row.forEach(v=>{const o=v/max;const bg=v===0?'#f0f4f8':`rgba(30,58,110,${0.15+o*0.85})`;html+=`<td title="${v} فتح" style="width:22px;height:22px;background:${bg};border:1px solid #fff;border-radius:3px"></td>`});
+    html+='</tr>';
+  });
+  html+='</table>';
+  document.getElementById('heatmapGrid').innerHTML=html;
+});
+</script>
+
 <div class="row g-3 mb-4">
   <div class="col-lg-8"><div class="form-card"><h6 class="fw-bold text-primary mb-3">نشاط آخر 14 يوم</h6><canvas id="activityChart" height="100"></canvas></div></div>
   <div class="col-lg-4"><div class="form-card"><h6 class="fw-bold text-primary mb-3">توزيع الحالات</h6><canvas id="statusChart" height="200"></canvas></div></div>

@@ -58,6 +58,7 @@ body{background:#f0f4f8;min-height:100vh}
   {% if user.is_superuser %}
   <div class="nav-section-title">الإدارة</div>
   <a href="{% url 'accounts:user_list' %}" class="nav-link"><i class="bi bi-person-gear"></i> المستخدمون</a>
+  <a href="{% url 'accounts:audit_log' %}" class="nav-link"><i class="bi bi-journal-text"></i> سجل النشاط</a>
   {% endif %}
   <div class="nav-section-title">الحساب</div>
   <a href="{% url 'accounts:logout' %}" class="nav-link"><i class="bi bi-box-arrow-left"></i> تسجيل الخروج</a>

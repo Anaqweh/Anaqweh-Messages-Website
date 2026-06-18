@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'django_celery_results',
     # Local apps
+    'apps.accounts',
     'apps.campaigns',
     'apps.recipients',
     'apps.templates_mgr',
@@ -121,6 +122,8 @@ EMAILJS_PRIVATE_KEY = config('EMAILJS_PRIVATE_KEY', default='')
 BATCH_SIZE           = config('BATCH_SIZE',           default=50,  cast=int)
 BATCH_DELAY_SECONDS  = config('BATCH_DELAY_SECONDS',  default=2,   cast=int)
 MAX_RETRIES          = config('MAX_RETRIES',          default=3,   cast=int)
+DAILY_SEND_LIMIT = config('DAILY_SEND_LIMIT', default=2000, cast=int)
+FAILURE_THRESHOLD = config('FAILURE_THRESHOLD', default=20, cast=int)
 RETRY_DELAY_SECONDS  = config('RETRY_DELAY_SECONDS',  default=60,  cast=int)
 
 # ─── Session ──────────────────────────────────────────────
