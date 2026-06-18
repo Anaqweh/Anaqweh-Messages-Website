@@ -4,6 +4,7 @@ from apps.recipients.models import MailingList, Recipient
 from apps.templates_mgr.models import EmailTemplate
 
 class Campaign(models.Model):
+    owner = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True, related_name='campaigns')
     STATUS_CHOICES = [('draft','مسودة'),('scheduled','مجدولة'),('running','جارية'),('paused','متوقفة'),('completed','مكتملة'),('cancelled','ملغاة')]
     name = models.CharField(max_length=300)
     template = models.ForeignKey(EmailTemplate, on_delete=models.SET_NULL, null=True, blank=True, related_name='campaigns')

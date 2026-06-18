@@ -11,9 +11,21 @@ from apps.recipients.models import MailingList
 from .tasks import run_campaign_task, send_test_email_task
 from apps.accounts.audit import log_action
 
+
+
+def _guard_campaign(campaign, request):
+    from django.http import Http404
+    if not request.user.is_superuser and campaign.owner_id and campaign.owner_id != request.user.id:
+        raise Http404('غير مصرح')
+
+def _owned(qs, request):
+    if request.user.is_superuser:
+        return qs
+    return qs.filter(owner=request.user)
+
 @login_required
 def dashboard(request):
-    campaigns = Campaign.objects.all()[:10]
+    campaigns = _owned(Campaign.objects.all(), request)[:10]
     stats = {
         'total_campaigns': Campaign.objects.count(),
         'running': Campaign.objects.filter(status='running').count(),
@@ -27,7 +39,7 @@ def dashboard(request):
 
 @login_required
 def campaign_list(request):
-    qs = Campaign.objects.all()
+    qs = _owned(Campaign.objects.all(), request)
     status_filter = request.GET.get('status','')
     search = request.GET.get('q','')
     if status_filter:
@@ -52,7 +64,7 @@ def campaign_create(request):
         if not name or not subject or not body_html or not list_id:
             messages.error(request, 'يرجى ملء جميع الحقول المطلوبة.')
             return render(request, 'campaigns/campaign_form.html', {'templates': templates, 'lists': lists, 'supported_vars': EmailTemplate.SUPPORTED_VARS})
-        campaign = Campaign.objects.create(name=name, template_id=template_id or None, mailing_list_id=list_id, subject=subject, body_html=body_html, body_text=body_text, status='draft', scheduled_at=scheduled_at or None)
+        campaign = Campaign.objects.create(owner=request.user, name=name, template_id=template_id or None, mailing_list_id=list_id, subject=subject, body_html=body_html, body_text=body_text, status='draft', scheduled_at=scheduled_at or None)
         if send_now:
             campaign.status = 'running'
             campaign.save()
@@ -71,6 +83,8 @@ def campaign_create(request):
 @login_required
 def campaign_detail(request, pk):
     campaign = get_object_or_404(Campaign, pk=pk)
+    _guard_campaign(campaign, request)
+    _ = None if request.user.is_superuser or getattr(campaign,'owner_id',None) in (None,request.user.id) else __import__('django.http',fromlist=['Http404']).Http404()
     logs = campaign.logs.order_by('-created_at')
     status_filter = request.GET.get('status','')
     search = request.GET.get('q','')
@@ -84,6 +98,8 @@ def campaign_detail(request, pk):
 @login_required
 def campaign_action(request, pk, action):
     campaign = get_object_or_404(Campaign, pk=pk)
+    _guard_campaign(campaign, request)
+    _ = None if request.user.is_superuser or getattr(campaign,'owner_id',None) in (None,request.user.id) else __import__('django.http',fromlist=['Http404']).Http404()
     log_action(request, f'حملة: {action}', f'الحملة: {campaign.name}')
     if action == 'start' and campaign.status in ('draft','paused'):
         campaign.status = 'running'
@@ -120,4 +136,6 @@ def send_test_email(request):
 @login_required
 def campaign_stats_api(request, pk):
     campaign = get_object_or_404(Campaign, pk=pk)
+    _guard_campaign(campaign, request)
+    _ = None if request.user.is_superuser or getattr(campaign,'owner_id',None) in (None,request.user.id) else __import__('django.http',fromlist=['Http404']).Http404()
     return JsonResponse({'status': campaign.status, 'total': campaign.total_recipients, 'sent': campaign.sent_count, 'failed': campaign.failed_count, 'pending': campaign.pending_count, 'rate': campaign.success_rate})

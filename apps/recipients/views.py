@@ -7,6 +7,21 @@ from django.http import JsonResponse
 from django.db.models import Q
 from .models import MailingList, Recipient, UploadBatch, UnsubscribeList
 
+
+
+def _check_owner(obj, request):
+    """Raise 404-like redirect if user does not own the object."""
+    from django.http import Http404
+    if not request.user.is_superuser and getattr(obj, 'owner_id', None) and obj.owner_id != request.user.id:
+        raise Http404('غير مصرح')
+    return obj
+
+def _owned(qs, request):
+    """Return only objects owned by the user, unless superuser."""
+    if request.user.is_superuser:
+        return qs
+    return qs.filter(owner=request.user)
+
 EMAIL_RE = re.compile(r'^[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-.]+$')
 
 def is_valid_email(email):
@@ -27,7 +42,7 @@ def detect_email_column(df):
 
 @login_required
 def list_view(request):
-    mailing_lists = MailingList.objects.all()
+    mailing_lists = _owned(MailingList.objects.all(), request)
     search = request.GET.get('q','')
     if search:
         mailing_lists = mailing_lists.filter(name__icontains=search)
@@ -41,7 +56,7 @@ def list_create(request):
         if not name:
             messages.error(request, 'اسم القائمة مطلوب.')
         else:
-            ml = MailingList.objects.create(name=name, description=desc)
+            ml = MailingList.objects.create(owner=request.user, name=name, description=desc)
             messages.success(request, f'تم إنشاء القائمة "{name}".')
             return redirect('recipients:list_detail', pk=ml.pk)
     return render(request, 'recipients/list_form.html')
@@ -49,6 +64,7 @@ def list_create(request):
 @login_required
 def list_detail(request, pk):
     ml = get_object_or_404(MailingList, pk=pk)
+    _check_owner(ml, request)
     recipients = ml.recipients.filter(is_active=True)
     search = request.GET.get('q','')
     status = request.GET.get('status','')

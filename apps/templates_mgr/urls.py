@@ -7,4 +7,6 @@ urlpatterns = [
     path('<int:pk>/', views.template_detail, name='template_detail'),
     path('<int:pk>/edit/', views.template_edit, name='template_edit'),
     path('<int:pk>/delete/', views.template_delete, name='template_delete'),
+    path('builder/', views.builder, name='builder'),
+    path('builder/upload-image/', views.upload_image, name='upload_image'),
 ]

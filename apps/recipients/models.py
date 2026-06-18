@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 class MailingList(models.Model):
+    owner = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True, related_name='mailing_lists')
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
