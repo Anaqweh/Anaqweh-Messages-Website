@@ -1,0 +1,144 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ invoice.invoice_number }}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#e9edf3;color:#1f2937;padding:14px}
+.sheet{max-width:840px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(11,78,162,.12);overflow:hidden;position:relative}
+.ribbon{position:absolute;top:26px;left:-44px;transform:rotate(-45deg);color:#fff;padding:6px 56px;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.ribbon.paid{background:#16a34a}.ribbon.unpaid{background:#d97706}.ribbon.cancelled{background:#dc2626}
+.head{display:flex;justify-content:space-between;align-items:center;padding:18px 32px 14px;border-bottom:3px solid #0b4ea2}
+.head .brand{display:flex;align-items:center;gap:16px}
+.head .brand img{max-height:68px}
+.head .brand .bn{font-size:15px;font-weight:800;color:#0b4ea2;line-height:1.5;max-width:280px}
+.head .brand .bn small{display:block;font-size:10px;color:#7a8699;font-weight:600;margin-top:2px}
+.head .inv{text-align:left}
+.head .inv h1{font-size:26px;font-weight:800;color:#0b4ea2;letter-spacing:2px}
+.head .inv .kind{margin-top:4px;font-size:13px;color:#0b4ea2;font-weight:700;background:#eef4fb;padding:3px 10px;border-radius:6px;display:inline-block}
+.head .inv .n{margin-top:6px;font-size:13px;color:#374151;font-weight:700}
+.head .inv .d{font-size:12px;color:#7a8699;margin-top:2px}
+.cinfo{display:flex;flex-wrap:wrap;gap:6px 26px;padding:11px 32px;background:#f4f7fb;font-size:12.5px;color:#475569}
+.cinfo b{color:#0b4ea2}
+.parties{display:flex;flex-wrap:wrap;gap:20px;padding:18px 32px}
+.parties .card{flex:1;min-width:230px;background:#f8fafc;border:1px solid #e8eef5;border-radius:12px;padding:16px 18px}
+.parties .card .t{font-size:11px;color:#7a8699;font-weight:700;letter-spacing:1px;margin-bottom:8px}
+.parties .card .v{font-size:15px;font-weight:700;color:#111827}
+.parties .card .s{font-size:12.5px;color:#64748b;margin-top:3px}
+table.items{width:100%;border-collapse:collapse}
+table.items thead th{background:#0b4ea2;color:#fff;padding:11px 18px;font-size:13px;text-align:right}
+table.items tbody td{padding:11px 18px;border-bottom:1px solid #eef2f7;font-size:13.5px}
+table.items tbody tr:nth-child(even){background:#fafbfd}
+.items-wrap{padding:0 32px}
+.sumwrap{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:14px 32px;flex-wrap:wrap}
+.qrbox{text-align:center}
+.qrbox img{width:96px;height:96px;border:6px solid #f4f7fb;border-radius:10px}
+.qrbox .ql{font-size:11px;color:#7a8699;margin-top:4px}
+.totals{min-width:300px;margin-right:auto}
+.totals .row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;color:#475569}
+.totals .row.grand{border-top:2px solid #0b4ea2;margin-top:8px;padding-top:11px;font-size:19px;font-weight:800;color:#0b4ea2}
+.signs{display:flex;justify-content:space-between;align-items:flex-end;padding:8px 32px 16px;gap:20px}
+.signs .note{font-size:13px;color:#64748b;max-width:50%;line-height:1.8}
+.signs .authsign{display:flex;align-items:flex-end;gap:28px}
+.signs .sigcol{text-align:center}
+.signs .sigline{font-size:13px;font-weight:700;color:#0b4ea2;margin-bottom:6px}
+.signs .sigline small{display:block;font-size:10px;color:#7a8699;font-weight:600}
+.signs .sig{max-height:60px;display:block;margin:0 auto}
+.signs .stmp{max-height:105px;opacity:.96}
+.bar{background:linear-gradient(135deg,#0b4ea2,#1565c0);color:#fff;text-align:center;padding:14px;font-size:12px;letter-spacing:1px}
+.actions{max-width:840px;margin:18px auto 0;text-align:center}
+.actions button,.actions a{background:#0b4ea2;color:#fff;border:0;padding:12px 26px;border-radius:9px;font-size:14px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block;margin:0 4px}
+@page{size:A4;margin:8mm}@media print{body{background:#fff;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{box-shadow:none;border-radius:0;max-width:100%}.actions{display:none}.sheet,.head,.parties,.sumwrap,.signs{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+{% with c=company inv=invoice %}
+<div class="sheet">
+  <div class="ribbon {{ inv.status }}">{{ inv.get_status_display }}</div>
+
+  <div class="head">
+    <div class="brand">
+      {% if c.logo %}<img src="{{ c.logo.url }}" alt="logo">{% endif %}
+      <div class="bn">{{ c.name_ar }}<small>{{ c.name_en }}</small></div>
+    </div>
+    <div class="inv">
+      <h1>INVOICE</h1>
+      <div class="kind">{{ inv.get_kind_display }}</div>
+      <div class="n">{{ inv.invoice_number }}</div>
+      <div class="d">{{ inv.issue_date|date:"Y-m-d" }}</div>
+    </div>
+  </div>
+
+  <div class="cinfo">
+    {% if c.phone %}<span>📞 <b>{{ c.phone }}</b></span>{% endif %}
+    {% if c.email %}<span>✉️ <b>{{ c.email }}</b></span>{% endif %}
+    {% if c.website %}<span>🌐 <b>{{ c.website }}</b></span>{% endif %}
+    {% if c.trn %}<span>TRN: <b>{{ c.trn }}</b></span>{% endif %}
+    {% if c.license_no %}<span>رخصة: <b>{{ c.license_no }}</b></span>{% endif %}
+  </div>
+
+  <div class="parties">
+    <div class="card">
+      <div class="t">فاتورة إلى</div>
+      <div class="v">{{ inv.customer_name }}</div>
+      {% if inv.customer_email %}<div class="s">{{ inv.customer_email }}</div>{% endif %}
+      {% if inv.customer_phone %}<div class="s">{{ inv.customer_phone }}</div>{% endif %}
+      {% if inv.customer_address %}<div class="s">{{ inv.customer_address }}</div>{% endif %}
+    </div>
+    <div class="card">
+      <div class="t">معلومات الدفع</div>
+      <div class="v">{{ inv.get_payment_method_display }}</div>
+      {% if inv.payment_ref %}<div class="s">مرجع: {{ inv.payment_ref }}</div>{% endif %}
+      {% if inv.due_date %}<div class="s">تاريخ الاستحقاق: {{ inv.due_date|date:"Y-m-d" }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div class="items-wrap">
+    <table class="items">
+      <thead><tr><th>#</th><th>البيان / الوصف</th><th style="text-align:center">الكمية</th><th style="text-align:left">سعر الوحدة</th><th style="text-align:left">الإجمالي</th></tr></thead>
+      <tbody>
+        {% for it in inv.items.all %}
+        <tr><td>{{ forloop.counter }}</td><td>{{ it.description }}</td><td style="text-align:center">{{ it.quantity }}</td><td style="text-align:left">{{ it.unit_price }}</td><td style="text-align:left">{{ it.line_total }} {{ inv.currency|upper }}</td></tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:#999">لا توجد بنود</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sumwrap">
+    <div class="qrbox">
+      {% if qr_data_uri %}<img src="{{ qr_data_uri|safe }}" alt="QR">{% endif %}
+      <div class="ql">امسح للتحقق</div>
+    </div>
+    <div class="totals">
+      <div class="row"><span>الإجمالي الفرعي</span><span>{{ inv.subtotal }} {{ inv.currency|upper }}</span></div>
+      <div class="row"><span>الضريبة ({{ inv.tax_rate }}%)</span><span>{{ inv.tax_amount }} {{ inv.currency|upper }}</span></div>
+      <div class="row grand"><span>الإجمالي المستحق</span><span>{{ inv.total }} {{ inv.currency|upper }}</span></div>
+    </div>
+  </div>
+
+  <div class="signs">
+    <div class="note">{% if inv.notes %}{{ inv.notes }}{% else %}{{ c.invoice_footer }}{% endif %}</div>
+    <div class="authsign">
+      <div class="sigcol">
+        <div class="sigline">التوقيع المعتمد<small>Authorized Signature</small></div>
+        {% if c.signature %}<img class="sig" src="{{ c.signature.url }}" alt="signature">{% endif %}
+      </div>
+      {% if c.stamp %}<img class="stmp" src="{{ c.stamp.url }}" alt="stamp">{% endif %}
+    </div>
+  </div>
+
+  <div class="bar">{{ c.name_ar }} &nbsp;•&nbsp; {{ c.website }} &nbsp;•&nbsp; {{ c.phone }}</div>
+</div>
+
+<div class="actions">
+  <button onclick="window.print()">🖨 طباعة / حفظ PDF</button>
+  <a href="{% url 'payments:sales_invoice_pdf' invoice.token %}">⬇ تنزيل PDF</a>
+  <a href="{% url 'payments:sales_invoices' %}">← قائمة الفواتير</a>
+</div>
+{% endwith %}
+</body>
+</html>

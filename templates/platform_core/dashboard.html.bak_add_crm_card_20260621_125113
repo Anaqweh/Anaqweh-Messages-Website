@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}لوحة صاحب المنصة{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">لوحة صاحب المنصة</h2>
+      <div class="text-muted">إدارة النسخ والاشتراكات والوحدات المفعّلة.</div>
+    </div>
+    <a class="btn btn-primary" href="{% url 'platform_core:tenant_create' %}">+ إضافة نسخة</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">كل النسخ</div><h3>{{ tenants_count }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">نشطة</div><h3 class="text-success">{{ active_count }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">تجريبية</div><h3>{{ trial_count }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">موقوفة</div><h3 class="text-danger">{{ suspended_count }}</h3></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between">
+      <strong>أحدث النسخ</strong>
+      <a href="{% url 'platform_core:tenant_list' %}">عرض الكل</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table mb-0">
+        <thead><tr><th>الاسم</th><th>الحالة</th><th>الخطة</th><th>المالك</th><th></th></tr></thead>
+        <tbody>
+        {% for tenant in recent_tenants %}
+          <tr>
+            <td>{{ tenant.name }}</td>
+            <td>{{ tenant.get_status_display }}</td>
+            <td>{{ tenant.plan_name|default:"-" }}</td>
+            <td>{{ tenant.owner_email|default:"-" }}</td>
+            <td><a class="btn btn-sm btn-outline-primary" href="{% url 'platform_core:tenant_detail' tenant.pk %}">فتح</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">لا توجد نسخ بعد.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>{{ title }}</h2>
+    <a class="btn btn-outline-secondary" href="{% url 'platform_core:tenant_list' %}">رجوع</a>
+  </div>
+
+  <form method="post" class="card p-3">
+    {% csrf_token %}
+
+    <h5 class="mb-3">بيانات النسخة</h5>
+    <div class="row g-3">
+      <div class="col-md-6">{{ form.name.label_tag }}{{ form.name }}</div>
+      <div class="col-md-3">{{ form.slug.label_tag }}{{ form.slug }}</div>
+      <div class="col-md-3">{{ form.status.label_tag }}{{ form.status }}</div>
+      <div class="col-md-4">{{ form.owner_name.label_tag }}{{ form.owner_name }}</div>
+      <div class="col-md-4">{{ form.owner_email.label_tag }}{{ form.owner_email }}</div>
+      <div class="col-md-4">{{ form.owner_phone.label_tag }}{{ form.owner_phone }}</div>
+      <div class="col-md-6">{{ form.domain.label_tag }}{{ form.domain }}</div>
+      <div class="col-md-6">{{ form.plan_name.label_tag }}{{ form.plan_name }}</div>
+      <div class="col-md-6">{{ form.subscription_starts_at.label_tag }}{{ form.subscription_starts_at }}</div>
+      <div class="col-md-6">{{ form.subscription_ends_at.label_tag }}{{ form.subscription_ends_at }}</div>
+      <div class="col-12">{{ form.notes.label_tag }}{{ form.notes }}</div>
+    </div>
+
+    <hr>
+    <h5 class="mb-3">الوحدات المفعّلة</h5>
+    <div class="row g-2">
+      <div class="col-md-4"><label class="form-check">{{ form.module_email }} {{ form.module_email.label }}</label></div>
+      <div class="col-md-4"><label class="form-check">{{ form.module_finance }} {{ form.module_finance.label }}</label></div>
+      <div class="col-md-4"><label class="form-check">{{ form.module_crm }} {{ form.module_crm.label }}</label></div>
+      <div class="col-md-4"><label class="form-check">{{ form.module_accounting }} {{ form.module_accounting.label }}</label></div>
+      <div class="col-md-4"><label class="form-check">{{ form.module_reports }} {{ form.module_reports.label }}</label></div>
+    </div>
+
+    <hr>
+    <h5 class="mb-3">حدود الاستخدام</h5>
+    <div class="row g-3">
+      <div class="col-md-4">{{ form.limit_users.label_tag }}{{ form.limit_users }}</div>
+      <div class="col-md-4">{{ form.limit_campaigns_per_month.label_tag }}{{ form.limit_campaigns_per_month }}</div>
+      <div class="col-md-4">{{ form.limit_contacts.label_tag }}{{ form.limit_contacts }}</div>
+      <div class="col-md-4">{{ form.limit_invoices_per_month.label_tag }}{{ form.limit_invoices_per_month }}</div>
+      <div class="col-md-4">{{ form.limit_storage_mb.label_tag }}{{ form.limit_storage_mb }}</div>
+    </div>
+
+    {% if form.errors %}
+      <div class="alert alert-danger mt-3">{{ form.errors }}</div>
+    {% endif %}
+
+    <div class="mt-4">
+      <button class="btn btn-primary">حفظ</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base/base.html" %}
+{% block title %}{{ contact.full_name }}{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h2>{{ contact.full_name }}</h2><div class="text-muted">{{ contact.job_title|default:"-" }}</div></div>
+    <div><a class="btn btn-outline-secondary" href="{% url 'crm:contact_list' %}">جهات الاتصال</a><a class="btn btn-primary" href="{% url 'crm:contact_edit' contact.pk %}">تعديل</a></div>
+  </div>
+  <div class="card p-3 mb-3">
+    <p><b>الشركة:</b> {% if contact.company %}<a href="{% url 'crm:company_detail' contact.company.pk %}">{{ contact.company }}</a>{% else %}-{% endif %}</p>
+    <p><b>البريد:</b> {{ contact.email|default:"-" }}</p>
+    <p><b>الهاتف:</b> <span dir="ltr" style="unicode-bidi:isolate">{{ contact.phone|default:"-" }}</span></p>
+    <p><b>واتساب:</b> <span dir="ltr" style="unicode-bidi:isolate">{{ contact.whatsapp|default:"-" }}</span></p>
+    <p class="mb-0"><b>ملاحظات:</b> {{ contact.notes|default:"-" }}</p>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6"><div class="card p-3"><h5>الفرص</h5>{% for d in deals %}<div><a href="{% url 'crm:deal_detail' d.pk %}">{{ d.title }}</a></div>{% empty %}<div class="text-muted">لا يوجد.</div>{% endfor %}</div></div>
+    <div class="col-md-6"><div class="card p-3"><h5>المهام</h5>{% for t in tasks %}<div>{{ t.title }} - {{ t.get_status_display }}</div>{% empty %}<div class="text-muted">لا يوجد.</div>{% endfor %}</div></div>
+  </div>
+</div>
+{% endblock %}

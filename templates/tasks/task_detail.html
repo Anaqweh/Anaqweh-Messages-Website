@@ -1,0 +1,102 @@
+{% extends "base/base.html" %}
+{% block title %}{{ task.title }}{% endblock %}
+{% block page_title %}<i class="bi bi-card-checklist me-2"></i>{{ task.title }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'tasks:task_list' %}" class="btn btn-outline-secondary btn-sm">← المهام</a>
+<a href="{% url 'tasks:task_edit' task.pk %}" class="btn btn-warning btn-sm">تعديل</a>
+<form method="post" action="{% url 'tasks:task_delete' task.pk %}" style="display:inline" onsubmit="return confirm('حذف المهمة؟');">{% csrf_token %}<button class="btn btn-danger btn-sm">حذف</button></form>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <span class="badge {% if task.priority == 'urgent' %}bg-danger{% elif task.priority == 'high' %}bg-warning text-dark{% elif task.priority == 'medium' %}bg-info{% else %}bg-secondary{% endif %} me-2">{{ task.get_priority_display }}</span>
+          <span class="badge {% if task.status == 'completed' %}bg-success{% elif task.status == 'late' %}bg-danger{% elif task.status == 'returned' %}bg-warning text-dark{% elif task.status == 'in_progress' %}bg-primary{% else %}bg-secondary{% endif %}">{{ task.get_status_display }}</span>
+        </div>
+        <div class="small text-muted">{{ task.created_at|date:"Y-m-d H:i" }}</div>
+      </div>
+      {% if task.description %}<p>{{ task.description }}</p>{% endif %}
+      <div class="row g-2 small">
+        {% if task.task_type %}<div class="col-md-4"><b>النوع:</b> {{ task.task_type }}</div>{% endif %}
+        {% if task.start_date %}<div class="col-md-4"><b>البداية:</b> {{ task.start_date }}</div>{% endif %}
+        {% if task.due_date %}<div class="col-md-4"><b>الاستحقاق:</b> <span {% if task.is_late %}class="text-danger fw-bold"{% endif %}>{{ task.due_date }}{% if task.is_late %} ⚠️ متأخرة{% endif %}</span></div>{% endif %}
+        {% if task.assigned_to %}<div class="col-md-4"><b>المسؤول:</b> {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</div>{% endif %}
+        {% if task.created_by %}<div class="col-md-4"><b>أنشأها:</b> {{ task.created_by.get_full_name|default:task.created_by.username }}</div>{% endif %}
+      </div>
+      {% if task.return_reason %}<div class="alert alert-warning mt-3"><b>سبب الإرجاع:</b> {{ task.return_reason }}</div>{% endif %}
+      {% if task.notes %}<div class="mt-3"><b>ملاحظات:</b><p class="text-muted">{{ task.notes }}</p></div>{% endif %}
+      {% if task.external_links %}<div class="mt-2"><b>روابط:</b>{% for link in task.external_links.splitlines %}<a href="{{ link }}" target="_blank" class="d-block small">{{ link }}</a>{% endfor %}</div>{% endif %}
+    </div></div>
+
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+      <h6 class="fw-bold mb-3">إجراءات المهمة</h6>
+      <div class="d-flex flex-wrap gap-2">
+        <form method="post" action="{% url 'tasks:task_move' task.pk %}">{% csrf_token %}<input type="hidden" name="action" value="next"><button class="btn btn-success btn-sm">→ المرحلة التالية</button></form>
+        <form method="post" action="{% url 'tasks:task_move' task.pk %}">{% csrf_token %}<input type="hidden" name="action" value="complete"><button class="btn btn-primary btn-sm">✓ إنجاز</button></form>
+        <form method="post" action="{% url 'tasks:task_move' task.pk %}">{% csrf_token %}<input type="hidden" name="action" value="hold"><button class="btn btn-warning btn-sm">⏸ تعليق</button></form>
+        <form method="post" action="{% url 'tasks:task_move' task.pk %}" onsubmit="document.getElementById('rr').required=true;">
+          {% csrf_token %}<input type="hidden" name="action" value="return">
+          <div class="input-group">
+            <input id="rr" name="note" class="form-control form-control-sm" placeholder="سبب الإرجاع...">
+            <button class="btn btn-danger btn-sm">↩ إرجاع للتعديل</button>
+          </div>
+        </form>
+      </div>
+    </div></div>
+
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+      <h6 class="fw-bold mb-3">التعليقات ({{ comments|length }})</h6>
+      {% for c in comments %}
+      <div class="border-bottom py-2">
+        <div class="d-flex justify-content-between"><b class="small">{{ c.author.get_full_name|default:c.author.username|default:"مجهول" }}</b><span class="small text-muted">{{ c.created_at|date:"Y-m-d H:i" }}</span></div>
+        <p class="mb-0 mt-1">{{ c.body }}</p>
+      </div>
+      {% empty %}<div class="text-muted small">لا توجد تعليقات</div>{% endfor %}
+      <form method="post" action="{% url 'tasks:task_comment' task.pk %}" class="mt-3">{% csrf_token %}
+        <div class="input-group"><textarea name="body" class="form-control" rows="2" placeholder="أضف تعليقاً..."></textarea><button class="btn btn-primary">إرسال</button></div>
+      </form>
+    </div></div>
+
+    <div class="card border-0 shadow-sm"><div class="card-body">
+      <h6 class="fw-bold mb-3">المرفقات ({{ attachments|length }})</h6>
+      {% for a in attachments %}
+      <div class="d-flex justify-content-between border-bottom py-1">
+        <a href="{{ a.file.url }}" target="_blank">{{ a.name|default:a.file.name }}</a>
+        <span class="small text-muted">{{ a.created_at|date:"Y-m-d" }}</span>
+      </div>
+      {% empty %}<div class="text-muted small mb-2">لا توجد مرفقات</div>{% endfor %}
+      <form method="post" action="{% url 'tasks:task_attach' task.pk %}" enctype="multipart/form-data" class="mt-3">{% csrf_token %}
+        <div class="input-group"><input type="file" name="file" class="form-control"><input name="name" class="form-control" placeholder="اسم الملف"><button class="btn btn-outline-primary">رفع</button></div>
+      </form>
+    </div></div>
+  </div>
+
+  <div class="col-md-4">
+    {% if stages %}
+    <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+      <h6 class="fw-bold mb-3">مراحل سير العمل</h6>
+      {% for stage in stages %}
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;{% if task.current_stage_id == stage.pk %}background:#0b4ea2;color:#fff{% elif task.stage_logs.all|length > forloop.counter0 %}background:#059669;color:#fff{% else %}background:#e8eef5;color:#666{% endif %}">{{ forloop.counter }}</div>
+        <div><div class="small fw-bold">{{ stage.name }}</div>{% if stage.role_required %}<div class="small text-muted">{{ stage.role_required }}</div>{% endif %}</div>
+        {% if task.current_stage_id == stage.pk %}<span class="badge bg-primary ms-auto">الآن</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div></div>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm"><div class="card-body">
+      <h6 class="fw-bold mb-3">سجل النشاطات</h6>
+      {% for log in logs %}
+      <div style="border-right:3px solid #0b4ea2;padding:6px 10px;margin-bottom:8px;background:#f8fafc;border-radius:4px">
+        <div class="small fw-bold">{{ log.action }}</div>
+        {% if log.notes %}<div class="small text-muted">{{ log.notes }}</div>{% endif %}
+        <div class="small text-muted">{{ log.done_by.username|default:"النظام" }} — {{ log.created_at|date:"Y-m-d H:i" }}</div>
+      </div>
+      {% empty %}<div class="text-muted small">لا يوجد سجل بعد</div>{% endfor %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}

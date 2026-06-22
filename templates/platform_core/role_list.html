@@ -1,0 +1,40 @@
+{% extends "base/base.html" %}
+{% block title %}الأدوار — {{ tenant.name }}{% endblock %}
+{% block page_title %}<i class="bi bi-shield-check me-2"></i>الأدوار والمسميات الوظيفية — {{ tenant.name }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'platform_core:tenant_detail' tenant.pk %}" class="btn btn-outline-secondary btn-sm">← تفاصيل الشركة</a>
+<a href="{% url 'platform_core:tenant_role_create' tenant.pk %}" class="btn btn-primary btn-sm">+ دور جديد</a>
+{% endblock %}
+{% block content %}
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>اسم الدور</th><th>الوصف</th><th>الصلاحيات</th><th>النوع</th><th></th></tr></thead>
+    <tbody>
+      {% for role in roles %}
+      <tr>
+        <td class="fw-bold">{{ role.name }}</td>
+        <td>{{ role.description|default:"-" }}</td>
+        <td>
+          {% with p=role.permissions %}
+          {% if p.email.view %}<span class="badge bg-info me-1">البريد</span>{% endif %}
+          {% if p.finance.view %}<span class="badge bg-success me-1">المالية</span>{% endif %}
+          {% if p.crm.view %}<span class="badge bg-primary me-1">CRM</span>{% endif %}
+          {% if p.reports.view %}<span class="badge bg-secondary me-1">التقارير</span>{% endif %}
+          {% if p.settings.view %}<span class="badge bg-warning text-dark me-1">الإعدادات</span>{% endif %}
+          {% endwith %}
+        </td>
+        <td>{% if role.is_system %}<span class="badge bg-dark">نظام</span>{% else %}<span class="badge bg-light text-dark">مخصص</span>{% endif %}</td>
+        <td>
+          <a href="{% url 'platform_core:tenant_role_edit' tenant.pk role.pk %}" class="btn btn-sm btn-outline-warning">تعديل</a>
+          {% if not role.is_system %}
+          <form method="post" action="{% url 'platform_core:tenant_role_delete' tenant.pk role.pk %}" style="display:inline" onsubmit="return confirm('حذف هذا الدور؟');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">حذف</button></form>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center text-muted">لا توجد أدوار بعد — أضف دوراً جديداً</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

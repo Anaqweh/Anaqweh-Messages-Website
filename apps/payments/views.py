@@ -1,0 +1,661 @@
+from django.contrib import messages
+from decimal import Decimal
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.http import HttpResponse, Http404
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from .models import Payment, Invoice, Expense, StripePayout, StripeWebhookEvent, CompanySettings, SalesInvoice, SalesInvoiceItem
+
+
+def _sum(qs, field):
+    return qs.aggregate(v=Sum(field))['v'] or Decimal('0.00')
+
+
+def _periods():
+    now = timezone.localtime()
+    today = now.date()
+    week_start = today - timezone.timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    year_start = today.replace(month=1, day=1)
+    return today, week_start, month_start, year_start
+
+
+@login_required
+
+
+def _finance_objects(request, model):
+    qs = model.objects.all()
+
+    if not any(field.name == "tenant" for field in model._meta.fields):
+        return qs
+
+    try:
+        from apps.platform_core.navigation import active_membership_for, is_platform_admin
+    except Exception:
+        return qs
+
+    user = getattr(request, "user", None)
+    user = getattr(request, "user", None)
+
+    # المدير العام — هل اختار شركة للتصفح؟
+    if user and user.is_authenticated and is_platform_admin(user):
+        active_tenant_id = request.session.get("active_tenant_id")
+        if active_tenant_id:
+            try:
+                from apps.platform_core.models import Tenant
+                tenant = Tenant.objects.get(pk=active_tenant_id)
+                return qs.filter(tenant=tenant)
+            except Exception:
+                pass
+        return qs.filter(tenant__isnull=True)  # بيانات المنصة الأصلية
+    if user and user.is_authenticated:
+        membership = active_membership_for(user)
+        if membership:
+            return qs.filter(tenant=membership.tenant)
+
+    return qs.none()
+
+
+def _finance_tenant_for_request(request):
+    try:
+        from apps.platform_core.navigation import active_membership_for, is_platform_admin
+        from apps.platform_core.models import Tenant
+    except Exception:
+        return None
+    user = getattr(request, "user", None)
+    if not user or not user.is_authenticated:
+        return None
+    # المدير العام — هل اختار شركة للتصفح؟
+    if is_platform_admin(user):
+        active_tenant_id = request.session.get("active_tenant_id")
+        if active_tenant_id:
+            try:
+                return Tenant.objects.get(pk=active_tenant_id)
+            except Tenant.DoesNotExist:
+                pass
+        return None  # المدير العام بدون شركة مختارة — يرى بيانات المنصة
+    membership = active_membership_for(user)
+    return membership.tenant if membership else None
+
+def _finance_attach_tenant(request, obj):
+    if not hasattr(obj, "tenant_id"):
+        return obj
+
+    if obj.tenant_id:
+        return obj
+
+    tenant = _finance_tenant_for_request(request)
+    if tenant:
+        obj.tenant = tenant
+
+    return obj
+
+
+def dashboard(request):
+    today, week_start, month_start, year_start = _periods()
+    paid = _finance_objects(request, Payment).filter(status='paid')
+    expenses = _finance_objects(request, Expense).all()
+
+    cards = {
+        'today_income': _sum(paid.filter(paid_at__date=today), 'amount'),
+        'week_income': _sum(paid.filter(paid_at__date__gte=week_start), 'amount'),
+        'month_income': _sum(paid.filter(paid_at__date__gte=month_start), 'amount'),
+        'year_income': _sum(paid.filter(paid_at__date__gte=year_start), 'amount'),
+        'stripe_fees': _sum(paid, 'stripe_fee'),
+        'expenses': _sum(expenses, 'amount'),
+        'net': _sum(paid, 'net_amount') - _sum(expenses, 'amount'),
+    }
+
+    # إحصائيات الفواتير الإلكترونية (قراءة فقط - لا تمس نظام الدفع)
+    from decimal import Decimal
+    all_sales = list(_finance_objects(request, SalesInvoice).all())
+    cnt_paid = sum(1 for i in all_sales if i.status == 'paid')
+    cnt_unpaid = sum(1 for i in all_sales if i.status == 'unpaid')
+    cnt_overdue = sum(1 for i in all_sales if i.status == 'unpaid' and i.due_date is not None and i.due_date < today)
+    sales_revenue = sum((i.total for i in all_sales if i.status == 'paid'), Decimal('0.00'))
+    sales_outstanding = sum((i.total for i in all_sales if i.status == 'unpaid'), Decimal('0.00'))
+    sales_tax = sum((i.tax_amount for i in all_sales if i.status == 'paid'), Decimal('0.00'))
+    inv_stats = {
+        'cnt_paid': cnt_paid, 'cnt_unpaid': cnt_unpaid, 'cnt_overdue': cnt_overdue,
+        'total': len(all_sales), 'revenue': sales_revenue,
+        'outstanding': sales_outstanding, 'tax': sales_tax,
+    }
+    # بيانات الرسم: إيرادات آخر 6 أشهر من الفواتير المدفوعة
+    import calendar
+    chart_labels, chart_values = [], []
+    base_month = today.replace(day=1)
+    months = []
+    m = base_month
+    for _ in range(6):
+        months.append(m)
+        if m.month == 1:
+            m = m.replace(year=m.year - 1, month=12)
+        else:
+            m = m.replace(month=m.month - 1)
+    for mo in reversed(months):
+        nxt = mo.replace(year=mo.year + 1, month=1) if mo.month == 12 else mo.replace(month=mo.month + 1)
+        val = sum((i.total for i in all_sales if i.status == 'paid' and mo <= i.issue_date < nxt), Decimal('0.00'))
+        chart_labels.append(f'{mo.year}-{mo.month:02d}')
+        chart_values.append(float(val))
+    return render(request, 'payments/dashboard.html', {
+        'cards': cards,
+        'inv_stats': inv_stats,
+        'chart_labels': chart_labels,
+        'chart_values': chart_values,
+        'payments': _finance_objects(request, Payment).all()[:15],
+        'invoices': _finance_objects(request, Invoice).select_related('payment')[:10],
+        'expenses': _finance_objects(request, Expense).all()[:10],
+        'payouts': StripePayout.objects.all()[:10],
+    })
+
+
+@login_required
+def invoices(request):
+    return render(request, 'payments/invoices.html', {
+        'invoices': _finance_objects(request, Invoice).select_related('payment').all()
+    })
+
+
+@login_required
+
+# === Cached PDF helpers ===
+def _pdf_cache_dir(*args, **kwargs):
+    from pathlib import Path
+    from django.conf import settings
+    path = Path(settings.MEDIA_ROOT) / "generated_pdfs"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _pdf_cache_name(prefix, *objects):
+    import hashlib
+    import re
+
+    bits = []
+    label = prefix
+    for obj in objects:
+        if obj is None:
+            continue
+        if hasattr(obj, "invoice_number"):
+            label = f"{prefix}_{getattr(obj, 'invoice_number')}"
+        if hasattr(obj, "_meta"):
+            for field in obj._meta.fields:
+                try:
+                    bits.append(f"{obj.__class__.__name__}.{field.name}={getattr(obj, field.name, '')}")
+                except Exception:
+                    pass
+
+    digest = hashlib.sha1("|".join(bits).encode("utf-8", "ignore")).hexdigest()[:16]
+    safe_label = re.sub(r"[^A-Za-z0-9._-]+", "-", str(label)).strip("-")[:120]
+    return f"{safe_label}_{digest}.pdf"
+
+
+def _cached_pdf_response(cache_name, download_name, build_pdf):
+    from pathlib import Path
+    from django.conf import settings
+    from django.http import FileResponse
+
+    cache_dir = Path(settings.MEDIA_ROOT) / "generated_pdfs"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    path = cache_dir / cache_name
+    cache_hit = path.exists() and path.stat().st_size > 0
+
+    if not cache_hit:
+        tmp = path.with_suffix(".tmp")
+        tmp.write_bytes(build_pdf())
+        tmp.replace(path)
+
+    response = FileResponse(open(path, "rb"), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{download_name}"'
+    response["X-PDF-Cache"] = "HIT" if cache_hit else "MISS"
+    return response
+
+# === End cached PDF helpers ===
+
+
+
+
+def _delete_pdf_cache_for_invoice(invoice):
+    try:
+        import re
+        from pathlib import Path
+        from django.conf import settings
+        number = getattr(invoice, "invoice_number", "")
+        if not number:
+            return
+        safe = re.sub(r"[^A-Za-z0-9._-]+", "-", str(number)).strip("-")
+        cache_dir = Path(settings.MEDIA_ROOT) / "generated_pdfs"
+        if cache_dir.exists():
+            for path in cache_dir.glob(f"*{safe}*.pdf"):
+                try:
+                    path.unlink()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
+def invoice_detail(request, pk):
+    from .models import CompanySettings
+    invoice = get_object_or_404(_finance_objects(request, Invoice).select_related('payment'), pk=pk)
+    company = CompanySettings.load()
+    return render(request, 'payments/invoice_detail.html', {
+        'invoice': invoice,
+        'company': company,
+        'pdf_mode': False,
+    })
+
+
+
+@login_required
+@require_POST
+def invoice_delete(request, pk):
+    invoice = get_object_or_404(_finance_objects(request, Invoice).select_related("payment"), pk=pk)
+    invoice_number = invoice.invoice_number
+    _delete_pdf_cache_for_invoice(invoice)
+    invoice.delete()
+    messages.success(request, f"تم حذف الفاتورة {invoice_number}. لم يتم حذف عملية الدفع المرتبطة.")
+    return redirect("payments:invoices")
+
+
+def invoice_pdf(request, pk):
+    from django.template.loader import render_to_string
+    from .models import CompanySettings
+
+    invoice = get_object_or_404(_finance_objects(request, Invoice).select_related("payment"), pk=pk)
+    company = CompanySettings.load()
+
+    def build_pdf():
+        from weasyprint import HTML
+        html = render_to_string("payments/invoice_detail.html", {
+            "invoice": invoice,
+            "company": company,
+            "pdf_mode": True,
+        }, request=request)
+        return HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
+
+    cache_name = _pdf_cache_name("admin-invoice", invoice, invoice.payment)
+    return _cached_pdf_response(cache_name, f"{invoice.invoice_number}.pdf", build_pdf)
+
+
+def invoice_public(request, token):
+    invoice = get_object_or_404(Invoice.objects.select_related('payment'), token=token)
+    company = CompanySettings.load()
+    qr_data_uri = _build_invoice_qr(request, invoice)
+    return render(request, 'payments/invoice_public.html', {
+        'invoice': invoice, 'company': company, 'qr_data_uri': qr_data_uri,
+    })
+
+
+def _build_invoice_qr(request, invoice):
+    try:
+        import qrcode, io, base64
+        p = invoice.payment
+        content = request.build_absolute_uri()
+        img = qrcode.make(content)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+        return 'data:image/png;base64,' + b64
+    except Exception:
+        return ''
+
+
+
+def invoice_public_pdf(request, token):
+    from django.template.loader import render_to_string
+    invoice = get_object_or_404(Invoice.objects.select_related("payment"), token=token)
+    company = CompanySettings.load()
+    qr_data_uri = _build_invoice_qr(request, invoice)
+
+    def build_pdf():
+        from weasyprint import HTML
+        html = render_to_string("payments/invoice_public.html", {
+            "invoice": invoice,
+            "company": company,
+            "qr_data_uri": qr_data_uri,
+            "pdf_mode": True,
+        }, request=request)
+        return HTML(string=html, base_url=request.build_absolute_uri("/")).write_pdf()
+
+    cache_name = _pdf_cache_name("public-invoice", invoice, invoice.payment)
+    return _cached_pdf_response(cache_name, f"{invoice.invoice_number}.pdf", build_pdf)
+
+
+def invoice_open(request, token):
+    invoice = get_object_or_404(Invoice, token=token)
+    invoice.open_count += 1
+    invoice.opened_at = timezone.now()
+    invoice.last_open_ip = request.META.get('REMOTE_ADDR', '')[:80]
+    invoice.last_open_user_agent = request.META.get('HTTP_USER_AGENT', '')
+    invoice.save(update_fields=['open_count', 'opened_at', 'last_open_ip', 'last_open_user_agent'])
+    pixel = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+    return HttpResponse(pixel, content_type='image/gif')
+
+
+@login_required
+def expenses(request):
+    from django.db.models import Q
+    cat = request.GET.get('category', '')
+    q = (request.GET.get('q') or '').strip()
+    start = request.GET.get('from', '')
+    end = request.GET.get('to', '')
+    qs = _finance_objects(request, Expense).all()
+    if cat:
+        qs = qs.filter(category=cat)
+    if start:
+        qs = qs.filter(spent_at__gte=start)
+    if end:
+        qs = qs.filter(spent_at__lte=end)
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(notes__icontains=q))
+    total = _sum(qs, 'amount')
+    return render(request, 'payments/expenses.html', {
+        'expenses': qs, 'categories': Expense.CATEGORY_CHOICES,
+        'category': cat, 'q': q, 'start': start, 'end': end, 'total': total,
+    })
+
+
+@login_required
+def expense_edit(request, pk):
+    exp = get_object_or_404(Expense, pk=pk)
+    if request.method == 'POST':
+        exp.title = request.POST.get('title', '').strip() or exp.title
+        exp.category = request.POST.get('category') or exp.category
+        exp.amount = request.POST.get('amount') or exp.amount
+        exp.currency = request.POST.get('currency') or exp.currency
+        exp.spent_at = request.POST.get('spent_at') or exp.spent_at
+        exp.recurrence = request.POST.get('recurrence') or exp.recurrence
+        exp.notes = request.POST.get('notes', '').strip()
+        if request.FILES.get('attachment'):
+            exp.attachment = request.FILES.get('attachment')
+        exp.save()
+        return redirect('payments:expenses')
+    return render(request, 'payments/expense_form.html', {
+        'expense': exp, 'categories': Expense.CATEGORY_CHOICES, 'recurrences': Expense.RECURRENCE_CHOICES,
+    })
+
+
+@login_required
+@require_POST
+def expense_delete(request, pk):
+    exp = get_object_or_404(Expense, pk=pk)
+    exp.delete()
+    return redirect('payments:expenses')
+
+
+@login_required
+def expense_create(request):
+    if request.method == 'POST':
+        _finance_objects(request, Expense).create(
+            title=request.POST.get('title', '').strip(),
+            category=request.POST.get('category') or 'other',
+            amount=request.POST.get('amount') or 0,
+            currency=request.POST.get('currency') or 'aed',
+            spent_at=request.POST.get('spent_at') or timezone.localdate(),
+            recurrence=request.POST.get('recurrence') or 'none',
+            notes=request.POST.get('notes', '').strip(),
+            attachment=request.FILES.get('attachment'),
+        )
+        return redirect('payments:expenses')
+    return render(request, 'payments/expense_form.html', {'categories': Expense.CATEGORY_CHOICES, 'recurrences': Expense.RECURRENCE_CHOICES})
+
+
+@csrf_exempt
+@require_POST
+def stripe_webhook(request):
+    import json
+    import stripe
+
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE', '')
+    endpoint_secret = getattr(settings, 'STRIPE_WEBHOOK_SECRET', '')
+
+    try:
+        if endpoint_secret:
+            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+        else:
+            event = stripe.Event.construct_from(json.loads(payload.decode('utf-8')), stripe.api_key)
+    except Exception as exc:
+        return HttpResponse(str(exc), status=400)
+
+    obj = event['data']['object']
+    saved, _ = StripeWebhookEvent.objects.get_or_create(
+        event_id=event['id'],
+        defaults={'event_type': event['type'], 'payload': event},
+    )
+    if saved.processed:
+        return HttpResponse('ok')
+
+    try:
+        if event['type'] == 'checkout.session.completed':
+            _handle_checkout_completed(obj)
+        elif event['type'] == 'charge.succeeded':
+            _handle_charge_succeeded(obj)
+        elif event['type'] in ('payout.created', 'payout.paid', 'payout.failed'):
+            _handle_payout(obj)
+
+        saved.processed = True
+        saved.save(update_fields=['processed'])
+    except Exception as exc:
+        saved.error = str(exc)
+        saved.save(update_fields=['error'])
+        return HttpResponse(str(exc), status=500)
+
+    return HttpResponse('ok')
+
+
+def _handle_checkout_completed(session):
+    payment_id = (session.get('metadata') or {}).get('payment_id')
+    payment = Payment.objects.filter(id=payment_id).first() if payment_id else None
+    if not payment:
+        payment = Payment.objects.filter(stripe_checkout_session_id=session.get('id')).first()
+    if not payment:
+        payment = Payment.objects.create(
+            stripe_checkout_session_id=session.get('id', ''),
+            amount=Decimal(session.get('amount_total') or 0) / Decimal('100'),
+            currency=session.get('currency') or 'aed',
+        )
+
+    customer = session.get('customer_details') or {}
+    payment.customer_email = customer.get('email') or payment.customer_email
+    payment.customer_name = customer.get('name') or payment.customer_name
+    payment.status = 'paid'
+    payment.stripe_payment_intent_id = session.get('payment_intent') or payment.stripe_payment_intent_id
+    payment.paid_at = timezone.now()
+    payment.raw_data = session
+    payment.save()
+
+    invoice, _ = Invoice.objects.get_or_create(payment=payment)
+    return invoice
+
+
+def _handle_charge_succeeded(charge):
+    import stripe
+
+    payment_intent = charge.get('payment_intent') or ''
+    payment = Payment.objects.filter(stripe_payment_intent_id=payment_intent).first()
+    if not payment:
+        return
+
+    payment.stripe_charge_id = charge.get('id') or ''
+    bt_id = charge.get('balance_transaction') or ''
+    payment.stripe_balance_transaction_id = bt_id
+
+    if bt_id:
+        bt = stripe.BalanceTransaction.retrieve(bt_id)
+        payment.stripe_fee = Decimal(bt.get('fee') or 0) / Decimal('100')
+        payment.net_amount = Decimal(bt.get('net') or 0) / Decimal('100')
+    payment.save()
+
+
+def _handle_payout(payout):
+    amount = Decimal(payout.get('amount') or 0) / Decimal('100')
+    StripePayout.objects.update_or_create(
+        payout_id=payout.get('id'),
+        defaults={
+            'amount': amount,
+            'currency': payout.get('currency') or 'aed',
+            'status': payout.get('status') or '',
+            'raw_data': payout,
+        }
+    )
+
+@login_required
+def payouts(request):
+    payouts_qs = StripePayout.objects.all()
+    return render(request, 'payments/payouts.html', {
+        'payouts': payouts_qs,
+        'total': _sum(payouts_qs, 'amount'),
+    })
+
+
+@login_required
+def reports(request):
+    today, week_start, month_start, year_start = _periods()
+    paid = _finance_objects(request, Payment).filter(status='paid')
+    exps = _finance_objects(request, Expense).all()
+
+    def block(p, e):
+        return {
+            'income': _sum(p, 'amount'),
+            'fees': _sum(p, 'stripe_fee'),
+            'expenses': _sum(e, 'amount'),
+            'net': _sum(p, 'net_amount') - _sum(e, 'amount'),
+            'count': p.count(),
+        }
+
+    report = {
+        'today': block(paid.filter(paid_at__date=today), exps.filter(spent_at=today)),
+        'week': block(paid.filter(paid_at__date__gte=week_start), exps.filter(spent_at__gte=week_start)),
+        'month': block(paid.filter(paid_at__date__gte=month_start), exps.filter(spent_at__gte=month_start)),
+        'year': block(paid.filter(paid_at__date__gte=year_start), exps.filter(spent_at__gte=year_start)),
+        'all': block(paid, exps),
+    }
+    return render(request, 'payments/reports.html', {'report': report})
+
+
+@login_required
+def sales_invoices(request):
+    from django.db.models import Q
+    from django.utils import timezone
+    kind = request.GET.get('kind', '')
+    status = request.GET.get('status', '')
+    q = (request.GET.get('q') or '').strip()
+    qs = _finance_objects(request, SalesInvoice).all().prefetch_related('items')
+    if kind in ('due', 'sales'):
+        qs = qs.filter(kind=kind)
+    today = timezone.localdate()
+    if status == 'overdue':
+        qs = qs.filter(status='unpaid', due_date__isnull=False, due_date__lt=today)
+    elif status in ('unpaid', 'paid', 'cancelled'):
+        qs = qs.filter(status=status)
+    if q:
+        qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer_name__icontains=q) | Q(customer_email__icontains=q))
+    invoices = list(qs)
+    for inv in invoices:
+        inv.is_overdue = (inv.status == 'unpaid' and inv.due_date is not None and inv.due_date < today)
+    return render(request, 'payments/sales_invoices.html', {
+        'invoices': invoices, 'kind': kind, 'status': status, 'q': q,
+    })
+
+
+@login_required
+def sales_invoice_create(request):
+    from decimal import Decimal, InvalidOperation
+    if request.method == 'POST':
+        inv = _finance_objects(request, SalesInvoice).create(
+            kind=request.POST.get('kind', 'sales'),
+            customer_name=request.POST.get('customer_name', '').strip() or 'عميل',
+            customer_email=request.POST.get('customer_email', '').strip(),
+            customer_phone=request.POST.get('customer_phone', '').strip(),
+            customer_address=request.POST.get('customer_address', '').strip(),
+            payment_method=request.POST.get('payment_method', 'cash'),
+            payment_ref=request.POST.get('payment_ref', '').strip(),
+            status=request.POST.get('status', 'unpaid'),
+            notes=request.POST.get('notes', '').strip(),
+        )
+        try:
+            inv.tax_rate = Decimal(request.POST.get('tax_rate', '5') or '5')
+        except InvalidOperation:
+            inv.tax_rate = Decimal('5')
+        if request.POST.get('issue_date'):
+            inv.issue_date = request.POST.get('issue_date')
+        if request.POST.get('due_date'):
+            inv.due_date = request.POST.get('due_date')
+        inv.save()
+        descs = request.POST.getlist('item_desc')
+        qtys = request.POST.getlist('item_qty')
+        prices = request.POST.getlist('item_price')
+        order = 0
+        for d, q, pr in zip(descs, qtys, prices):
+            d = (d or '').strip()
+            if not d:
+                continue
+            try:
+                qd = Decimal(q or '1')
+                pd = Decimal(pr or '0')
+            except InvalidOperation:
+                qd, pd = Decimal('1'), Decimal('0')
+            SalesInvoiceItem.objects.create(invoice=inv, description=d, quantity=qd, unit_price=pd, order=order)
+            order += 1
+        return redirect('payments:sales_invoice_print', token=inv.token)
+    return render(request, 'payments/sales_invoice_form.html', {})
+
+
+
+@login_required
+@require_POST
+def sales_invoice_delete(request, token):
+    invoice = get_object_or_404(SalesInvoice, token=token)
+    invoice_number = invoice.invoice_number
+    _delete_pdf_cache_for_invoice(invoice)
+    invoice.delete()
+    messages.success(request, f"تم حذف الفاتورة الإلكترونية {invoice_number}.")
+    return redirect("payments:sales_invoices")
+
+
+def sales_invoice_print(request, token):
+    invoice = get_object_or_404(SalesInvoice.objects.prefetch_related('items'), token=token)
+    company = CompanySettings.load()
+    qr_data_uri = _build_sales_qr(request, invoice)
+    return render(request, 'payments/sales_invoice_print.html', {
+        'invoice': invoice, 'company': company, 'qr_data_uri': qr_data_uri,
+    })
+
+
+def _build_sales_qr(request, invoice):
+    try:
+        import qrcode, io, base64
+        img = qrcode.make(request.build_absolute_uri())
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
+    except Exception:
+        return ''
+
+
+def sales_invoice_pdf(request, token):
+    from django.template.loader import render_to_string
+    from django.http import HttpResponse
+    invoice = get_object_or_404(SalesInvoice.objects.prefetch_related('items'), token=token)
+    company = CompanySettings.load()
+    qr_data_uri = _build_sales_qr(request, invoice)
+    html = render_to_string('payments/sales_invoice_print.html', {
+        'invoice': invoice, 'company': company, 'qr_data_uri': qr_data_uri, 'pdf_mode': True,
+    })
+    try:
+        from weasyprint import HTML
+        base = request.build_absolute_uri('/')
+        pdf = HTML(string=html, base_url=base).write_pdf()
+        resp = HttpResponse(pdf, content_type='application/pdf')
+        resp['Content-Disposition'] = f'attachment; filename="{invoice.invoice_number}.pdf"'
+        return resp
+    except Exception as e:
+        return HttpResponse(f'تعذّر توليد PDF: {e}', status=500)

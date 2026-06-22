@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ company.name }}{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2>{{ company.name }}</h2>
+      <div class="text-muted">{{ company.get_status_display }} · {{ company.source|default:"بدون مصدر" }}</div>
+    </div>
+    <div>
+      <a class="btn btn-outline-secondary" href="{% url 'crm:company_list' %}">العملاء</a>
+      <a class="btn btn-outline-primary" href="{% url 'crm:quote_create' %}">عرض سعر</a> <a class="btn btn-primary" href="{% url 'crm:company_edit' company.pk %}">تعديل</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <div class="card p-3 h-100">
+        <h5>بيانات العميل</h5>
+        <p><b>البريد:</b> {{ company.email|default:"-" }}</p>
+        <p><b>الهاتف:</b> <span dir="ltr" style="unicode-bidi:isolate">{{ company.phone|default:"-" }}</span></p>
+        <p><b>الموقع:</b> {{ company.website|default:"-" }}</p>
+        <p><b>TRN:</b> {{ company.trn|default:"-" }}</p>
+        <p class="mb-0"><b>العنوان:</b> {{ company.address|default:"-" }}</p>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card p-3 h-100">
+        <h5>ملاحظات</h5>
+        <p class="mb-0">{{ company.notes|default:"لا توجد ملاحظات." }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-4"><div class="card p-3"><h5>جهات الاتصال</h5>{% for c in contacts %}<div><a href="{% url 'crm:contact_detail' c.pk %}">{{ c.full_name }}</a></div>{% empty %}<div class="text-muted">لا يوجد.</div>{% endfor %}</div></div>
+    <div class="col-md-4"><div class="card p-3"><h5>الفرص</h5>{% for d in deals %}<div><a href="{% url 'crm:deal_detail' d.pk %}">{{ d.title }}</a></div>{% empty %}<div class="text-muted">لا يوجد.</div>{% endfor %}</div></div>
+    <div class="col-md-4"><div class="card p-3"><h5>المهام</h5>{% for t in tasks %}<div>{{ t.title }} - {{ t.get_status_display }}</div>{% empty %}<div class="text-muted">لا يوجد.</div>{% endfor %}</div></div>
+  </div>
+</div>
+{% endblock %}

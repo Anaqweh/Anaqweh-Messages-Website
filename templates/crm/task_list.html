@@ -1,0 +1,33 @@
+{% extends "base/base.html" %}
+{% block title %}المهام{% endblock %}
+{% block page_title %}<i class="bi bi-check2-square me-2"></i>المهام والمتابعات{% endblock %}
+{% block top_actions %}
+<a href="{% url 'crm:dashboard' %}" class="btn btn-outline-secondary btn-sm">← CRM</a>
+<a href="{% url 'crm:task_create' %}" class="btn btn-primary btn-sm">+ مهمة جديدة</a>
+{% endblock %}
+{% block content %}
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>العنوان</th><th>النوع</th><th>الحالة</th><th>الأولوية</th><th>الاستحقاق</th><th>الشركة</th><th></th></tr></thead>
+    <tbody>
+      {% for t in tasks %}
+      <tr>
+        <td class="fw-bold">{{ t.title }}</td>
+        <td>{{ t.get_task_type_display }}</td>
+        <td><span class="badge {% if t.status == 'done' %}bg-success{% elif t.status == 'cancelled' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">{{ t.get_status_display }}</span></td>
+        <td>{{ t.get_priority_display }}</td>
+        <td>{{ t.due_at|date:"Y-m-d"|default:"-" }}</td>
+        <td>{{ t.company.name|default:"-" }}</td>
+<td>
+          <a href="{% url 'crm:task_edit' t.pk %}" class="btn btn-sm btn-outline-warning">تعديل</a>
+          {% if t.status != 'done' %}<form method="post" action="{% url 'crm:task_done' t.pk %}" style="display:inline">{% csrf_token %}<button class="btn btn-sm btn-outline-success">✓ إنجاز</button></form>{% endif %}
+          <form method="post" action="{% url 'crm:task_delete' t.pk %}" style="display:inline" onsubmit="return confirm('حذف؟');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">حذف</button></form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center text-muted">لا توجد مهام</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

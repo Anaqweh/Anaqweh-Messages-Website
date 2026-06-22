@@ -1,0 +1,238 @@
+from django import forms
+from django.contrib.auth import get_user_model
+
+from .models import Tenant, TenantMembership, TenantRole, default_permissions
+
+
+MODULE_FIELDS = [
+    ("email", "النظام البريدي"),
+    ("finance", "المالية"),
+    ("crm", "CRM"),
+    ("accounting", "المحاسبة"),
+    ("reports", "التقارير"),
+    ("settings", "الإعدادات"),
+]
+
+ACTIONS = [
+    ("view", "عرض"),
+    ("create", "إضافة"),
+    ("edit", "تعديل"),
+    ("delete", "حذف"),
+    ("send", "إرسال"),
+    ("export", "تصدير"),
+    ("manage_users", "إدارة مستخدمين"),
+]
+
+LIMIT_FIELDS = [
+    ("users", "عدد المستخدمين"),
+    ("campaigns_per_month", "الحملات شهرياً"),
+    ("contacts", "عدد العملاء/جهات الاتصال"),
+    ("invoices_per_month", "الفواتير شهرياً"),
+    ("storage_mb", "مساحة التخزين MB"),
+]
+
+
+class PermissionMatrixMixin:
+    def add_permission_fields(self, initial_permissions=None):
+        initial_permissions = initial_permissions or default_permissions()
+        for module_code, module_label in MODULE_FIELDS:
+            for action_code, action_label in ACTIONS:
+                key = f"perm_{module_code}_{action_code}"
+                self.fields[key] = forms.BooleanField(
+                    label=action_label,
+                    required=False,
+                    initial=bool(initial_permissions.get(module_code, {}).get(action_code, False)),
+                    widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+                )
+
+    @property
+    def permission_rows(self):
+        rows = []
+        for module_code, module_label in MODULE_FIELDS:
+            fields = []
+            for action_code, action_label in ACTIONS:
+                key = f"perm_{module_code}_{action_code}"
+                if key in self.fields:
+                    fields.append((action_label, self[key]))
+            rows.append((module_label, fields))
+        return rows
+
+    def collect_permissions(self):
+        data = {}
+        for module_code, _module_label in MODULE_FIELDS:
+            data[module_code] = {}
+            for action_code, _action_label in ACTIONS:
+                key = f"perm_{module_code}_{action_code}"
+                if key in self.fields:
+                    data[module_code][action_code] = bool(self.cleaned_data.get(key))
+        return data
+
+
+class TenantForm(forms.ModelForm):
+    class Meta:
+        model = Tenant
+        fields = [
+            "name",
+            "slug",
+            "status",
+            "owner_name",
+            "owner_email",
+            "owner_phone",
+            "domain",
+            "plan_name",
+            "subscription_starts_at",
+            "subscription_ends_at",
+            "notes",
+        ]
+        widgets = {
+            "subscription_starts_at": forms.DateInput(attrs={"type": "date"}),
+            "subscription_ends_at": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        modules = self.instance.modules if self.instance and self.instance.pk else {}
+        limits = self.instance.limits if self.instance and self.instance.pk else {}
+
+        for code, label in MODULE_FIELDS:
+            if code == "settings":
+                continue
+            self.fields[f"module_{code}"] = forms.BooleanField(
+                label=label,
+                required=False,
+                initial=modules.get(code, code != "crm"),
+                widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            )
+
+        for code, label in LIMIT_FIELDS:
+            self.fields[f"limit_{code}"] = forms.IntegerField(
+                label=label,
+                min_value=0,
+                required=False,
+                initial=limits.get(code),
+            )
+
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-control")
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.modules = {
+            code: bool(self.cleaned_data.get(f"module_{code}"))
+            for code, _label in MODULE_FIELDS
+            if code != "settings"
+        }
+        obj.limits = {
+            code: int(self.cleaned_data.get(f"limit_{code}") or 0)
+            for code, _label in LIMIT_FIELDS
+        }
+        if commit:
+            obj.save()
+        return obj
+
+
+class TenantRoleForm(PermissionMatrixMixin, forms.ModelForm):
+    class Meta:
+        model = TenantRole
+        fields = ["name", "description", "is_active"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.tenant = kwargs.pop("tenant")
+        super().__init__(*args, **kwargs)
+        initial_permissions = self.instance.permissions if self.instance and self.instance.pk else default_permissions()
+        self.add_permission_fields(initial_permissions)
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-control")
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.tenant = self.tenant
+        obj.permissions = self.collect_permissions()
+        if commit:
+            obj.save()
+        return obj
+
+
+class TenantMembershipForm(PermissionMatrixMixin, forms.ModelForm):
+    create_new_user = forms.BooleanField(
+        label="إنشاء مستخدم جديد",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+    new_username = forms.CharField(label="اسم المستخدم الجديد", required=False)
+    new_email = forms.EmailField(label="بريد المستخدم الجديد", required=False)
+    new_password = forms.CharField(label="كلمة مرور مؤقتة", required=False, widget=forms.PasswordInput)
+
+    class Meta:
+        model = TenantMembership
+        fields = ["user", "role", "role_name", "is_tenant_admin", "is_active"]
+        widgets = {
+            "is_tenant_admin": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.tenant = kwargs.pop("tenant")
+        super().__init__(*args, **kwargs)
+
+        User = get_user_model()
+        self.fields["user"].queryset = User.objects.order_by("username")
+        self.fields["user"].required = False
+        self.fields["role"].queryset = TenantRole.objects.filter(tenant=self.tenant, is_active=True)
+        self.fields["role"].required = False
+
+        initial_permissions = self.instance.permissions if self.instance and self.instance.pk else default_permissions()
+        if self.instance and self.instance.pk and self.instance.role:
+            initial_permissions = self.instance.permissions or self.instance.role.permissions
+        self.add_permission_fields(initial_permissions)
+
+        for field in self.fields.values():
+            if not isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.setdefault("class", "form-control")
+
+    def clean(self):
+        cleaned = super().clean()
+        create_new = cleaned.get("create_new_user")
+        user = cleaned.get("user")
+
+        if create_new:
+            username = cleaned.get("new_username")
+            password = cleaned.get("new_password")
+            if not username:
+                self.add_error("new_username", "اسم المستخدم مطلوب.")
+            if not password:
+                self.add_error("new_password", "كلمة المرور المؤقتة مطلوبة.")
+        elif not user and not self.instance.pk:
+            self.add_error("user", "اختر مستخدماً أو فعّل إنشاء مستخدم جديد.")
+
+        return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.tenant = self.tenant
+
+        if self.cleaned_data.get("create_new_user"):
+            User = get_user_model()
+            user = User.objects.create_user(
+                username=self.cleaned_data["new_username"],
+                email=self.cleaned_data.get("new_email") or "",
+                password=self.cleaned_data["new_password"],
+            )
+            obj.user = user
+
+        role = self.cleaned_data.get("role")
+        obj.role = role
+        if role and not obj.role_name:
+            obj.role_name = role.name
+        obj.permissions = self.collect_permissions()
+
+        if commit:
+            obj.save()
+        return obj

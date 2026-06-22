@@ -1,0 +1,19 @@
+from django.urls import path
+from . import views
+app_name = 'templates_mgr'
+urlpatterns = [
+    path('', views.template_list, name='template_list'),
+    path('new/', views.template_create, name='template_create'),
+    path('<int:pk>/', views.template_detail, name='template_detail'),
+    path('<int:pk>/edit/', views.template_edit, name='template_edit'),
+    path('<int:pk>/delete/', views.template_delete, name='template_delete'),
+    path('builder/', views.builder, name='builder'),
+    path('builder/upload-image/', views.upload_image, name='upload_image'),
+    path('builder/upload-document/', views.upload_document, name='upload_document'),
+    path('pay/checkout/', views.create_checkout, name='create_checkout'),
+    path('pay/start/', views.pay_start, name='pay_start'),
+    path('pay/success/', views.pay_success, name='pay_success'),
+    path('pay/cancel/', views.pay_cancel, name='pay_cancel'),
+    path('pay/bank/create/', views.create_bank_page, name='create_bank_page'),
+    path('pay/bank/<str:code>/', views.bank_page, name='bank_page'),
+]

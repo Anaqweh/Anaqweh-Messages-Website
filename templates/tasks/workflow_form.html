@@ -1,0 +1,42 @@
+{% extends "base/base.html" %}
+{% block title %}{% if wf %}تعديل قالب{% else %}قالب جديد{% endif %}{% endblock %}
+{% block page_title %}<i class="bi bi-diagram-3 me-2"></i>{% if wf %}تعديل: {{ wf.name }}{% else %}قالب سير عمل جديد{% endif %}{% endblock %}
+{% block top_actions %}<a href="{% url 'tasks:workflow_list' %}" class="btn btn-outline-secondary btn-sm">← القوالب</a>{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post" action="{% if wf %}{% url 'tasks:workflow_edit' wf.pk %}{% else %}{% url 'tasks:workflow_create' %}{% endif %}">{% csrf_token %}
+  <div class="row g-3 mb-4">
+    <div class="col-md-6"><label class="form-label fw-bold">اسم القالب *</label><input name="name" value="{{ wf.name|default:'' }}" class="form-control" required placeholder="مثال: تصميم إعلان، إعداد شهادة..."></div>
+    <div class="col-md-6"><label class="form-label fw-bold">الوصف</label><input name="description" value="{{ wf.description|default:'' }}" class="form-control"></div>
+  </div>
+  <h6 class="fw-bold mb-3">مراحل سير العمل <small class="text-muted fw-normal">(بالترتيب)</small></h6>
+  <div id="stages">
+    {% if wf %}
+      {% for stage in wf.stages.all %}
+      <div class="row g-2 mb-2 stage-row">
+        <div class="col-md-5"><input name="stage_name" value="{{ stage.name }}" class="form-control" placeholder="اسم المرحلة *" required></div>
+        <div class="col-md-5"><input name="stage_role" value="{{ stage.role_required }}" class="form-control" placeholder="الدور المطلوب (اختياري)"></div>
+        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.stage-row').remove()">حذف</button></div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="row g-2 mb-2 stage-row">
+        <div class="col-md-5"><input name="stage_name" class="form-control" placeholder="مثال: التصميم" required></div>
+        <div class="col-md-5"><input name="stage_role" class="form-control" placeholder="مثال: مصمم"></div>
+        <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.stage-row').remove()">حذف</button></div>
+      </div>
+    {% endif %}
+  </div>
+  <button type="button" class="btn btn-outline-primary btn-sm mb-4" onclick="addStage()">+ إضافة مرحلة</button>
+  <div><button class="btn btn-primary px-5">{% if wf %}حفظ التعديلات{% else %}إنشاء القالب{% endif %}</button></div>
+</form>
+</div></div>
+<script>
+function addStage(){
+  const d=document.createElement('div');
+  d.className='row g-2 mb-2 stage-row';
+  d.innerHTML='<div class="col-md-5"><input name="stage_name" class="form-control" placeholder="اسم المرحلة" required></div><div class="col-md-5"><input name="stage_role" class="form-control" placeholder="الدور المطلوب"></div><div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" onclick="this.closest(\'.stage-row\').remove()">حذف</button></div>';
+  document.getElementById('stages').appendChild(d);
+}
+</script>
+{% endblock %}

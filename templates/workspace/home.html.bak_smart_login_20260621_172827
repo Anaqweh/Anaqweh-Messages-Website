@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}مساحات العمل{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <h2>مساحات العمل التي تديرها</h2>
+  <div class="row g-3 mt-2">
+    {% for tenant in tenants %}
+      <div class="col-md-4">
+        <div class="card p-3 h-100">
+          <h5>{{ tenant.name }}</h5>
+          <div class="text-muted mb-3">{{ tenant.get_status_display }}</div>
+          <a class="btn btn-primary" href="{% url 'workspace:dashboard' tenant.pk %}">فتح</a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="alert alert-warning">لا توجد نسخة تملك صلاحية إدارتها.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

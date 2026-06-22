@@ -1,0 +1,38 @@
+{% extends "base/base.html" %}
+{% block title %}قائمة المهام{% endblock %}
+{% block page_title %}<i class="bi bi-list-task me-2"></i>قائمة المهام{% endblock %}
+{% block top_actions %}
+<a href="{% url 'tasks:dashboard' %}" class="btn btn-outline-secondary btn-sm">← اللوحة</a>
+<a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-sm">+ مهمة جديدة</a>
+<a href="{% url 'tasks:kanban' %}" class="btn btn-outline-primary btn-sm">INEXC Flow</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-4"><input name="q" value="{{ q }}" class="form-control" placeholder="بحث..."></div>
+    <div class="col-md-3"><select name="status" class="form-select"><option value="">كل الحالات</option>{% for v,l in status_choices %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><select name="priority" class="form-select"><option value="">كل الأولويات</option>{% for v,l in priority_choices %}<option value="{{ v }}" {% if priority == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">بحث</button></div>
+  </div>
+</div></form>
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>المهمة</th><th>النوع</th><th>الأولوية</th><th>الحالة</th><th>المسؤول</th><th>الاستحقاق</th><th></th></tr></thead>
+    <tbody>
+      {% for t in tasks %}
+      <tr {% if t.is_late %}style="background:#fff5f5"{% endif %}>
+        <td><a href="{% url 'tasks:task_detail' t.pk %}" class="fw-bold text-decoration-none">{{ t.title }}</a>{% if t.current_stage %}<div class="small text-muted">{{ t.current_stage.name }}</div>{% endif %}</td>
+        <td><span class="small text-muted">{{ t.task_type|default:"-" }}</span></td>
+        <td><span class="badge {% if t.priority == 'urgent' %}bg-danger{% elif t.priority == 'high' %}bg-warning text-dark{% elif t.priority == 'medium' %}bg-info{% else %}bg-secondary{% endif %}">{{ t.get_priority_display }}</span></td>
+        <td><span class="badge {% if t.status == 'completed' %}bg-success{% elif t.status == 'late' %}bg-danger{% elif t.status == 'returned' %}bg-warning text-dark{% elif t.status == 'in_progress' %}bg-primary{% else %}bg-secondary{% endif %}">{{ t.get_status_display }}</span></td>
+        <td>{{ t.assigned_to.get_full_name|default:t.assigned_to.username|default:"-" }}</td>
+        <td>{% if t.is_late %}<span class="text-danger fw-bold">{{ t.due_date }}</span>{% else %}{{ t.due_date|default:"-" }}{% endif %}</td>
+        <td><a href="{% url 'tasks:task_detail' t.pk %}" class="btn btn-sm btn-outline-primary">عرض</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center text-muted">لا توجد مهام</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

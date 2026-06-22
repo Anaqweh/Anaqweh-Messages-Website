@@ -52,6 +52,27 @@ class Campaign(models.Model):
     def get_status_color(self):
         return {'draft':'secondary','scheduled':'info','running':'primary','paused':'warning','completed':'success','cancelled':'danger'}.get(self.status,'secondary')
 
+
+class CampaignMessageStep(models.Model):
+    campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='message_steps')
+    step_number = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=200, blank=True)
+    subject = models.CharField(max_length=500)
+    body_html = models.TextField()
+    body_text = models.TextField(blank=True)
+    send_at = models.DateTimeField(null=True, blank=True)
+    delay_minutes = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['campaign', 'step_number']
+        unique_together = [('campaign', 'step_number')]
+
+    def __str__(self):
+        return f'{self.campaign.name} - message {self.step_number}'
+
 class EmailLog(models.Model):
     STATUS_CHOICES = [('pending','قيد الانتظار'),('sending','جارٍ'),('sent','تم'),('failed','فشل'),('bounced','مرتد'),('opened','فُتح'),('clicked','نُقر')]
     campaign = models.ForeignKey(Campaign, on_delete=models.CASCADE, related_name='logs')
@@ -64,6 +85,10 @@ class EmailLog(models.Model):
     last_attempt_at = models.DateTimeField(null=True, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     message_id = models.CharField(max_length=500, blank=True)
+    message_step = models.ForeignKey('CampaignMessageStep', on_delete=models.SET_NULL, null=True, blank=True, related_name='logs')
+    subject_snapshot = models.CharField(max_length=500, blank=True)
+    body_html_snapshot = models.TextField(blank=True)
+    body_text_snapshot = models.TextField(blank=True)
     opened_at = models.DateTimeField(null=True, blank=True)
     clicked_at = models.DateTimeField(null=True, blank=True)
     open_count = models.IntegerField(default=0)

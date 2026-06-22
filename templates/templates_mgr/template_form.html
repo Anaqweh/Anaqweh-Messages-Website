@@ -24,6 +24,18 @@
 <script>
 const bh=document.getElementById('bh');
 function ins(v){const s=bh.selectionStart;bh.value=bh.value.substring(0,s)+v+bh.value.substring(bh.selectionEnd);bh.focus()}
-function pv(){document.getElementById('pf').srcdoc=bh.value.replace(/{{name}}/g,'أحمد').replace(/{{email}}/g,'a@b.com').replace(/{{course_name}}/g,'دورة Python').replace(/{{phone}}/g,'0501234567').replace(/{{custom_message}}/g,'رسالة')}
+function pv(){
+  let html = bh.value;
+  html = html.replace(/\{\{name\}\}/g,'أحمد محمد');
+  html = html.replace(/\{\{email\}\}/g,'ahmed@example.com');
+  html = html.replace(/\{\{course_name\}\}/g,'دورة Python المتقدمة');
+  html = html.replace(/\{\{phone\}\}/g,'0501234567');
+  html = html.replace(/\{\{custom_message\}\}/g,'هذه رسالة تجريبية');
+  document.getElementById('pf').srcdoc = html;
+}
+// تحديث تلقائي عند الكتابة
+bh.addEventListener('input', function(){ clearTimeout(window._pvt); window._pvt = setTimeout(pv, 800); });
+// تحديث عند تحميل الصفحة
+window.addEventListener('load', pv);
 </script>
 {% endblock %}

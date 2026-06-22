@@ -4,11 +4,15 @@ from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='dev-secret-key-change-in-production')
-DEBUG = config('DEBUG', default=True, cast=bool)
-ALLOWED_HOSTS = ["*"]
+SECRET_KEY = 'hHJpT19rp09eC8q2B10-sxpN00H_DDjAyyzhJAfJYM0jYwuoWICRAZyHAz'
+DEBUG = False
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")
 
 INSTALLED_APPS = [
+    'apps.crm',
+    'apps.platform_core',
+    'apps.tasks',
+    'apps.payments',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,6 +32,7 @@ INSTALLED_APPS = [
     'apps.recipients',
     'apps.templates_mgr',
     'apps.reports',
+    'apps.accounting',
 ]
 
 MIDDLEWARE = [
@@ -37,6 +42,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.platform_core.permission_middleware.TenantPermissionMiddleware',
+    'apps.platform_core.tenant_context.TenantContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -54,6 +61,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.platform_core.context_processors.tenant_permissions',
             ],
         },
     },
@@ -138,3 +146,27 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
+# ===== Stripe Payment Settings =====
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_CURRENCY = config('STRIPE_CURRENCY', default='aed')
+
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+
+
+# EmailJS server-side settings
+EMAILJS_SERVICE_ID = config('EMAILJS_SERVICE_ID', default='')
+EMAILJS_TEMPLATE_ID = config('EMAILJS_TEMPLATE_ID', default='')
+EMAILJS_PUBLIC_KEY = config('EMAILJS_PUBLIC_KEY', default='')
+EMAILJS_PRIVATE_KEY = config('EMAILJS_PRIVATE_KEY', default='')
+
+
+# Gmail SMTP
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="INEXC <info@inexc.com>")

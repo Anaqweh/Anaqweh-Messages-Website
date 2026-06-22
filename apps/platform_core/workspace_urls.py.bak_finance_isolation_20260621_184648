@@ -1,0 +1,9 @@
+from django.urls import path
+
+from . import workspace_views
+
+app_name = "workspace"
+
+urlpatterns = [
+    path("", workspace_views.home, name="home"),
+]

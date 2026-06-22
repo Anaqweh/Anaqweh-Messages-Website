@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}فاتورة {{ invoice.invoice_number }}{% endblock %}
+
+{% block content %}
+{% with p=invoice.payment c=company %}
+<style>
+:root{--inexc:#0b4ea2;--ink:#172033;--muted:#667085;--line:#e6eaf0;--soft:#f4f7fb;--ok:#16803c;--warn:#b7791f}
+body{background:#eef3f9}
+.inv-wrap{max-width:980px;margin:24px auto;padding:0 14px}
+.inv-actions{display:flex;gap:10px;justify-content:flex-start;margin-bottom:14px;flex-wrap:wrap}
+.inv-btn{border:0;border-radius:8px;background:var(--inexc);color:#fff;padding:10px 14px;text-decoration:none;font-weight:700;cursor:pointer}
+.inv-btn.secondary{background:#344054}
+.inv-btn.light{background:#fff;color:var(--inexc);border:1px solid #c9d6ea}
+.inv-sheet{position:relative;background:#fff;border-radius:14px;box-shadow:0 18px 45px rgba(11,78,162,.13);overflow:hidden;color:var(--ink)}
+.inv-head{background:linear-gradient(135deg,var(--inexc),#08366f);color:#fff;padding:28px 32px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand img{width:82px;max-height:82px;object-fit:contain;background:#fff;border-radius:10px;padding:8px}
+.brand .bn{font-size:20px;font-weight:800;line-height:1.5}
+.brand small{display:block;font-size:12px;opacity:.88;font-weight:500}
+.invno{text-align:left}
+.invno h2{margin:0 0 8px;font-size:26px;letter-spacing:.5px}
+.dt{opacity:.9}
+.inv-ribbon{display:inline-block;margin-top:10px;border-radius:999px;padding:6px 12px;font-weight:800;background:#fff;color:var(--warn)}
+.ribbon-paid{color:var(--ok)}
+.inv-cinfo{display:flex;gap:14px;flex-wrap:wrap;padding:13px 32px;background:#f7faff;border-bottom:1px solid var(--line);font-size:13px;color:#344054}
+.inv-parties{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:22px 32px}
+.card{border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff}
+.card .t{color:var(--muted);font-size:12px;margin-bottom:6px}
+.card .v{font-weight:800;font-size:16px}
+.card .s{color:var(--muted);font-size:13px;margin-top:4px;word-break:break-word}
+.text-success{color:var(--ok)}.text-warning{color:var(--warn)}.text-danger{color:#c03221}
+.inv-table{width:calc(100% - 64px);margin:0 32px 18px;border-collapse:collapse;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.inv-table th{background:var(--soft);color:#344054;text-align:right;padding:12px;font-size:13px}
+.inv-table td{padding:14px 12px;border-top:1px solid var(--line)}
+.inv-total{display:flex;justify-content:flex-end;padding:0 32px 22px}
+.tbox{width:360px;background:#f9fbff;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0;font-size:18px;font-weight:900;color:var(--inexc)}
+.inv-admin{margin:0 32px 22px;border:1px dashed #b7c7df;border-radius:10px;background:#fbfdff;padding:14px}
+.inv-admin h3{margin:0 0 12px;color:var(--inexc);font-size:16px}
+.admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.admin-grid div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
+.admin-grid span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.admin-grid b{font-size:13px}
+.inv-sign{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding:4px 32px 24px}
+.inv-sign img{max-width:150px;max-height:90px;object-fit:contain}
+.inv-footer{background:#f7faff;border-top:1px solid var(--line);padding:14px 32px;text-align:center;color:#475467;font-size:13px}
+@media(max-width:700px){.inv-head,.inv-parties,.inv-sign{display:block}.invno{text-align:right;margin-top:16px}.inv-parties{padding:16px}.card{margin-bottom:10px}.inv-table{width:calc(100% - 32px);margin:0 16px 16px}.inv-total{padding:0 16px 18px}.tbox{width:100%}.admin-grid{grid-template-columns:1fr}.inv-admin{margin:0 16px 18px}.inv-cinfo{padding:12px 16px}}
+@media print{body{background:#fff}.inv-wrap{max-width:100%;margin:0;padding:0}.inv-actions,.admin-only{display:none!important}.inv-sheet{box-shadow:none;border-radius:0}@page{size:A4;margin:10mm}}
+</style>
+
+<div class="inv-wrap" dir="rtl">
+  {% if not pdf_mode %}
+  <div class="inv-actions">
+    <button class="inv-btn" onclick="window.print()">طباعة</button>
+    <a class="inv-btn secondary" href="/payments/invoices/{{ invoice.id }}/pdf/">تنزيل PDF</a>
+    <button class="inv-btn light" onclick="navigator.clipboard.writeText(window.location.origin + '/payments/invoice/{{ invoice.token }}/');this.innerText='تم النسخ'">نسخ رابط الفاتورة العامة</button>
+    <a class="inv-btn light" href="/payments/invoices/">رجوع</a>
+  </div>
+  {% endif %}
+
+  <div class="inv-sheet">
+    <div class="inv-head">
+      <div class="brand">
+        {% if c.logo %}<img src="{{ c.logo.url }}" alt="INEXC">{% endif %}
+        <div class="bn">{{ c.name_ar|default:"شركة التميز الابتكاري" }}<small>{{ c.name_en }}</small></div>
+      </div>
+      <div class="invno">
+        <h2>INVOICE</h2>
+        <div>{{ invoice.invoice_number }}</div>
+        <div class="dt">{{ invoice.created_at|date:"Y-m-d H:i" }}</div>
+        <span class="inv-ribbon {% if p.status == 'paid' %}ribbon-paid{% else %}ribbon-pending{% endif %}">{{ p.get_status_display }}</span>
+      </div>
+    </div>
+
+    <div class="inv-cinfo">
+      {% if c.phone %}<span>الهاتف: <b>{{ c.phone }}</b></span>{% endif %}
+      {% if c.email %}<span>البريد: <b>{{ c.email }}</b></span>{% endif %}
+      {% if c.website %}<span>الموقع: <b>{{ c.website }}</b></span>{% endif %}
+      {% if c.trn %}<span>TRN: <b>{{ c.trn }}</b></span>{% endif %}
+      {% if c.license_no %}<span>الرخصة: <b>{{ c.license_no }}</b></span>{% endif %}
+    </div>
+
+    <div class="inv-parties">
+      <div class="card">
+        <div class="t">فاتورة إلى</div>
+        <div class="v">{{ p.customer_name|default:"عميل" }}</div>
+        {% if p.customer_email %}<div class="s">{{ p.customer_email }}</div>{% endif %}
+      </div>
+      <div class="card">
+        <div class="t">رقم الفاتورة</div>
+        <div class="v">{{ invoice.invoice_number }}</div>
+        <div class="s">{{ invoice.created_at|date:"Y-m-d" }}</div>
+      </div>
+      <div class="card">
+        <div class="t">حالة الدفع</div>
+        <div class="v {% if p.status == 'paid' %}text-success{% else %}text-warning{% endif %}">{{ p.get_status_display }}</div>
+        {% if p.paid_at %}<div class="s">{{ p.paid_at|date:"Y-m-d H:i" }}</div>{% endif %}
+      </div>
+    </div>
+
+    <table class="inv-table">
+      <thead><tr><th>الوصف</th><th style="text-align:center;width:80px">الكمية</th><th style="text-align:left;width:150px">المبلغ</th></tr></thead>
+      <tbody>
+        <tr><td>{{ p.description|default:"خدمة / دفع إلكتروني" }}</td><td style="text-align:center">1</td><td style="text-align:left">{{ p.amount }} {{ p.currency|upper }}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="inv-total">
+      <div class="tbox">
+        <div class="row"><span>الإجمالي</span><span>{{ p.amount }} {{ p.currency|upper }}</span></div>
+        <div class="row"><span>رسوم Stripe</span><span class="text-danger">{{ p.stripe_fee|default:"-" }}</span></div>
+        <div class="row"><span>الصافي</span><span class="text-success">{{ p.net_amount|default:"-" }}</span></div>
+      </div>
+    </div>
+
+    {% if not pdf_mode %}
+    <div class="inv-admin admin-only">
+      <h3>معلومات إدارية</h3>
+      <div class="admin-grid">
+        <div><span>عدد مرات فتح البريد</span><b>{{ invoice.open_count|default:0 }}</b></div>
+        <div><span>آخر فتح</span><b>{{ invoice.opened_at|date:"Y-m-d H:i"|default:"-" }}</b></div>
+        <div><span>IP الفتح</span><b>{{ invoice.last_open_ip|default:"-" }}</b></div>
+        <div><span>حالة الإرسال</span><b>{% if invoice.email_sent_at %}أُرسل {{ invoice.email_sent_at|date:"Y-m-d H:i" }}{% else %}لم يُرسل{% endif %}</b></div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="inv-sign">
+      <div>{% if c.stamp %}<img src="{{ c.stamp.url }}" alt="stamp">{% endif %}</div>
+      <div>{% if c.signature %}<img src="{{ c.signature.url }}" alt="signature">{% endif %}<div class="s">توقيع الشركة</div></div>
+    </div>
+
+    <div class="inv-footer">
+      {{ c.invoice_footer|default:"شكراً لاستخدامكم خدمات INEXC" }}
+      {% if c.website %} • {{ c.website }}{% endif %}
+      {% if c.phone %} • {{ c.phone }}{% endif %}
+    </div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<style>
+.pc-wrap{direction:rtl;max-width:1180px;margin:24px auto;padding:0 14px;color:#102033}
+.pc-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.pc-title h1{font-size:26px;margin:0 0 6px;font-weight:800;color:#0b4ea2}
+.pc-title p{margin:0;color:#667085}
+.pc-actions{display:flex;gap:10px;flex-wrap:wrap}
+.pc-btn{border:0;border-radius:8px;padding:10px 15px;background:#0b4ea2;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}
+.pc-btn.light{background:#eef5ff;color:#0b4ea2;border:1px solid #cfe0f8}
+.pc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.pc-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:16px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
+.pc-card .label{color:#667085;font-size:13px}
+.pc-card .value{font-size:28px;font-weight:800;color:#0b4ea2;margin-top:6px}
+.pc-table-wrap{background:#fff;border:1px solid #d9e4f2;border-radius:10px;overflow:hidden}
+.pc-table{width:100%;border-collapse:collapse}
+.pc-table th,.pc-table td{padding:13px;border-bottom:1px solid #edf2f7;text-align:right;vertical-align:middle}
+.pc-table th{background:#f5f8fc;color:#344054;font-size:13px}
+.pc-tag{display:inline-flex;border-radius:999px;padding:5px 10px;background:#eef5ff;color:#0b4ea2;font-size:12px;font-weight:700}
+.pc-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pc-empty{text-align:center;padding:38px;color:#667085}
+@media(max-width:760px){.pc-grid{grid-template-columns:1fr}.pc-table{min-width:760px}.pc-table-wrap{overflow-x:auto}.pc-head{align-items:flex-start}}
+</style>
+
+<div class="pc-wrap">
+  <div class="pc-head">
+    <div class="pc-title">
+      <h1>إدارة الشركات والنسخ</h1>
+      <p>لوحة المدير العام لإدارة الشركات، الوحدات، والمدراء.</p>
+    </div>
+    <div class="pc-actions">
+      <button type="button" class="pc-btn light" onclick="history.back()">رجوع</button>
+      <a class="pc-btn" href="{% url 'platform_core:tenant_create' %}">+ شركة جديدة</a>
+    </div>
+  </div>
+
+  <div class="pc-grid">
+    <div class="pc-card"><div class="label">إجمالي الشركات</div><div class="value">{{ total_tenants }}</div></div>
+    <div class="pc-card"><div class="label">الشركات النشطة</div><div class="value">{{ active_tenants }}</div></div>
+    <div class="pc-card"><div class="label">الأعضاء المرتبطون</div><div class="value">{{ membership_count }}</div></div>
+  </div>
+
+  <div class="pc-table-wrap">
+    <table class="pc-table">
+      <thead>
+        <tr>
+          <th>الشركة</th>
+          <th>المالك</th>
+          <th>الخطة</th>
+          <th>الحالة</th>
+          <th>الدومين</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tenant in tenants %}
+        <tr>
+          <td><strong>{{ tenant.name }}</strong><br><small>{{ tenant.slug }}</small></td>
+          <td>{{ tenant.owner_name|default:"-" }}<br><small>{{ tenant.owner_email|default:"" }}</small></td>
+          <td>{{ tenant.plan_name|default:"-" }}</td>
+          <td><span class="pc-tag">{{ tenant.get_status_display|default:tenant.status }}</span></td>
+          <td>{{ tenant.domain|default:"-" }}</td>
+          <td>
+            <div class="pc-row-actions">
+              <a class="pc-btn light" href="{% url 'platform_core:tenant_detail' tenant.pk %}">تفاصيل</a>
+              <a class="pc-btn light" href="{% url 'platform_core:tenant_edit' tenant.pk %}">تعديل</a>
+              <a class="pc-btn" href="{% url 'platform_core:switch_tenant' tenant.pk %}" style="background:#059669">⇄ ادخل كـ</a>
+              <form method="post" action="{% url 'platform_core:tenant_delete' tenant.pk %}" onsubmit="return confirm('حذف هذه الشركة؟');">
+                {% csrf_token %}
+                <button class="pc-btn light" type="submit">حذف</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="pc-empty">لا توجد شركات بعد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

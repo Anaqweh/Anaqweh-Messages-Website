@@ -1,0 +1,29 @@
+{% extends "base/base.html" %}
+{% block title %}قوالب سير العمل{% endblock %}
+{% block page_title %}<i class="bi bi-diagram-3 me-2"></i>قوالب سير العمل{% endblock %}
+{% block top_actions %}
+<a href="{% url 'tasks:dashboard' %}" class="btn btn-outline-secondary btn-sm">← المهام</a>
+<a href="{% url 'tasks:workflow_create' %}" class="btn btn-primary btn-sm">+ قالب جديد</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  {% for wf in workflows %}
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-start">
+        <div><h6 class="fw-bold mb-1">{{ wf.name }}</h6><p class="text-muted small mb-0">{{ wf.description|default:"بدون وصف" }}</p></div>
+        <a href="{% url 'tasks:workflow_edit' wf.pk %}" class="btn btn-sm btn-outline-warning">تعديل</a>
+      </div>
+      <div class="mt-3 d-flex flex-wrap gap-1 align-items-center">
+        {% for stage in wf.stages.all %}
+        <span class="badge bg-primary">{{ stage.name }}</span>
+        {% if not forloop.last %}<span class="text-muted">→</span>{% endif %}
+        {% empty %}<span class="text-muted small">لا توجد مراحل</span>{% endfor %}
+      </div>
+    </div></div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="alert alert-info">لا توجد قوالب بعد — أضف قالباً لتنظيم سير العمل</div></div>
+  {% endfor %}
+</div>
+{% endblock %}

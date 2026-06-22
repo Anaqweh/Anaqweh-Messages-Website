@@ -1,0 +1,55 @@
+{% extends "base/base.html" %}
+{% block title %}التقارير المالية{% endblock %}
+{% block page_title %}<i class="bi bi-bar-chart-line me-2"></i>التقارير المالية{% endblock %}
+{% block top_actions %}
+<a href="{% url 'payments:dashboard' %}" class="btn btn-outline-secondary btn-sm">← المالية</a>
+<a href="{% url 'accounting:reports_export_csv' %}?from={{ start }}&to={{ end }}" class="btn btn-outline-success btn-sm">⬇ CSV</a>
+<a href="{% url 'accounting:reports_export_xlsx' %}?from={{ start }}&to={{ end }}" class="btn btn-success btn-sm">⬇ Excel</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label small fw-bold">من تاريخ</label><input type="date" name="from" value="{{ start }}" class="form-control"></div>
+    <div class="col-md-3"><label class="form-label small fw-bold">إلى تاريخ</label><input type="date" name="to" value="{{ end }}" class="form-control"></div>
+    <div class="col-md-3"><button class="btn btn-primary">تطبيق الفلتر</button> <a href="{% url 'accounting:reports' %}" class="btn btn-outline-secondary">إلغاء</a></div>
+  </div>
+</div></form>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الإيرادات (قبل الضريبة)</div><div class="h4 fw-bold text-success">{{ revenue }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الضريبة المحصّلة</div><div class="h4 fw-bold text-primary">{{ tax_collected }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي المبيعات</div><div class="h4 fw-bold">{{ gross }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">المصروفات</div><div class="h4 fw-bold text-warning">{{ total_expenses }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">صافي الربح</div><div class="h4 fw-bold text-primary">{{ net_profit }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">المستحقات القائمة</div><div class="h4 fw-bold text-danger">{{ outstanding }} AED</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">فواتير مدفوعة</div><div class="h5 fw-bold text-success">{{ cnt_paid }}</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">فواتير غير مدفوعة</div><div class="h5 fw-bold text-secondary">{{ cnt_unpaid }}</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي الفواتير</div><div class="h5 fw-bold">{{ cnt_total }}</div></div></div></div>
+</div>
+
+<div class="data-table p-3">
+  <h6 class="fw-bold mb-3">تفاصيل الفواتير</h6>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>الرقم</th><th>النوع</th><th>العميل</th><th>الحالة</th><th>الفرعي</th><th>الضريبة</th><th>الإجمالي</th><th>التاريخ</th></tr></thead>
+    <tbody>
+      {% for i in invoices %}
+      <tr>
+        <td class="fw-bold">{{ i.invoice_number }}</td>
+        <td>{{ i.get_kind_display }}</td>
+        <td>{{ i.customer_name }}</td>
+        <td><span class="badge {% if i.status == 'paid' %}bg-success{% elif i.status == 'cancelled' %}bg-dark{% else %}bg-secondary{% endif %}">{{ i.get_status_display }}</span></td>
+        <td>{{ i.subtotal }}</td>
+        <td>{{ i.tax_amount }}</td>
+        <td class="fw-bold">{{ i.total }} {{ i.currency|upper }}</td>
+        <td>{{ i.issue_date|date:"Y-m-d" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="text-center text-muted">لا توجد فواتير في هذه الفترة</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

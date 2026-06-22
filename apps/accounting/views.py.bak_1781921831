@@ -1,0 +1,53 @@
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from .models import Customer
+
+
+@login_required
+def customers(request):
+    q = (request.GET.get('q') or '').strip()
+    qs = Customer.objects.all()
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(Q(name__icontains=q) | Q(email__icontains=q) | Q(phone__icontains=q) | Q(company__icontains=q))
+    return render(request, 'accounting/customers.html', {'customers': qs, 'q': q})
+
+
+@login_required
+def customer_create(request):
+    if request.method == 'POST':
+        Customer.objects.create(
+            name=request.POST.get('name', '').strip() or 'عميل',
+            email=request.POST.get('email', '').strip(),
+            phone=request.POST.get('phone', '').strip(),
+            company=request.POST.get('company', '').strip(),
+            address=request.POST.get('address', '').strip(),
+            trn=request.POST.get('trn', '').strip(),
+            notes=request.POST.get('notes', '').strip(),
+        )
+        return redirect('accounting:customers')
+    return render(request, 'accounting/customer_form.html', {'customer': None})
+
+
+@login_required
+def customer_edit(request, pk):
+    c = get_object_or_404(Customer, pk=pk)
+    if request.method == 'POST':
+        c.name = request.POST.get('name', '').strip() or c.name
+        c.email = request.POST.get('email', '').strip()
+        c.phone = request.POST.get('phone', '').strip()
+        c.company = request.POST.get('company', '').strip()
+        c.address = request.POST.get('address', '').strip()
+        c.trn = request.POST.get('trn', '').strip()
+        c.notes = request.POST.get('notes', '').strip()
+        c.is_active = bool(request.POST.get('is_active'))
+        c.save()
+        return redirect('accounting:customer_detail', pk=c.pk)
+    return render(request, 'accounting/customer_form.html', {'customer': c})
+
+
+@login_required
+def customer_detail(request, pk):
+    c = get_object_or_404(Customer, pk=pk)
+    invoices = c._sales_invoices().prefetch_related('items')
+    return render(request, 'accounting/customer_detail.html', {'customer': c, 'invoices': invoices})

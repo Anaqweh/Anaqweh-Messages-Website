@@ -1,0 +1,37 @@
+{% extends "base/base.html" %}
+{% block title %}العملاء{% endblock %}
+{% block page_title %}<i class="bi bi-people me-2"></i>العملاء{% endblock %}
+{% block top_actions %}
+<a href="{% url 'payments:dashboard' %}" class="btn btn-outline-secondary btn-sm">← المالية</a>
+<a href="{% url 'accounting:customer_create' %}" class="btn btn-primary btn-sm">+ عميل جديد</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="mb-3">
+  <div class="input-group" style="max-width:420px">
+    <input name="q" value="{{ q }}" class="form-control" placeholder="بحث بالاسم أو البريد أو الهاتف...">
+    <button class="btn btn-primary">بحث</button>
+    {% if q %}<a href="{% url 'accounting:customers' %}" class="btn btn-outline-secondary">إلغاء</a>{% endif %}
+  </div>
+</form>
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>الاسم</th><th>الشركة</th><th>البريد</th><th>الهاتف</th><th>عدد الفواتير</th><th>المدفوع</th><th>المستحق</th><th></th></tr></thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td class="fw-bold">{{ c.name }}</td>
+        <td>{{ c.company|default:"-" }}</td>
+        <td>{{ c.email|default:"-" }}</td>
+        <td>{{ c.phone|default:"-" }}</td>
+        <td>{{ c.invoice_count }}</td>
+        <td class="text-success fw-bold">{{ c.total_paid }} AED</td>
+        <td class="text-warning fw-bold">{{ c.total_due }} AED</td>
+        <td><a href="{% url 'accounting:customer_detail' c.pk %}" class="btn btn-sm btn-outline-primary">عرض</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="text-center text-muted">لا يوجد عملاء بعد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

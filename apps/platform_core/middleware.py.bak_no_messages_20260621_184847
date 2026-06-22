@@ -1,0 +1,49 @@
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse
+
+
+class FinanceAccessIsolationMiddleware:
+    """
+    Protects the platform/global finance area from tenant users.
+
+    It intentionally keeps public invoice links, sales invoice public links,
+    and Stripe webhook/checkout-style endpoints open so payment internals are not changed.
+    """
+
+    PUBLIC_PAYMENT_PREFIXES = (
+        "/payments/invoice/",
+        "/payments/sales-invoice/",
+        "/payments/stripe/webhook/",
+        "/payments/checkout/",
+        "/payments/create-checkout/",
+        "/payments/quick-checkout/",
+        "/payments/pay-success/",
+        "/payments/pay-cancel/",
+        "/payments/success/",
+        "/payments/cancel/",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        path = request.path_info or request.path
+
+        if not path.startswith("/payments/"):
+            return self.get_response(request)
+
+        if path.startswith(self.PUBLIC_PAYMENT_PREFIXES):
+            return self.get_response(request)
+
+        user = getattr(request, "user", None)
+
+        if user and user.is_authenticated and (user.is_superuser or user.is_staff):
+            return self.get_response(request)
+
+        if not user or not user.is_authenticated:
+            login_url = reverse("accounts:login")
+            return redirect(f"{login_url}?next={path}")
+
+        messages.error(request, "المالية العامة خاصة بمدير المنصة. استخدم مالية شركتك من مساحة العمل.")
+        return redirect("workspace:finance")

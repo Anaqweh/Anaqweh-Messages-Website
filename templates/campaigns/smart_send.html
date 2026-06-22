@@ -1,0 +1,342 @@
+{% extends 'base/base.html' %}
+{% block title %}الإرسال الذكي{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-4" dir="rtl">
+
+  <div class="d-flex align-items-center mb-4 gap-3">
+    <div class="rounded-3 p-3" style="background:#6366f1;"><i class="fas fa-paper-plane text-white fs-4"></i></div>
+    <div>
+      <h4 class="mb-0 fw-bold">الإرسال الذكي</h4>
+      <small class="text-muted">أرسل لأي عدد من المستلمين بسهولة</small>
+    </div>
+    {% if not emailjs_ok %}
+    <div class="alert alert-warning py-2 px-3 mb-0 ms-auto">
+      <i class="fas fa-exclamation-triangle me-1"></i>
+      إعدادات EmailJS غير مكتملة —
+      <a href="{% url 'accounts:emailjs_settings' %}">أضفها الآن</a>
+    </div>
+    {% else %}
+    <span class="badge bg-success ms-auto px-3 py-2">
+      <i class="fas fa-check me-1"></i>{{ sender_email }}
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+
+    <!-- الجانب الأيسر -->
+    <div class="col-lg-5">
+
+      <!-- اختيار القالب أو كتابة رسالة -->
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3"><i class="fas fa-pen me-2 text-primary"></i>إعدادات الرسالة</h6>
+
+          <ul class="nav nav-pills mb-3" id="msgTabs">
+            <li class="nav-item">
+              <button class="nav-link active" onclick="showMsgTab('template')">من قالب</button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" onclick="showMsgTab('custom')">كتابة حرة</button>
+            </li>
+          </ul>
+
+          <!-- اختيار قالب -->
+          <div id="msg-template">
+            {% if templates %}
+            <div class="mb-3">
+              <label class="form-label fw-semibold">اختر قالباً</label>
+              <select id="templateSelect" class="form-select" onchange="loadTemplate(this)">
+                <option value="">-- اختر قالباً --</option>
+                {% for t in templates %}
+                <option value="{{ t.pk }}" data-subject="{{ t.subject|default:'' }}" data-html="{{ t.body_html|default:'' }}">
+                  {{ t.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            {% else %}
+            <div class="alert alert-info py-2">
+              لا توجد قوالب بعد —
+              <a href="{% url 'templates_mgr:template_list' %}">أنشئ قالباً</a>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- كتابة حرة -->
+          <div id="msg-custom" style="display:none"></div>
+
+          <!-- موضوع ومحتوى مشترك -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">موضوع الرسالة *</label>
+            <input type="text" id="subject" class="form-control" placeholder="أدخل موضوع الرسالة...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">محتوى الرسالة *</label>
+            <div class="alert alert-info py-2 px-3 mb-2 small">
+              <i class="fas fa-info-circle me-1"></i>
+              استخدم <code>{{name}}</code> لإضافة اسم المستلم تلقائياً
+            </div>
+            <textarea id="body_html" class="form-control" rows="8" placeholder="مرحباً {{name}}،&#10;&#10;محتوى رسالتك هنا..."></textarea>
+          </div>
+          <div>
+            <label class="form-label fw-semibold">التأخير بين كل رسالة (ثانية)</label>
+            <input type="number" id="delay" class="form-control" value="3" min="1" max="30">
+            <small class="text-muted">يُنصح بـ 3 ثوانٍ لتجنب الحجب</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- إضافة المستلمين -->
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3"><i class="fas fa-users me-2 text-success"></i>إضافة المستلمين</h6>
+
+          <ul class="nav nav-pills mb-3" id="addTabs">
+            <li class="nav-item"><button class="nav-link active" onclick="showTab('manual')">يدوي</button></li>
+            <li class="nav-item"><button class="nav-link" onclick="showTab('excel')">إكسيل / CSV</button></li>
+          </ul>
+
+          <div id="tab-manual">
+            <div class="mb-2">
+              <label class="form-label fw-semibold">البريد الإلكتروني *</label>
+              <input type="email" id="manual_email" class="form-control" placeholder="example@email.com">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">الاسم (اختياري)</label>
+              <input type="text" id="manual_name" class="form-control" placeholder="اسم المستلم">
+            </div>
+            <button class="btn btn-success w-100" onclick="addManual()">
+              <i class="fas fa-plus me-2"></i>إضافة للقائمة
+            </button>
+          </div>
+
+          <div id="tab-excel" style="display:none">
+            <div class="border-2 rounded-3 p-4 text-center mb-2"
+                 style="border: 2px dashed #6366f1; cursor:pointer;" onclick="document.getElementById('excelFile').click()">
+              <i class="fas fa-file-excel text-success fs-2 mb-2"></i>
+              <p class="mb-1 fw-semibold">اسحب الملف هنا أو انقر للاختيار</p>
+              <small class="text-muted">xlsx, xls, csv — يكتشف الإيميلات تلقائياً</small>
+              <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="parseExcel(this)">
+            </div>
+            <div id="excelStatus"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- الجانب الأيمن -->
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4 d-flex flex-column" style="min-height:600px;">
+
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="fas fa-list me-2 text-info"></i>قائمة المستلمين</h6>
+            <div class="d-flex gap-2 align-items-center">
+              <span class="badge bg-primary px-3 py-2" id="countBadge">0 مستلم</span>
+              <button class="btn btn-sm btn-outline-danger" onclick="clearAll()"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+
+          <div style="max-height:380px; overflow-y:auto;" class="mb-3">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr><th>#</th><th>البريد الإلكتروني</th><th>الاسم</th><th>الحالة</th><th></th></tr>
+              </thead>
+              <tbody id="recipientsList">
+                <tr id="emptyRow">
+                  <td colspan="5" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fs-3 d-block mb-2"></i>لم يتم إضافة مستلمين بعد
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="progressSection" style="display:none" class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <small class="fw-semibold">جاري الإرسال...</small>
+              <small id="progressText">0 / 0</small>
+            </div>
+            <div class="progress" style="height:10px;">
+              <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                   id="progressBar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div id="resultSection" style="display:none" class="mb-3"></div>
+
+          <div class="mt-auto">
+            <button class="btn btn-primary w-100 py-3 fw-bold fs-5" id="sendBtn" onclick="startSend()" {% if not emailjs_ok %}disabled{% endif %}>
+              <i class="fas fa-paper-plane me-2"></i>إرسال للجميع
+            </button>
+            {% if not emailjs_ok %}
+            <small class="text-muted d-block text-center mt-2">يجب إعداد EmailJS أولاً</small>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let recipients = [];
+
+function showMsgTab(tab) {
+  document.getElementById('msg-template').style.display = tab==='template' ? 'block' : 'none';
+  document.getElementById('msg-custom').style.display = tab==='custom' ? 'block' : 'none';
+  document.querySelectorAll('#msgTabs .nav-link').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&tab==='template')||(i===1&&tab==='custom'));
+  });
+}
+
+function loadTemplate(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return;
+  const subject = opt.dataset.subject || '';
+  const html = opt.dataset.html || '';
+  document.getElementById('subject').value = subject;
+  document.getElementById('body_html').value = html;
+}
+
+function showTab(tab) {
+  document.getElementById('tab-manual').style.display = tab==='manual' ? 'block' : 'none';
+  document.getElementById('tab-excel').style.display = tab==='excel' ? 'block' : 'none';
+  document.querySelectorAll('#addTabs .nav-link').forEach((b,i) => {
+    b.classList.toggle('active', (i===0&&tab==='manual')||(i===1&&tab==='excel'));
+  });
+}
+
+function addManual() {
+  const email = document.getElementById('manual_email').value.trim();
+  const name  = document.getElementById('manual_name').value.trim();
+  if (!email || !/^[\w\.\+\-]+@[\w\.-]+\.\w+$/.test(email)) {
+    alert('أدخل بريداً إلكترونياً صحيحاً'); return;
+  }
+  if (recipients.find(r => r.email === email)) {
+    alert('هذا البريد موجود بالفعل'); return;
+  }
+  recipients.push({email, name, status: ''});
+  document.getElementById('manual_email').value = '';
+  document.getElementById('manual_name').value = '';
+  renderTable();
+}
+
+function parseExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('excelStatus');
+  status.innerHTML = '<div class="alert alert-info py-2"><i class="fas fa-spinner fa-spin me-2"></i>جاري تحليل الملف...</div>';
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  fetch('{% url "campaigns:parse_excel" %}', {method:'POST', body:formData})
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) { status.innerHTML = `<div class="alert alert-danger">${data.error}</div>`; return; }
+      let added = 0;
+      data.recipients.forEach(r => {
+        if (!recipients.find(x => x.email===r.email)) { recipients.push({...r, status:''}); added++; }
+      });
+      status.innerHTML = `<div class="alert alert-success py-2"><i class="fas fa-check me-2"></i>تم إضافة ${added} مستلم جديد (إجمالي الملف: ${data.total})</div>`;
+      renderTable();
+      input.value = '';
+    })
+    .catch(e => status.innerHTML = `<div class="alert alert-danger">خطأ: ${e}</div>`);
+}
+
+function renderTable() {
+  const tbody = document.getElementById('recipientsList');
+  document.getElementById('countBadge').textContent = recipients.length + ' مستلم';
+  if (!recipients.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-inbox fs-3 d-block mb-2"></i>لم يتم إضافة مستلمين بعد</td></tr>';
+    return;
+  }
+  tbody.innerHTML = recipients.map((r,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${r.email}</td>
+      <td>${r.name || '<span class="text-muted">—</span>'}</td>
+      <td>${r.status==='success'?'<span class="badge bg-success">✓ أُرسل</span>':r.status==='failed'?'<span class="badge bg-danger">✗ فشل</span>':'<span class="badge bg-secondary">انتظار</span>'}</td>
+      <td><button class="btn btn-sm btn-outline-danger" onclick="removeR(${i})"><i class="fas fa-times"></i></button></td>
+    </tr>`).join('');
+}
+
+function removeR(i) { recipients.splice(i,1); renderTable(); }
+function clearAll() { if(confirm('مسح قائمة المستلمين؟')){ recipients=[]; renderTable(); } }
+
+async function startSend() {
+  const subject   = document.getElementById('subject').value.trim();
+  const body_html = document.getElementById('body_html').value.trim();
+  const delay     = parseInt(document.getElementById('delay').value)||3;
+  if (!subject||!body_html) { alert('أدخل موضوع الرسالة ومحتواها'); return; }
+  if (!recipients.length)   { alert('أضف مستلماً واحداً على الأقل'); return; }
+  if (!confirm(`هل تريد إرسال الرسالة لـ ${recipients.length} مستلم؟`)) return;
+
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('progressSection').style.display = 'block';
+  document.getElementById('resultSection').style.display   = 'none';
+
+  let success=0, failed=0;
+
+  for (let i=0; i<recipients.length; i++) {
+    document.getElementById('progressText').textContent = `${i+1} / ${recipients.length}`;
+    document.getElementById('progressBar').style.width  = `${((i+1)/recipients.length)*100}%`;
+    try {
+      const resp = await fetch('{% url "campaigns:do_smart_send" %}', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},
+        body: JSON.stringify({recipients:[recipients[i]], subject, body_html, delay:0})
+      });
+      const result = await resp.json();
+      recipients[i].status = result.success>0 ? 'success' : 'failed';
+      result.success>0 ? success++ : failed++;
+    } catch(e) { recipients[i].status='failed'; failed++; }
+    renderTable();
+    if (i<recipients.length-1 && delay>0)
+      await new Promise(r => setTimeout(r, delay*1000));
+  }
+
+  // دالة إضافة مستلم واحد
+function addSingleRecipient() {
+  const email = document.getElementById('single_email').value.trim();
+  const name = document.getElementById('single_name').value.trim();
+  const msg = document.getElementById('single_msg');
+
+  if (!email) {
+    msg.innerHTML = '<span class="text-danger">⚠️ أدخل البريد الإلكتروني</span>';
+    return;
+  }
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+    msg.innerHTML = '<span class="text-danger">⚠️ البريد الإلكتروني غير صحيح</span>';
+    return;
+  }
+
+  // تحقق من عدم التكرار
+  if (recipients.some(r => r.email === email)) {
+    msg.innerHTML = '<span class="text-warning">⚠️ هذا البريد موجود مسبقاً</span>';
+    return;
+  }
+
+  recipients.push({email: email, name: name});
+  renderTable();
+  document.getElementById('single_email').value = '';
+  document.getElementById('single_name').value = '';
+  msg.innerHTML = '<span class="text-success">✅ تمت الإضافة بنجاح</span>';
+  setTimeout(() => msg.innerHTML = '', 2000);
+}
+
+document.getElementById('sendBtn').disabled = false;
+  document.getElementById('resultSection').style.display = 'block';
+  document.getElementById('resultSection').innerHTML = `
+    <div class="alert ${failed===0?'alert-success':'alert-warning'}">
+      <i class="fas fa-check-circle me-2"></i>
+      <strong>اكتمل الإرسال:</strong> نجح ${success} — فشل ${failed}
+    </div>`;
+}
+</script>
+{% endblock %}

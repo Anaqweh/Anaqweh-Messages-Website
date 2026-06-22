@@ -1,0 +1,40 @@
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+
+from .navigation import active_membership_for, is_platform_admin, permissions_for_membership
+
+
+@login_required
+def home(request):
+    if is_platform_admin(request.user):
+        return redirect("platform_core:tenant_list")
+
+    membership = active_membership_for(request.user)
+    if not membership:
+        return render(request, "workspace/home.html", {
+            "tenant": None,
+            "membership": None,
+            "permissions": {},
+        })
+
+    return render(request, "workspace/home.html", {
+        "tenant": membership.tenant,
+        "membership": membership,
+        "permissions": permissions_for_membership(membership),
+    })
+
+
+
+@login_required
+def finance(request):
+    if is_platform_admin(request.user):
+        return redirect("payments:dashboard")
+
+    membership = active_membership_for(request.user)
+    permissions = permissions_for_membership(membership) if membership else {}
+
+    return render(request, "workspace/finance.html", {
+        "tenant": membership.tenant if membership else None,
+        "membership": membership,
+        "permissions": permissions,
+    })

@@ -55,12 +55,20 @@ def send_single_email_task(self, log_id):
         subject = log.campaign.subject
         body_html = log.campaign.body_html
         body_text = log.campaign.body_text
+    if getattr(log, 'subject_snapshot', ''):
+        subject = log.subject_snapshot
+    if getattr(log, 'body_html_snapshot', ''):
+        body_html = log.body_html_snapshot
+    if getattr(log, 'body_text_snapshot', ''):
+        body_text = log.body_text_snapshot
+
     for key, value in context.items():
         p = '{{' + key + '}}'
         subject = subject.replace(p, str(value or ''))
         body_html = body_html.replace(p, str(value or ''))
         body_text = body_text.replace(p, str(value or ''))
     base_url = _cfg('SITE_URL', default='http://165.232.167.39:8000')
+    body_html = ensure_payment_links(body_html, log, base_url)
     body_html = inject_tracking(body_html, log.id, base_url)
     result = send_via_emailjs(to_email=log.recipient_email, to_name=log.recipient_name, subject=subject, body_html=body_html, body_text=body_text, extra_params=context)
     if result['success']:
@@ -189,3 +197,82 @@ def send_completion_notification(campaign_id):
     send_via_emailjs(to_email=admin_email, to_name='المشرف',
                      subject=f'اكتملت الحملة: {c.name}', body_html=html)
     return 'notification sent'
+
+
+
+def ensure_email_payment_links(body_html, cust_email='', cust_name=''):
+    import re
+    from urllib.parse import urlencode
+
+    if not body_html:
+        return body_html
+
+    base_url = 'http://165.232.167.39:8000'
+
+    def plain(html):
+        s = re.sub(r'<[^>]+>', '', html or '')
+        s = re.sub(r'\s+', ' ', s).strip()
+        return s
+
+    def detect_amount(src):
+        m = re.search(r'(?:data-amount|amount)=["\']?([0-9]+(?:\.[0-9]+)?)', src or '', re.I)
+        return m.group(1) if m else '2'
+
+    def make_url(src, label):
+        _params = {
+            'amount': detect_amount(src),
+            'label': label or 'ادفع الآن',
+        }
+        if cust_email:
+            _params['email'] = cust_email
+        if cust_name:
+            _params['name'] = cust_name
+        return base_url + '/templates/pay/quick/?' + urlencode(_params)
+
+    def is_payment(inner, attrs=''):
+        t = (plain(inner) + ' ' + (attrs or '')).lower()
+        return ('ادفع' in t) or ('دفع' in t) or ('pay' in t) or ('payment' in t)
+
+    def fix_a(m):
+        attrs1 = m.group(1) or ''
+        href = (m.group(2) or '').strip()
+        attrs2 = m.group(3) or ''
+        inner = m.group(4) or ''
+        attrs = attrs1 + ' ' + attrs2
+
+        if not is_payment(inner, attrs):
+            return m.group(0)
+
+        if href and href not in ['#', '/', 'javascript:void(0)', 'javascript:;']:
+            return m.group(0)
+
+        label = plain(inner) or 'ادفع الآن'
+        url = make_url(m.group(0), label)
+        final_attrs = attrs1 + ' href="' + url + '" ' + attrs2
+        if 'target=' not in final_attrs.lower():
+            final_attrs += ' target="_blank"'
+        return '<a' + final_attrs + '>' + inner + '</a>'
+
+    body_html = re.sub(
+        r'<a\b([^>]*)href=["\']([^"\']*)["\']([^>]*)>(.*?)</a>',
+        fix_a,
+        body_html,
+        flags=re.I | re.S
+    )
+
+    def fix_button(m):
+        attrs = m.group(1) or ''
+        inner = m.group(2) or ''
+        if not is_payment(inner, attrs):
+            return m.group(0)
+        label = plain(inner) or 'ادفع الآن'
+        url = make_url(m.group(0), label)
+        return '<a href="' + url + '" target="_blank" style="display:inline-block;background:#10b981;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:bold">' + label + '</a>'
+
+    body_html = re.sub(r'<button\b([^>]*)>(.*?)</button>', fix_button, body_html, flags=re.I | re.S)
+    return body_html
+
+def ensure_payment_links(body_html, log=None, base_url=''):
+    _email = getattr(log, 'recipient_email', '') if log else ''
+    _name = getattr(log, 'recipient_name', '') if log else ''
+    return ensure_email_payment_links(body_html, cust_email=_email, cust_name=_name)

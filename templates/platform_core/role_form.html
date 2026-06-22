@@ -1,0 +1,72 @@
+{% extends "base/base.html" %}
+{% block title %}{% if role %}تعديل دور{% else %}دور جديد{% endif %} — {{ tenant.name }}{% endblock %}
+{% block page_title %}<i class="bi bi-shield-plus me-2"></i>{% if role %}تعديل: {{ role.name }}{% else %}دور/مسمى وظيفي جديد{% endif %}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'platform_core:tenant_roles' tenant.pk %}" class="btn btn-outline-secondary btn-sm">← الأدوار</a>
+{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post" action="{% if role %}{% url 'platform_core:tenant_role_edit' tenant.pk role.pk %}{% else %}{% url 'platform_core:tenant_role_create' tenant.pk %}{% endif %}">
+{% csrf_token %}
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="form-label fw-bold">اسم الدور / المسمى الوظيفي *</label>
+      <input name="name" value="{{ role.name|default:'' }}" class="form-control" placeholder="مثال: محاسب، مبيعات، إداري، مدير فرع..." required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label fw-bold">الوصف</label>
+      <input name="description" value="{{ role.description|default:'' }}" class="form-control" placeholder="وصف مختصر للدور">
+    </div>
+  </div>
+
+  <h6 class="fw-bold mb-3">الصلاحيات <small class="text-muted fw-normal">(مقيّدة بوحدات الشركة)</small></h6>
+  <div class="row g-3 mb-4">
+    {% if modules.email %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_email" class="form-check-input" {% if role.permissions.email.view %}checked{% endif %}>
+        البريد الإلكتروني
+      </label>
+      <div class="small text-muted mt-1">الحملات، الإرسال، القوالب، المستلمون</div>
+    </div></div>
+    {% endif %}
+    {% if modules.finance %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_finance" class="form-check-input" {% if role.permissions.finance.view %}checked{% endif %}>
+        المالية
+      </label>
+      <div class="small text-muted mt-1">الفواتير، المصروفات، التقارير المالية</div>
+    </div></div>
+    {% endif %}
+    {% if modules.crm %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_crm" class="form-check-input" {% if role.permissions.crm.view %}checked{% endif %}>
+        CRM
+      </label>
+      <div class="small text-muted mt-1">الشركات، الفرص، عروض الأسعار، المهام</div>
+    </div></div>
+    {% endif %}
+    {% if modules.reports %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_reports" class="form-check-input" {% if role.permissions.reports.view %}checked{% endif %}>
+        التقارير
+      </label>
+      <div class="small text-muted mt-1">تقارير الحملات والأداء</div>
+    </div></div>
+    {% endif %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_settings" class="form-check-input" {% if role.permissions.settings.view %}checked{% endif %}>
+        الإعدادات والمستخدمين
+      </label>
+      <div class="small text-muted mt-1">إدارة الإعدادات وإضافة موظفين</div>
+    </div></div>
+  </div>
+
+  <button class="btn btn-primary px-5">{% if role %}حفظ التعديلات{% else %}إنشاء الدور{% endif %}</button>
+</form>
+</div></div>
+{% endblock %}

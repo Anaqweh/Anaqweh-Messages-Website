@@ -1,0 +1,48 @@
+{% extends "base/base.html" %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-circle me-2"></i>{{ customer.name }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'accounting:customers' %}" class="btn btn-outline-secondary btn-sm">← العملاء</a>
+<a href="{% url 'accounting:customer_edit' customer.pk %}" class="btn btn-primary btn-sm">تعديل</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">عدد الفواتير</div><div class="h4 fw-bold">{{ customer.invoice_count }}</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي المدفوع</div><div class="h4 fw-bold text-success">{{ customer.total_paid }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي المستحق</div><div class="h4 fw-bold text-warning">{{ customer.total_due }} AED</div></div></div></div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3"><div class="card-body">
+  <h6 class="fw-bold mb-3">بيانات العميل</h6>
+  <div class="row small">
+    <div class="col-md-4 mb-2"><span class="text-muted">الشركة:</span> {{ customer.company|default:"-" }}</div>
+    <div class="col-md-4 mb-2"><span class="text-muted">البريد:</span> {{ customer.email|default:"-" }}</div>
+    <div class="col-md-4 mb-2"><span class="text-muted">الهاتف:</span> {{ customer.phone|default:"-" }}</div>
+    <div class="col-md-4 mb-2"><span class="text-muted">العنوان:</span> {{ customer.address|default:"-" }}</div>
+    <div class="col-md-4 mb-2"><span class="text-muted">الرقم الضريبي:</span> {{ customer.trn|default:"-" }}</div>
+    <div class="col-md-4 mb-2"><span class="text-muted">الحالة:</span> {% if customer.is_active %}<span class="badge bg-success">نشط</span>{% else %}<span class="badge bg-secondary">غير نشط</span>{% endif %}</div>
+  </div>
+  {% if customer.notes %}<div class="mt-2 small"><span class="text-muted">ملاحظات:</span> {{ customer.notes }}</div>{% endif %}
+</div></div>
+
+<div class="data-table p-3">
+  <h6 class="fw-bold mb-3">فواتير العميل</h6>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>الرقم</th><th>النوع</th><th>الإجمالي</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td class="fw-bold">{{ inv.invoice_number }}</td>
+        <td>{{ inv.get_kind_display }}</td>
+        <td class="fw-bold">{{ inv.total }} {{ inv.currency|upper }}</td>
+        <td><span class="badge {% if inv.status == 'paid' %}bg-success{% elif inv.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">{{ inv.get_status_display }}</span></td>
+        <td>{{ inv.issue_date|date:"Y-m-d" }}</td>
+        <td><a href="{% url 'payments:sales_invoice_print' inv.token %}" class="btn btn-sm btn-outline-primary" target="_blank">عرض</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted">لا توجد فواتير لهذا العميل</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

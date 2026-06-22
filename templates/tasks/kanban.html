@@ -1,0 +1,29 @@
+{% extends "base/base.html" %}
+{% block title %}INEXC Flow{% endblock %}
+{% block page_title %}<i class="bi bi-kanban me-2"></i>لوحة INEXC Flow{% endblock %}
+{% block top_actions %}
+<a href="{% url 'tasks:dashboard' %}" class="btn btn-outline-secondary btn-sm">← اللوحة</a>
+<a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-sm">+ مهمة جديدة</a>
+{% endblock %}
+{% block content %}
+<div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:16px">
+  {% for status, col in columns.items %}
+  <div style="min-width:240px;background:#f4f7fb;border-radius:12px;padding:12px">
+    <div style="font-weight:700;margin-bottom:10px;padding:6px 10px;background:#0b4ea2;color:#fff;border-radius:8px;text-align:center">
+      {{ col.label }} <span style="background:rgba(255,255,255,.3);padding:2px 8px;border-radius:10px;font-size:12px">{{ col.tasks|length }}</span>
+    </div>
+    {% for t in col.tasks %}
+    <div style="background:#fff;border-radius:8px;padding:10px;margin-bottom:8px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-right:3px solid {% if t.priority == 'urgent' %}#dc2626{% elif t.priority == 'high' %}#d97706{% else %}#0b4ea2{% endif %}">
+      <a href="{% url 'tasks:task_detail' t.pk %}" style="font-weight:700;text-decoration:none;color:#111;font-size:13px">{{ t.title }}</a>
+      {% if t.task_type %}<div style="font-size:11px;color:#7a8699;margin-top:2px">{{ t.task_type }}</div>{% endif %}
+      {% if t.assigned_to %}<div style="font-size:11px;color:#0b4ea2;margin-top:4px">👤 {{ t.assigned_to.get_full_name|default:t.assigned_to.username }}</div>{% endif %}
+      {% if t.due_date %}<div style="font-size:11px;margin-top:4px;{% if t.is_late %}color:#dc2626;font-weight:700{% else %}color:#7a8699{% endif %}">📅 {{ t.due_date }}</div>{% endif %}
+      {% if t.current_stage %}<div style="font-size:11px;color:#059669;margin-top:2px">▶ {{ t.current_stage.name }}</div>{% endif %}
+    </div>
+    {% empty %}
+    <div style="text-align:center;color:#aaa;font-size:12px;padding:20px 0">لا توجد مهام</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

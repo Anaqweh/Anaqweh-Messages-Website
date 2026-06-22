@@ -1,0 +1,17 @@
+{% extends "base/base.html" %}
+{% block title %}التحويلات البنكية{% endblock %}
+{% block page_title %}<i class="bi bi-bank me-2"></i>التحويلات البنكية من Stripe{% endblock %}
+{% block top_actions %}<a href="{% url 'payments:dashboard' %}" class="btn btn-outline-secondary btn-sm">← المالية</a>{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي التحويلات</div><div class="h4 fw-bold text-success">{{ total }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">عدد التحويلات</div><div class="h4 fw-bold">{{ payouts|length }}</div></div></div></div>
+</div>
+<div class="data-table p-3">
+  <h6 class="fw-bold mb-3">سجل التحويلات</h6>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>المعرّف</th><th>المبلغ</th><th>العملة</th><th>الحالة</th><th>تاريخ الوصول</th><th>أُنشئ</th></tr></thead>
+    <tbody>{% for po in payouts %}<tr><td><code class="small">{{ po.payout_id }}</code></td><td class="fw-bold">{{ po.amount }}</td><td>{{ po.currency|upper }}</td><td><span class="badge bg-secondary">{{ po.status|default:"-" }}</span></td><td>{{ po.arrival_date|date:"Y-m-d"|default:"-" }}</td><td>{{ po.created_at|date:"Y-m-d H:i" }}</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted">لا توجد تحويلات بعد</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}

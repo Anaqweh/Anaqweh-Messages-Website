@@ -1,0 +1,29 @@
+{% extends "base/base.html" %}
+{% block title %}فريق الشركة{% endblock %}
+{% block page_title %}<i class="bi bi-people me-2"></i>فريق {{ tenant.name }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'workspace:home' %}" class="btn btn-outline-secondary btn-sm">← الرئيسية</a>
+<a href="{% url 'workspace:roles' %}" class="btn btn-outline-info btn-sm">⚙ الأدوار</a>
+<a href="{% url 'workspace:member_add' %}" class="btn btn-primary btn-sm">+ إضافة موظف</a>
+{% endblock %}
+{% block content %}
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>الموظف</th><th>البريد</th><th>المسمى الوظيفي</th><th>الدور</th><th>الحالة</th><th></th></tr></thead>
+    <tbody>
+      {% for m in members %}
+      <tr>
+        <td class="fw-bold">{{ m.user.get_full_name|default:m.user.username }}</td>
+        <td>{{ m.user.email }}</td>
+        <td>{{ m.role_name|default:"-" }}</td>
+        <td>{% if m.is_tenant_admin %}<span class="badge bg-primary">مدير</span>{% else %}<span class="badge bg-secondary">موظف</span>{% endif %}</td>
+        <td>{% if m.is_active %}<span class="badge bg-success">مفعّل</span>{% else %}<span class="badge bg-danger">موقوف</span>{% endif %}</td>
+        <td><a href="{% url 'workspace:member_edit' m.pk %}" class="btn btn-sm btn-outline-warning">تعديل</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted">لا يوجد موظفون بعد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

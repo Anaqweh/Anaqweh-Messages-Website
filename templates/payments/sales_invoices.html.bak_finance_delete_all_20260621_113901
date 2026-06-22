@@ -1,0 +1,60 @@
+{% extends "base/base.html" %}
+{% block title %}الفواتير الإلكترونية{% endblock %}
+{% block page_title %}<i class="bi bi-receipt-cutoff me-2"></i>الفواتير الإلكترونية{% endblock %}
+{% block top_actions %}
+<a href="{% url 'payments:dashboard' %}" class="btn btn-outline-secondary btn-sm">← المالية</a>
+<a href="{% url 'payments:sales_invoice_create' %}" class="btn btn-primary btn-sm">+ فاتورة جديدة</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="mb-3">
+  <div class="row g-2 align-items-center">
+    <div class="col-md-4">
+      <div class="input-group">
+        <input name="q" value="{{ q }}" class="form-control" placeholder="بحث برقم الفاتورة أو العميل...">
+        <button class="btn btn-primary">بحث</button>
+      </div>
+    </div>
+    <div class="col-md-8">
+      <input type="hidden" name="kind" value="{{ kind }}">
+      <a href="?kind={{ kind }}" class="btn btn-sm {% if not status %}btn-dark{% else %}btn-outline-dark{% endif %}">الكل</a>
+      <a href="?kind={{ kind }}&status=paid" class="btn btn-sm {% if status == 'paid' %}btn-success{% else %}btn-outline-success{% endif %}">مدفوعة</a>
+      <a href="?kind={{ kind }}&status=unpaid" class="btn btn-sm {% if status == 'unpaid' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">غير مدفوعة</a>
+      <a href="?kind={{ kind }}&status=overdue" class="btn btn-sm {% if status == 'overdue' %}btn-danger{% else %}btn-outline-danger{% endif %}">متأخرة</a>
+      <a href="?kind={{ kind }}&status=cancelled" class="btn btn-sm {% if status == 'cancelled' %}btn-dark{% else %}btn-outline-dark{% endif %}">ملغاة</a>
+    </div>
+  </div>
+</form>
+<div class="mb-3">
+  <a href="{% url 'payments:sales_invoices' %}" class="btn btn-sm {% if not kind %}btn-primary{% else %}btn-outline-primary{% endif %}">كل الأنواع</a>
+  <a href="?kind=due{% if status %}&status={{ status }}{% endif %}" class="btn btn-sm {% if kind == 'due' %}btn-primary{% else %}btn-outline-primary{% endif %}">المستحقة</a>
+  <a href="?kind=sales{% if status %}&status={{ status }}{% endif %}" class="btn btn-sm {% if kind == 'sales' %}btn-primary{% else %}btn-outline-primary{% endif %}">المبيعات</a>
+</div>
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>الرقم</th><th>النوع</th><th>العميل</th><th>الإجمالي</th><th>الضريبة</th><th>الحالة</th><th>طريقة الدفع</th><th>التاريخ</th><th>الاستحقاق</th><th></th></tr></thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr {% if inv.is_overdue %}class="table-danger"{% endif %}>
+        <td class="fw-bold">{{ inv.invoice_number }}</td>
+        <td><span class="badge {% if inv.kind == 'due' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ inv.get_kind_display }}</span></td>
+        <td>{{ inv.customer_name }}</td>
+        <td class="fw-bold">{{ inv.total }} {{ inv.currency|upper }}</td>
+        <td>{{ inv.tax_amount }}</td>
+        <td>
+          {% if inv.is_overdue %}<span class="badge bg-danger">متأخرة</span>
+          {% elif inv.status == 'paid' %}<span class="badge bg-success">مدفوعة</span>
+          {% elif inv.status == 'cancelled' %}<span class="badge bg-dark">ملغاة</span>
+          {% else %}<span class="badge bg-secondary">غير مدفوعة</span>{% endif %}
+        </td>
+        <td>{{ inv.get_payment_method_display }}</td>
+        <td>{{ inv.issue_date|date:"Y-m-d" }}</td>
+        <td>{{ inv.due_date|date:"Y-m-d"|default:"-" }}</td>
+        <td><a href="{% url 'payments:sales_invoice_print' inv.token %}" class="btn btn-sm btn-outline-primary" target="_blank">عرض</a> <a href="{% url 'payments:sales_invoice_pdf' inv.token %}" class="btn btn-sm btn-outline-danger">PDF</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="10" class="text-center text-muted">لا توجد فواتير مطابقة</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

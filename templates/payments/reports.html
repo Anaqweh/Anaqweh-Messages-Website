@@ -1,0 +1,62 @@
+{% extends "base/base.html" %}
+{% block title %}التقارير المالية{% endblock %}
+{% block page_title %}<i class="bi bi-graph-up me-2"></i>التقارير المالية{% endblock %}
+{% block top_actions %}<a href="{% url 'payments:dashboard' %}" class="btn btn-outline-secondary btn-sm">← المالية</a>{% endblock %}
+{% block content %}
+<div class="data-table p-3">
+  <table class="table align-middle text-center">
+    <thead>
+      <tr>
+        <th>الفترة</th>
+        <th>عدد المدفوعات</th>
+        <th>الإيرادات</th>
+        <th>رسوم Stripe</th>
+        <th>المصروفات</th>
+        <th>صافي الربح</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="fw-bold">اليوم</td>
+        <td>{{ report.today.count }}</td>
+        <td>{{ report.today.income }} AED</td>
+        <td class="text-danger">{{ report.today.fees }} AED</td>
+        <td class="text-warning">{{ report.today.expenses }} AED</td>
+        <td class="fw-bold text-primary">{{ report.today.net }} AED</td>
+      </tr>
+      <tr>
+        <td class="fw-bold">الأسبوع</td>
+        <td>{{ report.week.count }}</td>
+        <td>{{ report.week.income }} AED</td>
+        <td class="text-danger">{{ report.week.fees }} AED</td>
+        <td class="text-warning">{{ report.week.expenses }} AED</td>
+        <td class="fw-bold text-primary">{{ report.week.net }} AED</td>
+      </tr>
+      <tr>
+        <td class="fw-bold">الشهر</td>
+        <td>{{ report.month.count }}</td>
+        <td>{{ report.month.income }} AED</td>
+        <td class="text-danger">{{ report.month.fees }} AED</td>
+        <td class="text-warning">{{ report.month.expenses }} AED</td>
+        <td class="fw-bold text-success">{{ report.month.net }} AED</td>
+      </tr>
+      <tr>
+        <td class="fw-bold">السنة</td>
+        <td>{{ report.year.count }}</td>
+        <td>{{ report.year.income }} AED</td>
+        <td class="text-danger">{{ report.year.fees }} AED</td>
+        <td class="text-warning">{{ report.year.expenses }} AED</td>
+        <td class="fw-bold text-success">{{ report.year.net }} AED</td>
+      </tr>
+      <tr class="table-light">
+        <td class="fw-bold">الإجمالي الكلي</td>
+        <td class="fw-bold">{{ report.all.count }}</td>
+        <td class="fw-bold">{{ report.all.income }} AED</td>
+        <td class="fw-bold text-danger">{{ report.all.fees }} AED</td>
+        <td class="fw-bold text-warning">{{ report.all.expenses }} AED</td>
+        <td class="fw-bold text-primary">{{ report.all.net }} AED</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

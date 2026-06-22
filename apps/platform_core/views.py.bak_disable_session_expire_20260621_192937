@@ -1,0 +1,305 @@
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db import IntegrityError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from .forms import TenantForm, TenantManagerForm, MembershipPermissionsForm
+from .models import Tenant, TenantMembership, TenantRole
+from .session_utils import expire_user_sessions
+
+
+def _platform_admin(user):
+    return user.is_authenticated and (user.is_superuser or user.is_staff)
+
+
+platform_required = user_passes_test(_platform_admin)
+
+
+def _has_field(model, field_name):
+    return any(field.name == field_name for field in model._meta.fields)
+
+
+def _set_if_has(obj, field_name, value):
+    if _has_field(obj.__class__, field_name):
+        setattr(obj, field_name, value)
+
+
+def _tenant_ordering():
+    if _has_field(Tenant, "created_at"):
+        return "-created_at"
+    return "name"
+
+
+def _unique_username(User, wanted):
+    wanted = (wanted or "manager").strip().replace(" ", "_")
+    username = wanted
+    counter = 1
+    username_field = getattr(User, "USERNAME_FIELD", "username")
+
+    while User.objects.filter(**{username_field: username}).exists():
+        counter += 1
+        username = f"{wanted}_{counter}"
+
+    return username
+
+
+def _manager_role_code(tenant):
+    try:
+        code_field = TenantRole._meta.get_field("code")
+        if getattr(code_field, "unique", False):
+            return f"tenant_admin_{tenant.pk}"
+    except Exception:
+        pass
+    return "tenant_admin"
+
+
+def _get_or_create_manager_role(tenant, permissions):
+    lookup = {}
+
+    if _has_field(TenantRole, "tenant"):
+        lookup["tenant"] = tenant
+    if _has_field(TenantRole, "code"):
+        lookup["code"] = _manager_role_code(tenant)
+
+    role = TenantRole.objects.filter(**lookup).first() if lookup else None
+    if role:
+        _set_if_has(role, "permissions", permissions)
+        role.save()
+        return role
+
+    role = TenantRole()
+    _set_if_has(role, "tenant", tenant)
+    _set_if_has(role, "name", "مدير الشركة")
+    _set_if_has(role, "code", _manager_role_code(tenant))
+    _set_if_has(role, "permissions", permissions)
+    _set_if_has(role, "is_system", False)
+
+    try:
+        role.save()
+    except IntegrityError:
+        role = TenantRole.objects.filter(code=_manager_role_code(tenant)).first()
+        if not role:
+            raise
+
+    return role
+
+
+@login_required
+@platform_required
+def home(request):
+    return redirect("platform_core:tenant_list")
+
+
+@login_required
+@platform_required
+def tenant_list(request):
+    tenants = Tenant.objects.all().order_by(_tenant_ordering())
+
+    context = {
+        "tenants": tenants,
+        "total_tenants": tenants.count(),
+        "active_tenants": Tenant.objects.filter(status="active").count() if _has_field(Tenant, "status") else 0,
+        "membership_count": TenantMembership.objects.count(),
+    }
+    return render(request, "platform_core/tenant_list.html", context)
+
+
+@login_required
+@platform_required
+def tenant_detail(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+
+    try:
+        memberships = TenantMembership.objects.select_related("user", "role").filter(tenant=tenant)
+    except Exception:
+        memberships = TenantMembership.objects.filter(tenant=tenant)
+
+    context = {
+        "tenant": tenant,
+        "memberships": memberships,
+        "module_items": list((tenant.modules or {}).items()) if hasattr(tenant, "modules") else [],
+        "limit_items": list((tenant.limits or {}).items()) if hasattr(tenant, "limits") else [],
+        "manager_form": TenantManagerForm(),
+    }
+    return render(request, "platform_core/tenant_detail.html", context)
+
+
+@login_required
+@platform_required
+def tenant_create(request):
+    if request.method == "POST":
+        form = TenantForm(request.POST)
+        if form.is_valid():
+            tenant = form.save()
+            messages.success(request, "تم إنشاء الشركة بنجاح.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantForm()
+
+    return render(request, "platform_core/tenant_form.html", {"form": form, "mode": "create"})
+
+
+@login_required
+@platform_required
+def tenant_edit(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+
+    if request.method == "POST":
+        form = TenantForm(request.POST, instance=tenant)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "تم تحديث بيانات الشركة.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantForm(instance=tenant)
+
+    return render(request, "platform_core/tenant_form.html", {"form": form, "tenant": tenant, "mode": "edit"})
+
+
+@login_required
+@platform_required
+@require_POST
+def tenant_delete(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    name = tenant.name
+    tenant.delete()
+    messages.success(request, f"تم حذف الشركة: {name}")
+    return redirect("platform_core:tenant_list")
+
+
+@login_required
+@platform_required
+@require_POST
+def tenant_add_manager(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    form = TenantManagerForm(request.POST)
+
+    if not form.is_valid():
+        for field_errors in form.errors.values():
+            for error in field_errors:
+                messages.error(request, error)
+        return redirect("platform_core:tenant_detail", pk=tenant.pk)
+
+    User = get_user_model()
+    email = form.cleaned_data["email"].strip().lower()
+    username = form.cleaned_data.get("username") or email.split("@")[0]
+    full_name = form.cleaned_data.get("full_name", "").strip()
+    password = form.cleaned_data.get("password")
+
+    user = User.objects.filter(email__iexact=email).first()
+
+    if not user:
+        username_field = getattr(User, "USERNAME_FIELD", "username")
+        user = User()
+        if username_field == "email":
+            setattr(user, username_field, email)
+        else:
+            setattr(user, username_field, _unique_username(User, username))
+        if hasattr(user, "email"):
+            user.email = email
+        if full_name and hasattr(user, "first_name"):
+            parts = full_name.split(" ", 1)
+            user.first_name = parts[0]
+            if len(parts) > 1 and hasattr(user, "last_name"):
+                user.last_name = parts[1]
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        user.save()
+
+    permissions = form.permissions_payload()
+    role = _get_or_create_manager_role(tenant, permissions)
+
+    membership = TenantMembership.objects.filter(tenant=tenant, user=user).first()
+    if not membership:
+        membership = TenantMembership(tenant=tenant, user=user)
+
+    _set_if_has(membership, "role", role)
+    _set_if_has(membership, "permissions", permissions)
+    _set_if_has(membership, "is_active", True)
+    membership.save()
+    expire_user_sessions(user.id)
+
+    messages.success(request, "تم ربط مدير الشركة بنجاح. يجب على المستخدم تسجيل الدخول من جديد لتفعيل الصلاحيات.")
+    return redirect("platform_core:tenant_detail", pk=tenant.pk)
+
+
+@login_required
+@platform_required
+@require_POST
+def tenant_member_toggle(request, membership_pk):
+    membership = get_object_or_404(TenantMembership, pk=membership_pk)
+    tenant_pk = membership.tenant_id
+
+    if _has_field(TenantMembership, "is_active"):
+        membership.is_active = not membership.is_active
+        membership.save(update_fields=["is_active"])
+        messages.success(request, "تم تحديث حالة العضو.")
+    else:
+        messages.info(request, "هذا العضو لا يحتوي حقل تفعيل.")
+
+    return redirect("platform_core:tenant_detail", pk=tenant_pk)
+
+
+@login_required
+@platform_required
+@require_POST
+def tenant_member_delete(request, membership_pk):
+    membership = get_object_or_404(TenantMembership, pk=membership_pk)
+    tenant_pk = membership.tenant_id
+    membership.delete()
+    messages.success(request, "تم حذف العضو من الشركة.")
+    return redirect("platform_core:tenant_detail", pk=tenant_pk)
+
+
+
+@login_required
+@platform_required
+def tenant_member_permissions(request, membership_pk):
+    membership = get_object_or_404(TenantMembership.objects.select_related("tenant", "user", "role"), pk=membership_pk)
+
+    if request.method == "POST":
+        form = MembershipPermissionsForm(request.POST, membership=membership)
+        if form.is_valid():
+            permissions = form.permissions_payload()
+            if _has_field(TenantMembership, "permissions"):
+                membership.permissions = permissions
+                membership.save(update_fields=["permissions"])
+                expired = expire_user_sessions(membership.user_id)
+                messages.success(request, f"تم تحديث صلاحيات العضو. تم إنهاء {expired} جلسة قديمة لهذا المستخدم.")
+            else:
+                messages.error(request, "موديل العضوية لا يحتوي حقل permissions.")
+            return redirect("platform_core:tenant_detail", pk=membership.tenant_id)
+    else:
+        form = MembershipPermissionsForm(membership=membership)
+
+    grouped_permissions = []
+    for group in form.permission_groups:
+        grouped_permissions.append({
+            "label": group["label"],
+            "fields": [form[field_name] for field_name in group["fields"]],
+        })
+
+    return render(request, "platform_core/tenant_member_permissions.html", {
+        "membership": membership,
+        "tenant": membership.tenant,
+        "form": form,
+        "grouped_permissions": grouped_permissions,
+    })
+
+
+
+@login_required
+@platform_required
+def tenant_members(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    memberships = TenantMembership.objects.select_related("user", "role").filter(tenant=tenant)
+
+    return render(request, "platform_core/tenant_members.html", {
+        "tenant": tenant,
+        "memberships": memberships,
+        "manager_form": TenantManagerForm(),
+    })

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}CRM{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h2>CRM</h2><div class="text-muted">إدارة العملاء والفرص والمتابعات</div></div>
+    <div><a class="btn btn-primary" href="{% url 'crm:company_create' %}">+ عميل</a> <a class="btn btn-outline-primary" href="{% url 'crm:deal_create' %}">+ فرصة</a></div>
+  </div>
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">العملاء</div><h3>{{ companies_count }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">جهات الاتصال</div><h3>{{ contacts_count }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">فرص مفتوحة</div><h3>{{ open_deals_count }}</h3></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">قيمة مغلقة</div><h3>{{ won_value }}</h3></div></div>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-primary" href="{% url 'crm:company_list' %}">العملاء</a>
+    <a class="btn btn-outline-primary" href="{% url 'crm:contact_list' %}">جهات الاتصال</a>
+    <a class="btn btn-outline-primary" href="{% url 'crm:deal_list' %}">الفرص</a>
+    <a class="btn btn-outline-primary" href="{% url 'crm:task_list' %}">المهام</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends 'base/base.html' %}
+{% block title %}تفاصيل {{ u.username }}{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-4" dir="rtl">
+
+  <div class="d-flex align-items-center mb-4 gap-3">
+    <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-right"></i></a>
+    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white fs-4"
+         style="width:50px;height:50px;background:{% if u.is_superuser %}#ef4444{% else %}#6366f1{% endif %};">
+      {{ u.username|first|upper }}
+    </div>
+    <div>
+      <h4 class="mb-0 fw-bold">{{ u.username }} {% if not u.is_active %}<span class="badge bg-danger">معطّل</span>{% endif %}</h4>
+      <small class="text-muted">{{ u.email }} — {{ u.get_full_name }}</small>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <a href="{% url 'accounts:user_edit' u.pk %}" class="btn btn-primary btn-sm px-3"><i class="fas fa-edit me-1"></i>تعديل</a>
+    </div>
+  </div>
+
+  <!-- إحصائيات -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+        <div class="fs-2 fw-bold text-primary">{{ total_sent }}</div>
+        <small class="text-muted">إجمالي المرسل</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+        <div class="fs-2 fw-bold text-success">{{ total_ok }}</div>
+        <small class="text-muted">نجح الإرسال</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+        <div class="fs-2 fw-bold text-info">{{ success_rate }}%</div>
+        <small class="text-muted">معدل النجاح</small>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm rounded-4 text-center p-3">
+        <div class="fs-2 fw-bold text-warning">{{ campaigns|length }}</div>
+        <small class="text-muted">الحملات</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- معلومات الحساب -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-info-circle me-2"></i>معلومات الحساب</h6>
+          <table class="table table-sm table-borderless">
+            <tr><td class="text-muted">الصلاحية</td><td>{% if u.is_superuser %}<span class="badge bg-danger">مدير</span>{% else %}<span class="badge bg-primary">موظف</span>{% endif %}</td></tr>
+            <tr><td class="text-muted">EmailJS</td><td>{% if cfg.is_configured %}<span class="badge bg-success">مُفعَّل</span>{% else %}<span class="badge bg-warning text-dark">غير مُفعَّل</span>{% endif %}</td></tr>
+            <tr><td class="text-muted">تاريخ الإنشاء</td><td>{{ u.date_joined|date:"Y/m/d" }}</td></tr>
+            <tr><td class="text-muted">آخر دخول</td><td>{% if u.last_login %}{{ u.last_login|date:"Y/m/d H:i" }}{% else %}—{% endif %}</td></tr>
+            <tr><td class="text-muted">حد الإرسال</td><td>{% if profile.max_sends %}{{ profile.max_sends }}{% else %}بلا حد{% endif %}</td></tr>
+          </table>
+          {% if profile.note %}
+          <div class="alert alert-light border mt-2 py-2">
+            <small><i class="fas fa-sticky-note me-1"></i>{{ profile.note }}</small>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- آخر الحملات -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-bullhorn me-2"></i>آخر الحملات</h6>
+          {% if campaigns %}
+          <table class="table table-sm table-hover">
+            <thead class="table-light"><tr><th>اسم الحملة</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+            <tbody>
+              {% for c in campaigns %}
+              <tr>
+                <td>{{ c.name }}</td>
+                <td><span class="badge bg-{% if c.status == 'sent' %}success{% elif c.status == 'draft' %}secondary{% else %}warning{% endif %}">{{ c.status }}</span></td>
+                <td><small>{{ c.created_at|date:"Y/m/d" }}</small></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="text-muted text-center py-3">لا توجد حملات بعد</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- سجل النشاط -->
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-history me-2"></i>سجل النشاط</h6>
+          {% if audit_logs %}
+          <div style="max-height:200px;overflow-y:auto;">
+            {% for log in audit_logs %}
+            <div class="d-flex justify-content-between border-bottom py-1">
+              <small>{{ log.action }}</small>
+              <small class="text-muted">{{ log.timestamp|date:"Y/m/d H:i" }}</small>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-muted text-center py-2">لا يوجد نشاط مسجّل</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

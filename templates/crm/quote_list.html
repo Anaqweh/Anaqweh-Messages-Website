@@ -1,0 +1,50 @@
+{% extends "base/base.html" %}
+{% block title %}عروض الأسعار{% endblock %}
+{% block page_title %}<i class="bi bi-file-earmark-text me-2"></i>عروض الأسعار{% endblock %}
+{% block top_actions %}
+<a href="{% url 'crm:dashboard' %}" class="btn btn-outline-secondary btn-sm">← CRM</a>
+<a href="{% url 'crm:quote_create' %}" class="btn btn-primary btn-sm">+ عرض سعر جديد</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-5"><input name="q" value="{{ q }}" class="form-control" placeholder="بحث برقم العرض أو العنوان أو الشركة..."></div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">كل الحالات</option>
+        {% for v,l in status_choices %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2"><button class="btn btn-primary w-100">بحث</button></div>
+    <div class="col-md-2"><a href="{% url 'crm:quote_list' %}" class="btn btn-outline-secondary w-100">إلغاء</a></div>
+  </div>
+</div></form>
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>الرقم</th><th>العنوان</th><th>الشركة</th><th>الحالة</th><th>الإجمالي</th><th>صالح حتى</th><th>التاريخ</th><th></th></tr></thead>
+    <tbody>
+      {% for q in quotes %}
+      <tr>
+        <td class="fw-bold">{{ q.quote_number }}</td>
+        <td>{{ q.title }}</td>
+        <td>{{ q.company.name|default:"-" }}</td>
+        <td>
+          <span class="badge {% if q.status == 'accepted' %}bg-success{% elif q.status == 'rejected' %}bg-danger{% elif q.status == 'sent' %}bg-info{% elif q.status == 'expired' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+            {{ q.get_status_display }}
+          </span>
+        </td>
+        <td class="fw-bold">{{ q.total }} {{ q.currency }}</td>
+        <td>{{ q.valid_until|date:"Y-m-d"|default:"-" }}</td>
+        <td>{{ q.created_at|date:"Y-m-d" }}</td>
+        <td>
+          <a href="{% url 'crm:quote_detail' q.pk %}" class="btn btn-sm btn-outline-primary">عرض</a>
+          <a href="{% url 'crm:quote_edit' q.pk %}" class="btn btn-sm btn-outline-warning">تعديل</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="text-center text-muted">لا توجد عروض أسعار بعد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

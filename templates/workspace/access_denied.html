@@ -1,0 +1,90 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<style>
+.denied-wrap{
+  direction:rtl;
+  min-height:calc(100vh - 120px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px 16px;
+  background:#f3f7fb;
+}
+.denied-card{
+  width:min(560px,100%);
+  background:#fff;
+  border:1px solid #d9e4f2;
+  border-radius:14px;
+  box-shadow:0 18px 50px rgba(11,78,162,.14);
+  padding:34px 28px;
+  text-align:center;
+}
+.denied-icon{
+  width:74px;
+  height:74px;
+  border-radius:20px;
+  margin:0 auto 18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#eef5ff;
+  color:#0b4ea2;
+  font-size:34px;
+  font-weight:800;
+}
+.denied-card h1{
+  margin:0 0 10px;
+  color:#0b4ea2;
+  font-size:28px;
+  font-weight:800;
+}
+.denied-card p{
+  margin:0 auto 22px;
+  color:#667085;
+  font-size:16px;
+  line-height:1.8;
+  max-width:440px;
+}
+.denied-actions{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.denied-btn{
+  border:0;
+  border-radius:8px;
+  padding:11px 16px;
+  background:#0b4ea2;
+  color:#fff;
+  text-decoration:none;
+  font-weight:800;
+  cursor:pointer;
+}
+.denied-btn.light{
+  background:#eef5ff;
+  color:#0b4ea2;
+  border:1px solid #cfe0f8;
+}
+@media(max-width:600px){
+  .denied-card{padding:26px 18px}
+  .denied-card h1{font-size:23px}
+}
+</style>
+
+<div class="denied-wrap">
+  <div class="denied-card">
+    <div class="denied-icon">!</div>
+    <h1>لا تتوفر لديك صلاحية الوصول</h1>
+    <p>
+      عذراً، هذه الصفحة غير مفعّلة ضمن صلاحيات حسابك حالياً.
+      يمكنك الرجوع إلى لوحة شركتك أو التواصل مع مدير النظام إذا كنت تحتاج هذه الصلاحية.
+    </p>
+    <div class="denied-actions">
+      <a class="denied-btn" href="{% url 'workspace:home' %}">العودة إلى لوحة الشركة</a>
+      <button type="button" class="denied-btn light" onclick="history.back()">رجوع</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

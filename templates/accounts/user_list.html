@@ -1,18 +1,107 @@
-{% extends "base/base.html" %}
-{% block title %}المستخدمون – INEXC{% endblock %}
-{% block page_title %}<i class="bi bi-people-fill me-2"></i>إدارة المستخدمين{% endblock %}
-{% block top_actions %}<a href="{% url 'accounts:user_create' %}" class="btn btn-inexc btn-sm">+ مستخدم جديد</a>{% endblock %}
+{% extends 'base/base.html' %}
+{% block title %}إدارة المستخدمين{% endblock %}
 {% block content %}
-<div class="data-table">
-  <table class="table table-hover"><thead><tr><th>اسم المستخدم</th><th>الصلاحية</th><th>تاريخ الإنشاء</th><th>إجراءات</th></tr></thead><tbody>
-    {% for u in users %}
-    <tr>
-      <td class="fw-bold">{{ u.username }}</td>
-      <td>{% if u.is_superuser %}<span class="badge bg-danger">مدير</span>{% else %}<span class="badge bg-primary">موظف</span>{% endif %}</td>
-      <td class="small text-muted">{{ u.date_joined|date:"Y/m/d" }}</td>
-      <td>{% if not u.is_superuser %}<a href="{% url 'accounts:user_delete' u.pk %}" class="btn btn-xs btn-outline-danger" onclick="return confirm('حذف؟')"><i class="bi bi-trash"></i></a>{% else %}—{% endif %}</td>
-    </tr>
-    {% empty %}<tr><td colspan="4" class="text-center text-muted py-4">لا يوجد مستخدمون</td></tr>{% endfor %}
-  </tbody></table>
+<div class="container-fluid px-4 py-4" dir="rtl">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-3 p-3" style="background:#6366f1;"><i class="fas fa-users text-white fs-4"></i></div>
+      <div>
+        <h4 class="mb-0 fw-bold">إدارة المستخدمين</h4>
+        <small class="text-muted">{{ users|length }} مستخدم مسجّل</small>
+      </div>
+    </div>
+    <a href="{% url 'accounts:user_create' %}" class="btn btn-primary px-4">
+      <i class="fas fa-user-plus me-2"></i>مستخدم جديد
+    </a>
+  </div>
+
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th class="px-4 py-3">المستخدم</th>
+            <th>البريد الإلكتروني</th>
+            <th>الصلاحية</th>
+            <th>EmailJS</th>
+            <th>الحالة</th>
+            <th>آخر دخول</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr {% if not u.is_active %}class="table-secondary opacity-75"{% endif %}>
+            <td class="px-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
+                     style="width:38px;height:38px;background:{% if u.is_superuser %}#ef4444{% else %}#6366f1{% endif %};">
+                  {{ u.username|first|upper }}
+                </div>
+                <div>
+                  <div class="fw-semibold">{{ u.username }}</div>
+                  <small class="text-muted">{{ u.get_full_name }}</small>
+                </div>
+              </div>
+            </td>
+            <td>{{ u.email|default:"—" }}</td>
+            <td>
+              {% if u.is_superuser %}
+                <span class="badge bg-danger px-3">مدير</span>
+              {% else %}
+                <span class="badge bg-primary px-3">موظف</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.emailjs_config.is_configured %}
+                <span class="badge bg-success"><i class="fas fa-check me-1"></i>مُفعَّل</span>
+              {% else %}
+                <span class="badge bg-warning text-dark"><i class="fas fa-times me-1"></i>غير مُفعَّل</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">نشط</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">معطّل</span>
+              {% endif %}
+            </td>
+            <td>
+              <small class="text-muted">
+                {% if u.last_login %}{{ u.last_login|date:"Y/m/d H:i" }}{% else %}لم يدخل بعد{% endif %}
+              </small>
+            </td>
+            <td>
+              <div class="d-flex gap-1 flex-wrap">
+                <a href="{% url 'accounts:user_detail' u.pk %}" class="btn btn-sm btn-outline-info" title="تفاصيل"><i class="fas fa-chart-bar"></i></a>
+                <a href="{% url 'accounts:user_edit' u.pk %}" class="btn btn-sm btn-outline-primary" title="تعديل"><i class="fas fa-edit"></i></a>
+                {% if not u.is_superuser %}
+                <a href="{% url 'accounts:user_toggle' u.pk %}"
+                   class="btn btn-sm {% if u.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                   title="{% if u.is_active %}تعطيل{% else %}تفعيل{% endif %}"
+                   onclick="return confirm('{% if u.is_active %}تعطيل{% else %}تفعيل{% endif %} هذا الحساب؟')">
+                  <i class="fas fa-{% if u.is_active %}ban{% else %}check{% endif %}"></i>
+                </a>
+                <a href="{% url 'accounts:user_reset_password' u.pk %}" class="btn btn-sm btn-outline-secondary" title="إعادة كلمة المرور"><i class="fas fa-key"></i></a>
+                <a href="{% url 'accounts:user_delete' u.pk %}" class="btn btn-sm btn-outline-danger" title="حذف"
+                   onclick="return confirm('حذف هذا المستخدم نهائياً؟')"><i class="fas fa-trash"></i></a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="text-center text-muted py-4">لا يوجد مستخدمون</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 {% endblock %}

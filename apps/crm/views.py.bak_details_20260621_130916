@@ -1,0 +1,178 @@
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+from apps.platform_core.models import Tenant, TenantMembership
+from .forms import CompanyForm, ContactForm, DealForm, TaskForm
+from .models import CRMCompany, CRMContact, CRMDeal, CRMTask
+
+def _default_tenant(user):
+    if user.is_staff:
+        return Tenant.objects.first()
+    m = TenantMembership.objects.filter(user=user, is_active=True).select_related("tenant").first()
+    return m.tenant if m else Tenant.objects.first()
+
+def _tenant_ids(user):
+    if user.is_staff:
+        return None
+    return list(TenantMembership.objects.filter(user=user, is_active=True).values_list("tenant_id", flat=True))
+
+def _scope(qs, user):
+    ids = _tenant_ids(user)
+    return qs if ids is None else qs.filter(tenant_id__in=ids)
+
+def _save(obj, request):
+    if not obj.tenant_id:
+        obj.tenant = _default_tenant(request.user)
+    if hasattr(obj, "owner_id") and not obj.owner_id:
+        obj.owner = request.user
+    obj.save()
+    return obj
+
+@login_required
+def dashboard(request):
+    companies = _scope(CRMCompany.objects.all(), request.user)
+    contacts = _scope(CRMContact.objects.all(), request.user)
+    deals = _scope(CRMDeal.objects.all(), request.user)
+    tasks = _scope(CRMTask.objects.all(), request.user)
+    return render(request, "crm/dashboard.html", {
+        "companies_count": companies.count(),
+        "contacts_count": contacts.count(),
+        "open_deals_count": deals.exclude(stage__in=["won","lost"]).count(),
+        "won_value": deals.filter(stage="won").aggregate(total=Sum("value"))["total"] or 0,
+        "open_tasks": tasks.filter(status="open")[:10],
+    })
+
+@login_required
+def company_list(request):
+    q = request.GET.get("q","").strip()
+    qs = _scope(CRMCompany.objects.select_related("owner","tenant"), request.user)
+    if q:
+        qs = qs.filter(Q(name__icontains=q)|Q(email__icontains=q)|Q(phone__icontains=q))
+    return render(request, "crm/company_list.html", {"companies": qs, "q": q})
+
+@login_required
+def company_create(request):
+    form = CompanyForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        obj = _save(form.save(commit=False), request)
+        messages.success(request, "تم إضافة العميل.")
+        return redirect("crm:company_list")
+    return render(request, "crm/form.html", {"form": form, "title": "إضافة عميل", "back_url": "crm:company_list"})
+
+@login_required
+def company_edit(request, pk):
+    obj = get_object_or_404(_scope(CRMCompany.objects.all(), request.user), pk=pk)
+    form = CompanyForm(request.POST or None, instance=obj)
+    if request.method == "POST" and form.is_valid():
+        form.save(); messages.success(request, "تم التحديث.")
+        return redirect("crm:company_list")
+    return render(request, "crm/form.html", {"form": form, "title": "تعديل عميل", "back_url": "crm:company_list"})
+
+@login_required
+@require_POST
+def company_delete(request, pk):
+    get_object_or_404(_scope(CRMCompany.objects.all(), request.user), pk=pk).delete()
+    messages.success(request, "تم حذف العميل.")
+    return redirect("crm:company_list")
+
+@login_required
+def contact_list(request):
+    q = request.GET.get("q","").strip()
+    qs = _scope(CRMContact.objects.select_related("company","owner"), request.user)
+    if q:
+        qs = qs.filter(Q(full_name__icontains=q)|Q(email__icontains=q)|Q(phone__icontains=q))
+    return render(request, "crm/contact_list.html", {"contacts": qs, "q": q})
+
+@login_required
+def contact_create(request):
+    form = ContactForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        _save(form.save(commit=False), request); messages.success(request, "تم إضافة جهة الاتصال.")
+        return redirect("crm:contact_list")
+    return render(request, "crm/form.html", {"form": form, "title": "إضافة جهة اتصال", "back_url": "crm:contact_list"})
+
+@login_required
+def contact_edit(request, pk):
+    obj = get_object_or_404(_scope(CRMContact.objects.all(), request.user), pk=pk)
+    form = ContactForm(request.POST or None, instance=obj)
+    if request.method == "POST" and form.is_valid():
+        form.save(); messages.success(request, "تم التحديث.")
+        return redirect("crm:contact_list")
+    return render(request, "crm/form.html", {"form": form, "title": "تعديل جهة اتصال", "back_url": "crm:contact_list"})
+
+@login_required
+@require_POST
+def contact_delete(request, pk):
+    get_object_or_404(_scope(CRMContact.objects.all(), request.user), pk=pk).delete()
+    messages.success(request, "تم حذف جهة الاتصال.")
+    return redirect("crm:contact_list")
+
+@login_required
+def deal_list(request):
+    qs = _scope(CRMDeal.objects.select_related("company","contact","owner"), request.user)
+    return render(request, "crm/deal_list.html", {"deals": qs})
+
+@login_required
+def deal_create(request):
+    form = DealForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        _save(form.save(commit=False), request); messages.success(request, "تم إضافة الفرصة.")
+        return redirect("crm:deal_list")
+    return render(request, "crm/form.html", {"form": form, "title": "إضافة فرصة", "back_url": "crm:deal_list"})
+
+@login_required
+def deal_edit(request, pk):
+    obj = get_object_or_404(_scope(CRMDeal.objects.all(), request.user), pk=pk)
+    form = DealForm(request.POST or None, instance=obj)
+    if request.method == "POST" and form.is_valid():
+        form.save(); messages.success(request, "تم التحديث.")
+        return redirect("crm:deal_list")
+    return render(request, "crm/form.html", {"form": form, "title": "تعديل فرصة", "back_url": "crm:deal_list"})
+
+@login_required
+@require_POST
+def deal_delete(request, pk):
+    get_object_or_404(_scope(CRMDeal.objects.all(), request.user), pk=pk).delete()
+    messages.success(request, "تم حذف الفرصة.")
+    return redirect("crm:deal_list")
+
+@login_required
+def task_list(request):
+    qs = _scope(CRMTask.objects.select_related("company","contact","deal","assigned_to"), request.user)
+    return render(request, "crm/task_list.html", {"tasks": qs})
+
+@login_required
+def task_create(request):
+    form = TaskForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        obj = form.save(commit=False)
+        if not obj.tenant_id: obj.tenant = _default_tenant(request.user)
+        if not obj.assigned_to_id: obj.assigned_to = request.user
+        obj.save(); messages.success(request, "تم إضافة المهمة.")
+        return redirect("crm:task_list")
+    return render(request, "crm/form.html", {"form": form, "title": "إضافة مهمة", "back_url": "crm:task_list"})
+
+@login_required
+def task_edit(request, pk):
+    obj = get_object_or_404(_scope(CRMTask.objects.all(), request.user), pk=pk)
+    form = TaskForm(request.POST or None, instance=obj)
+    if request.method == "POST" and form.is_valid():
+        form.save(); messages.success(request, "تم التحديث.")
+        return redirect("crm:task_list")
+    return render(request, "crm/form.html", {"form": form, "title": "تعديل مهمة", "back_url": "crm:task_list"})
+
+@login_required
+@require_POST
+def task_done(request, pk):
+    get_object_or_404(_scope(CRMTask.objects.all(), request.user), pk=pk).mark_done()
+    messages.success(request, "تم إنجاز المهمة.")
+    return redirect("crm:task_list")
+
+@login_required
+@require_POST
+def task_delete(request, pk):
+    get_object_or_404(_scope(CRMTask.objects.all(), request.user), pk=pk).delete()
+    messages.success(request, "تم حذف المهمة.")
+    return redirect("crm:task_list")

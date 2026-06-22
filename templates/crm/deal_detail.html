@@ -1,0 +1,854 @@
+{% extends "base/base.html" %}
+{% block title %}{{ deal.title }}{% endblock %}
+{% block content %}
+<div class="container
+python3 - <<'PY'
+from pathlib import Path
+
+for file_name, detail_name in [
+    ("templates/crm/company_list.html", "company_detail"),
+    ("templates/crm/contact_list.html", "contact_detail"),
+    ("templates/crm/deal_list.html", "deal_detail"),
+]:
+    p = Path(file_name)
+    s = p.read_text()
+    if f"crm:{detail_name}" not in s:
+        if "company_list" in file_name:
+            s = s.replace('<a class="btn btn-sm btn-outline-secondary" href="{% url \'crm:company_edit\' c.pk %}">تعديل</a>', '<a class="btn btn-sm btn-outline-primary" href="{% url \'crm:company_detail\' c.pk %}">فتح</a> <a class="btn btn-sm btn-outline-secondary" href="{% url \'crm:company_edit\' c.pk %}">تعديل</a>')
+        elif "contact_list" in file_name:
+            s = s.replace('<a class="btn btn-sm btn-outline-secondary" href="{% url \'crm:contact_edit\' c.pk %}">تعديل</a>', '<a class="btn btn-sm btn-outline-primary" href="{% url \'crm:contact_detail\' c.pk %}">فتح</a> <a class="btn btn-sm btn-outline-secondary" href="{% url \'crm:contact_edit\' c.pk %}">تعديل</a>')
+        elif "deal_list" in file_name:
+            s = s.replace('<a class="btn btn-sm btn-outline-secondary" href="{% url \'crm:deal_edit\' d.pk %}">تعديل</a>', '<a class="btn btn-sm btn-outline-primary" href="{% url \'crm:deal_detail\' d.pk %}">فتح</a> <a class="btn btn-sm btn-outline-secondary" href="{% url \'crm:deal_edit\' d.pk %}">تعديل</a>')
+        p.write_text(s)
+
+base = Path("templates/base.html")
+if base.exists():
+    s = base.read_text()
+    if "crm:dashboard" not in s and "/crm/" not in s:
+        # أضف رابطاً قريباً من payments إن أمكن، وإلا قبل نهاية أول nav
+        if "payments:" in s:
+            s = s.replace("payments:", "crm:dashboard_marker", 1)
+            s = s.replace("crm:dashboard_marker", "payments:", 1)
+        nav_link = '<a class="nav-link" href="/crm/">CRM</a>'
+        if "</nav>" in s:
+            s = s.replace("</nav>", nav_link + "\n</nav>", 1)
+        elif "</ul>" in s:
+            s = s.replace("</ul>", '<li class="nav-item"><a class="nav-link" href="/crm/">CRM</a></li>\n</ul>', 1)
+        else:
+            s += "\n<!-- CRM -->\n" + nav_link + "\n"
+        base.write_text(s)
+
+print("crm details and nav patch applied")
+PY
+
+python3 -m py_compile apps/crm/views.py
+python3 manage.py check
+python3 manage.py shell -c "from django.urls import resolve; print(resolve('/crm/companies/1/').url_name); print(resolve('/crm/contacts/1/').url_name); print(resolve('/crm/deals
+exit
+docker restart messages-website-app-1
+docker exec -it messages-website-app-1 bash
+cd /app
+set -e
+
+cp apps/crm/views.py apps/crm/views.py.bak_back_buttons_$(date +%Y%m%d_%H%M%S)
+cp -r templates/crm templates/crm.bak_back_buttons_$(date +%Y%m%d_%H%M%S)
+
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+views = Path("apps/crm/views.py")
+s = views.read_text()
+
+if "def _back_url(" not in s:
+    helper = '''
+def _back_url(request, fallback="crm:dashboard"):
+    ref = request.META.get("HTTP_REFERER")
+    if ref:
+        return ref
+    return fallback
+
+
+'''
+    marker = "@login_required\ndef dashboard"
+    s = s.replace(marker, helper + marker, 1)
+
+# أضف back_url_context لكل render شائع إذا لم يكن موجوداً.
+replacements = {
+    '"crm/dashboard.html", {': '"crm/dashboard.html", {"back_url": _back_url(request), ',
+    '"crm/company_list.html", {': '"crm/company_list.html", {"back_url": _back_url(request), ',
+    '"crm/contact_list.html", {': '"crm/contact_list.html", {"back_url": _back_url(request), ',
+    '"crm/deal_list.html", {': '"crm/deal_list.html", {"back_url": _back_url(request), ',
+    '"crm/task_list.html", {': '"crm/task_list.html", {"back_url": _back_url(request), ',
+    '"crm/company_detail.html", {': '"crm/company_detail.html", {"back_url": _back_url(request, "/crm/companies/"), ',
+    '"crm/contact_detail.html", {': '"crm/contact_detail.html", {"back_url": _back_url(request, "/crm/contacts/"), ',
+    '"crm/deal_detail.html", {': '"crm/deal_detail.html", {"back_url": _back_url(request, "/crm/deals/"), ',
+}
+
+for old, new in replacements.items():
+    if old in s and new not in s:
+        s = s.replace(old, new)
+
+views.write_text(s)
+print("views back_url patched")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+def add_back_button(path, fallback="/crm/"):
+    p = Path(path)
+    if not p.exists():
+        return
+    s = p.read_text()
+    if "crm-smart-back" in s:
+        return
+
+    btn = f'''<a class="btn btn-outline-secondary crm-smart-back" href="{{{{ back_url|default:'{fallback}' }}}}">رجوع</a>'''
+
+    # إذا فيه d-flex justify-content-between، ضع الزر ضمن أول منطقة أزرار قبل أول رابط إضافة/تعديل.
+    if '<div class="d-flex justify-content-between' in s:
+        # أضف الزر بعد أول عنوان h2 block بشكل آمن قبل أول زر موجود في نفس الهيدر إن أمكن
+        idx = s.find('<div class="d-flex justify-content-between')
+        end = s.find('</div>', idx)
+        if end != -1:
+            segment = s[idx:end]
+            if 'btn ' in segment or 'btn-' in segment:
+                insert_pos = segment.find('<a class="btn')
+                if insert_pos != -1:
+                    absolute = idx + insert_pos
+                    s = s[:absolute] + btn + " " + s[absolute:]
+                else:
+                    s = s[:end] + " " + btn + s[end:]
+            else:
+                s = s[:end] + " " + btn + s[end:]
+        else:
+            s = s.replace('<div class="container py-4" dir="rtl">', '<div class="container py-4" dir="rtl">\\n  <div class="mb-3">' + btn + '</div>', 1)
+    else:
+        s = s.replace('<div class="container py-4" dir="rtl">', '<div class="container py-4" dir="rtl">\\n  <div class="mb-3">' + btn + '</div>', 1)
+
+    p.write_text(s)
+    print("added back", path)
+
+files = [
+    ("templates/crm/dashboard.html", "/"),
+    ("templates/crm/company_list.html", "/crm/"),
+    ("templates/crm/contact_list.html", "/crm/"),
+    ("templates/crm/deal_list.html", "/crm/"),
+    ("templates/crm/task_list.html", "/crm/"),
+    ("templates/crm/company_detail.html", "/crm/companies/"),
+    ("templates/crm/contact_detail.html", "/crm/contacts/"),
+    ("templates/crm/deal_detail.html", "/crm/deals/"),
+    ("templates/crm/form.html", "/crm/"),
+]
+
+for path, fallback in files:
+    add_back_button(path, fallback)
+
+PY
+
+python3 -m py_compile apps/crm/views.py
+python3 manage.py check
+exit
+docker restart messages-website-app-1
+docker exec -it messages-website-app-1 bash
+cd /app
+set -e
+
+cp apps/crm/models.py apps/crm/models.py.bak_activity_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/forms.py apps/crm/forms.py.bak_activity_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/views.py apps/crm/views.py.bak_activity_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/urls.py apps/crm/urls.py.bak_activity_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/admin.py apps/crm/admin.py.bak_activity_$(date +%Y%m%d_%H%M%S)
+cp -r templates/crm templates/crm.bak_activity_$(date +%Y%m%d_%H%M%S)
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/models.py")
+s = p.read_text()
+
+if "class CRMActivity(models.Model):" not in s:
+    s += '''
+
+class CRMActivity(models.Model):
+    TYPE_CHOICES = [
+        ("note", "ملاحظة"),
+        ("call", "اتصال"),
+        ("email", "بريد"),
+        ("meeting", "اجتماع"),
+        ("follow_up", "متابعة"),
+        ("system", "نظام"),
+    ]
+
+    tenant = models.ForeignKey("platform_core.Tenant", null=True, blank=True, on_delete=models.SET_NULL, related_name="crm_activities")
+    company = models.ForeignKey(CRMCompany, null=True, blank=True, on_delete=models.SET_NULL, related_name="activities")
+    contact = models.ForeignKey(CRMContact, null=True, blank=True, on_delete=models.SET_NULL, related_name="activities")
+    deal = models.ForeignKey(CRMDeal, null=True, blank=True, on_delete=models.SET_NULL, related_name="activities")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    activity_type = models.CharField(max_length=30, choices=TYPE_CHOICES, default="note")
+    subject = models.CharField(max_length=180)
+    body = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.subject
+'''
+
+p.write_text(s)
+print("CRMActivity model added")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/forms.py")
+s = p.read_text()
+
+if "CRMActivity" not in s.splitlines()[0:10]:
+    s = s.replace("from .models import CRMCompany, CRMContact, CRMDeal, CRMTask", "from .models import CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMTask")
+
+if "class ActivityForm" not in s:
+    s += '''
+
+class ActivityForm(BootstrapForm):
+    class Meta:
+        model = CRMActivity
+        fields = ["activity_type", "subject", "body"]
+        widgets = {"body": forms.Textarea(attrs={"rows": 3})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()
+'''
+
+p.write_text(s)
+print("ActivityForm added")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/views.py")
+s = p.read_text()
+
+s = s.replace("from .forms import CompanyForm, ContactForm, DealForm, TaskForm", "from .forms import ActivityForm, CompanyForm, ContactForm, DealForm, TaskForm")
+s = s.replace("from .models import CRMCompany, CRMContact, CRMDeal, CRMTask", "from .models import CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMTask")
+
+# أضف activity_form والأنشطة لصفحات التفاصيل
+s = s.replace(
+    '"tasks": company.tasks.all(),\n    })',
+    '"tasks": company.tasks.all(),\n        "activities": company.activities.select_related("actor")[:20],\n        "activity_form": ActivityForm(),\n    })',
+    1,
+)
+
+s = s.replace(
+    '"tasks": contact.tasks.all(),\n    })',
+    '"tasks": contact.tasks.all(),\n        "activities": contact.activities.select_related("actor")[:20],\n        "activity_form": ActivityForm(),\n    })',
+    1,
+)
+
+s = s.replace(
+    '"tasks": deal.tasks.all(),\n    })',
+    '"tasks": deal.tasks.all(),\n        "activities": deal.activities.select_related("actor")[:20],\n        "activity_form": ActivityForm(),\n    })',
+    1,
+)
+
+if "def activity_add(request, target, pk):" not in s:
+    s += '''
+
+@login_required
+@require_POST
+def activity_add(request, target, pk):
+    form = ActivityForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "تعذر حفظ النشاط.")
+        return redirect("crm:dashboard")
+
+    activity = form.save(commit=False)
+    activity.actor = request.user
+
+    if target == "company":
+        obj = get_object_or_404(_scope(CRMCompany.objects.all(), request.user), pk=pk)
+        activity.company = obj
+        activity.tenant = obj.tenant
+        back = redirect("crm:company_detail", pk=obj.pk)
+    elif target == "contact":
+        obj = get_object_or_404(_scope(CRMContact.objects.all(), request.user), pk=pk)
+        activity.contact = obj
+        activity.tenant = obj.tenant
+        back = redirect("crm:contact_detail", pk=obj.pk)
+    elif target == "deal":
+        obj = get_object_or_404(_scope(CRMDeal.objects.all(), request.user), pk=pk)
+        activity.deal = obj
+        activity.tenant = obj.tenant
+        back = redirect("crm:deal_detail", pk=obj.pk)
+    else:
+        messages.error(request, "نوع الهدف غير معروف.")
+        return redirect("crm:dashboard")
+
+    if not activity.tenant_id:
+        activity.tenant = _default_tenant(request.user)
+
+    activity.save()
+    messages.success(request, "تمت إضافة النشاط.")
+    return back
+'''
+
+p.write_text(s)
+print("activity views patched")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/urls.py")
+s = p.read_text()
+
+if "activity_add" not in s:
+    s = s.replace(
+        "]",
+        '    path("activities/add/<str:target>/<int:pk>/", views.activity_add, name="activity_add"),\n]',
+        1,
+    )
+
+p.write_text(s)
+print("activity url added")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/admin.py")
+s = p.read_text()
+
+if "CRMActivity" not in s:
+    s = s.replace("from .models import CRMCompany, CRMContact, CRMDeal, CRMTask", "from .models import CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMTask")
+    s += '''
+
+@admin.register(CRMActivity)
+class CRMActivityAdmin(admin.ModelAdmin):
+    list_display = ("subject", "activity_type", "company", "contact", "deal", "actor", "created_at")
+    list_filter = ("activity_type", "tenant")
+    search_fields = ("subject", "body", "company__name", "contact__full_name", "deal__title")
+'''
+
+p.write_text(s)
+print("activity admin added")
+PY
+python3 - <<'PY'
+from pathlib import Path
+
+timeline = '''
+  <div class="card p-3 mt-3">
+    <h5>إضافة نشاط / ملاحظة</h5>
+    <form method="post" action="{% url 'crm:activity_add' target_type target_id %}">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-3">{{ activity_form.activity_type.label_tag }}{{ activity_form.activity_type }}</div>
+        <div class="col-md-9">{{ activity_form.subject.label_tag }}{{ activity_form.subject }}</div>
+        <div class="col-12">{{ activity_form.body.label_tag }}{{ activity_form.body }}</div>
+      </div>
+      <button class="btn btn-primary mt-3">حفظ النشاط</button>
+    </form>
+  </div>
+
+  <div class="card p-3 mt-3">
+    <h5>سجل النشاط</h5>
+    {% for a in activities %}
+      <div class="border-bottom py-2">
+        <div class="d-flex justify-content-between">
+          <b>{{ a.subject }}</b>
+          <span class="text-muted small">{{ a.created_at|date:"Y-m-d H:i" }}</span>
+        </div>
+        <div class="text-muted small">{{ a.get_activity_type_display }}{% if a.actor %} · {{ a.actor }}{% endif %}</div>
+        {% if a.body %}<div class="mt-1">{{ a.body }}</div>{% endif %}
+      </div>
+    {% empty %}
+      <div class="text-muted">لا يوجد نشاط بعد.</div>
+    {% endfor %}
+  </div>
+'''
+
+files = [
+    ("templates/crm/company_detail.html", "{% with target_type='company' target_id=company.pk %}", "{% endwith %}"),
+    ("templates/crm/contact_detail.html", "{% with target_type='contact' target_id=contact.pk %}", "{% endwith %}"),
+    ("templates/crm/deal_detail.html", "{% with target_type='deal' target_id=deal.pk %}", "{% endwith %}"),
+]
+
+for path, start_with, end_with in files:
+    p = Path(path)
+    s = p.read_text()
+    if "سجل النشاط" in s:
+        continue
+    s = s.replace("</div>\n{% endblock %}", start_with + "\n" + timeline + "\n" + end_with + "\n</div>\n{% endblock %}", 1)
+    p.write_text(s)
+    print("timeline added", path)
+PY
+
+python3 manage.py makemigrations crm
+python3 manage.py migrate crm
+python3 -m py_compile apps/crm/models.py apps/crm/forms.py apps/crm/views.py
+python3 manage.py check
+python3 manage.py shell -c "from django.urls import resolve; print(resolve('/crm/activities/add/company/1/').url_name)"
+exit
+docker restart messages-website-app-1
+docker exec -it messages-website-app-1 bash
+cd /app
+set -e
+
+cp apps/crm/views.py apps/crm/views.py.bak_finance_readonly_$(date +%Y%m%d_%H%M%S)
+cp templates/crm/company_detail.html templates/crm/company_detail.html.bak_finance_readonly_$(date +%Y%m%d_%H%M%S)
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/views.py")
+s = p.read_text()
+
+old = '''    return render(request, "crm/company_detail.html", {"back_url": _back_url(request, "/crm/companies/"), 
+        "company": company,
+        "contacts": company.contacts.all(),
+        "deals": company.deals.all(),
+        "tasks": company.tasks.all(),
+        "activities": company.activities.select_related("actor")[:20],
+        "activity_form": ActivityForm(),
+    })'''
+
+new = '''    contacts = company.contacts.all()
+    emails = []
+    if company.email:
+        emails.append(company.email)
+    emails += [c.email for c in contacts if c.email]
+
+    payments = []
+    invoices = []
+    try:
+        from apps.payments.models import Invoice, Payment
+        payments = Payment.objects.filter(customer_email__in=emails).order_by("-created_at")[:20] if emails else []
+        invoices = Invoice.objects.select_related("payment").filter(payment__customer_email__in=emails).order_by("-created_at")[:20] if emails else []
+    except Exception:
+        payments = []
+        invoices = []
+
+    return render(request, "crm/company_detail.html", {"back_url": _back_url(request, "/crm/companies/"), 
+        "company": company,
+        "contacts": contacts,
+        "deals": company.deals.all(),
+        "tasks": company.tasks.all(),
+        "activities": company.activities.select_related("actor")[:20],
+        "activity_form": ActivityForm(),
+        "finance_payments": payments,
+        "finance_invoices": invoices,
+        "finance_emails": emails,
+    })'''
+
+if old not in s:
+    raise SystemExit("لم أجد بلوك company_detail المتوقع، أرسل لي جزء الدالة إذا فشل.")
+s = s.replace(old, new, 1)
+
+p.write_text(s)
+print("company finance readonly added")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("templates/crm/company_detail.html")
+s = p.read_text()
+
+if "finance-readonly-panel" not in s:
+    panel = '''
+  <div class="card p-3 mt-3" id="finance-readonly-panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0">المالية المرتبطة بهذا العميل</h5>
+      <span class="text-muted small">مطابقة حسب البريد الإلكتروني فقط</span>
+    </div>
+
+    {% if finance_emails %}
+      <div class="text-muted small mb-3">البريد المستخدم للمطابقة: {{ finance_emails|join:", " }}</div>
+    {% endif %}
+
+    <h6>الفواتير</h6>
+    <div class="table-responsive mb-3">
+      <table class="table table-sm">
+        <thead><tr><th>رقم الفاتورة</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+        <tbody>
+        {% for inv in finance_invoices %}
+          <tr>
+            <td>{{ inv.invoice_number }}</td>
+            <td>{{ inv.payment.amount }} {{ inv.payment.currency|upper }}</td>
+            <td>{{ inv.payment.get_status_display }}</td>
+            <td>{{ inv.created_at|date:"Y-m-d" }}</td>
+            <td><a class="btn btn-sm btn-outline-primary" href="{% url 'payments:invoice_detail' inv.pk %}">فتح</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted">لا توجد فواتير مطابقة.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <h6>المدفوعات</h6>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>العميل</th><th>البريد</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+        <tbody>
+        {% for p in finance_payments %}
+          <tr>
+            <td>{{ p.customer_name|default:"-" }}</td>
+            <td>{{ p.customer_email }}</td>
+            <td>{{ p.amount }} {{ p.currency|upper }}</td>
+            <td>{{ p.get_status_display }}</td>
+            <td>{{ p.created_at|date:"Y-m-d" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-center text-muted">لا توجد مدفوعات مطابقة.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+'''
+
+    # ضعه قبل Timeline إن وجد، أو قبل نهاية المحتوى
+    if "إضافة نشاط / ملاحظة" in s:
+        s = s.replace('  <div class="card p-3 mt-3">\n    <h5>إضافة نشاط / ملاحظة</h5>', panel + '\n  <div class="card p-3 mt-3">\n    <h5>إضافة نشاط / ملاحظة</h5>', 1)
+    else:
+        s = s.replace("</div>\n{% endblock %}", panel + "\n</div>\n{% endblock %}", 1)
+
+p.write_text(s)
+print("finance readonly panel added")
+PY
+
+python3 -m py_compile apps/crm/views.py
+python3 manage.py check
+exit
+docker restart messages-website-app-1
+docker exec -it messages-website-app-1 bash
+cd /app
+set -e
+
+cp apps/crm/models.py apps/crm/models.py.bak_quote_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/forms.py apps/crm/forms.py.bak_quote_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/views.py apps/crm/views.py.bak_quote_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/urls.py apps/crm/urls.py.bak_quote_$(date +%Y%m%d_%H%M%S)
+cp apps/crm/admin.py apps/crm/admin.py.bak_quote_$(date +%Y%m%d_%H%M%S)
+cp -r templates/crm templates/crm.bak_quote_$(date +%Y%m%d_%H%M%S)
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/models.py")
+s = p.read_text()
+
+if "class CRMQuote(models.Model):" not in s:
+    s += '''
+
+class CRMQuote(models.Model):
+    STATUS_CHOICES = [
+        ("draft", "مسودة"),
+        ("sent", "مرسل"),
+        ("accepted", "مقبول"),
+        ("rejected", "مرفوض"),
+        ("expired", "منتهي"),
+    ]
+
+    tenant = models.ForeignKey("platform_core.Tenant", null=True, blank=True, on_delete=models.SET_NULL, related_name="crm_quotes")
+    company = models.ForeignKey(CRMCompany, null=True, blank=True, on_delete=models.SET_NULL, related_name="quotes")
+    contact = models.ForeignKey(CRMContact, null=True, blank=True, on_delete=models.SET_NULL, related_name="quotes")
+    deal = models.ForeignKey(CRMDeal, null=True, blank=True, on_delete=models.SET_NULL, related_name="quotes")
+    quote_number = models.CharField(max_length=40, unique=True, blank=True)
+    title = models.CharField(max_length=180)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    currency = models.CharField(max_length=10, default="AED")
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=5)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valid_until = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="crm_quotes")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.quote_number:
+            year = timezone.now().year
+            last = CRMQuote.objects.filter(quote_number__startswith=f"Q-{year}-").order_by("-id").first()
+            next_no = (last.id + 1) if last else 1
+            self.quote_number = f"Q-{year}-{next_no:05d}"
+        super().save(*args, **kwargs)
+
+    def recalc(self):
+        subtotal = sum(item.line_total for item in self.items.all())
+        self.subtotal = subtotal
+        self.tax_amount = subtotal * (self.tax_rate / 100)
+        self.total = self.subtotal + self.tax_amount
+        self.save(update_fields=["subtotal", "tax_amount", "total", "updated_at"])
+
+    def __str__(self):
+        return self.quote_number or self.title
+
+
+class CRMQuoteItem(models.Model):
+    quote = models.ForeignKey(CRMQuote, on_delete=models.CASCADE, related_name="items")
+    description = models.CharField(max_length=240)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    line_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["id"]
+
+    def save(self, *args, **kwargs):
+        self.line_total = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+        if self.quote_id:
+            self.quote.recalc()
+
+    def delete(self, *args, **kwargs):
+        quote = self.quote
+        super().delete(*args, **kwargs)
+        quote.recalc()
+
+    def __str__(self):
+        return self.description
+'''
+
+p.write_text(s)
+print("quote models added")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/forms.py")
+s = p.read_text()
+
+s = s.replace("CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMTask", "CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMQuote, CRMQuoteItem, CRMTask")
+s = s.replace("CRMCompany, CRMContact, CRMDeal, CRMTask", "CRMCompany, CRMContact, CRMDeal, CRMQuote, CRMQuoteItem, CRMTask")
+
+if "class QuoteForm" not in s:
+    s += '''
+
+class QuoteForm(BootstrapForm):
+    class Meta:
+        model = CRMQuote
+        fields = ["company", "contact", "deal", "title", "status", "currency", "tax_rate", "valid_until", "owner", "notes"]
+        widgets = {
+            "valid_until": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()
+
+
+class QuoteItemForm(BootstrapForm):
+    class Meta:
+        model = CRMQuoteItem
+        fields = ["description", "quantity", "unit_price"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._style()
+'''
+
+p.write_text(s)
+print("quote forms added")
+PY
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/views.py")
+s = p.read_text()
+
+s = s.replace("from .forms import ActivityForm, CompanyForm, ContactForm, DealForm, TaskForm", "from .forms import ActivityForm, CompanyForm, ContactForm, DealForm, QuoteForm, QuoteItemForm, TaskForm")
+s = s.replace("from .models import CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMTask", "from .models import CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMQuote, CRMQuoteItem, CRMTask")
+
+if "def quote_list(request):" not in s:
+    s += '''
+
+@login_required
+def quote_list(request):
+    quotes = _scope(CRMQuote.objects.select_related("company", "contact", "deal", "owner"), request.user)
+    return render(request, "crm/quote_list.html", {"quotes": quotes, "back_url": _back_url(request, "/crm/")})
+
+
+@login_required
+def quote_create(request):
+    form = QuoteForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        quote = form.save(commit=False)
+        if not quote.tenant_id:
+            quote.tenant = _default_tenant(request.user)
+        if not quote.owner_id:
+            quote.owner = request.user
+        quote.save()
+        messages.success(request, "تم إنشاء عرض السعر.")
+        return redirect("crm:quote_detail", pk=quote.pk)
+    return render(request, "crm/form.html", {"form": form, "title": "إضافة عرض سعر", "back_url": "crm:quote_list"})
+
+
+@login_required
+def quote_detail(request, pk):
+    quote = get_object_or_404(_scope(CRMQuote.objects.select_related("company", "contact", "deal", "owner"), request.user), pk=pk)
+    item_form = QuoteItemForm()
+    return render(request, "crm/quote_detail.html", {
+        "quote": quote,
+        "items": quote.items.all(),
+        "item_form": item_form,
+        "back_url": _back_url(request, "/crm/quotes/"),
+    })
+
+
+@login_required
+def quote_edit(request, pk):
+    quote = get_object_or_404(_scope(CRMQuote.objects.all(), request.user), pk=pk)
+    form = QuoteForm(request.POST or None, instance=quote)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        quote.recalc()
+        messages.success(request, "تم تحديث عرض السعر.")
+        return redirect("crm:quote_detail", pk=quote.pk)
+    return render(request, "crm/form.html", {"form": form, "title": "تعديل عرض سعر", "back_url": "crm:quote_detail", "back_pk": quote.pk})
+
+
+@login_required
+@require_POST
+def quote_delete(request, pk):
+    quote = get_object_or_404(_scope(CRMQuote.objects.all(), request.user), pk=pk)
+    quote.delete()
+    messages.success(request, "تم حذف عرض السعر.")
+    return redirect("crm:quote_list")
+
+
+@login_required
+@require_POST
+def quote_item_add(request, pk):
+    quote = get_object_or_404(_scope(CRMQuote.objects.all(), request.user), pk=pk)
+    form = QuoteItemForm(request.POST)
+    if form.is_valid():
+        item = form.save(commit=False)
+        item.quote = quote
+        item.save()
+        messages.success(request, "تمت إضافة البند.")
+    else:
+        messages.error(request, "تعذر إضافة البند.")
+    return redirect("crm:quote_detail", pk=quote.pk)
+
+
+@login_required
+@require_POST
+def quote_item_delete(request, pk, item_pk):
+    quote = get_object_or_404(_scope(CRMQuote.objects.all(), request.user), pk=pk)
+    item = get_object_or_404(CRMQuoteItem, quote=quote, pk=item_pk)
+    item.delete()
+    messages.success(request, "تم حذف البند.")
+    return redirect("crm:quote_detail", pk=quote.pk)
+'''
+
+p.write_text(s)
+print("quote views added")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/urls.py")
+s = p.read_text()
+
+if "quote_list" not in s:
+    s = s.replace(
+        "]",
+        '''    path("quotes/", views.quote_list, name="quote_list"),
+    path("quotes/new/", views.quote_create, name="quote_create"),
+    path("quotes/<int:pk>/", views.quote_detail, name="quote_detail"),
+    path("quotes/<int:pk>/edit/", views.quote_edit, name="quote_edit"),
+    path("quotes/<int:pk>/delete/", views.quote_delete, name="quote_delete"),
+    path("quotes/<int:pk>/items/add/", views.quote_item_add, name="quote_item_add"),
+    path("quotes/<int:pk>/items/<int:item_pk>/delete/", views.quote_item_delete, name="quote_item_delete"),
+]
+''',
+        1,
+    )
+
+p.write_text(s)
+print("quote urls added")
+PY
+
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("apps/crm/admin.py")
+s = p.read_text()
+
+s = s.replace("CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMTask", "CRMActivity, CRMCompany, CRMContact, CRMDeal, CRMQuote, CRMQuoteItem, CRMTask")
+s = s.replace("CRMCompany, CRMContact, CRMDeal, CRMTask", "CRMCompany, CRMContact, CRMDeal, CRMQuote, CRMQuoteItem, CRMTask")
+
+if "CRMQuoteAdmin" not in s:
+    s += '''
+
+class CRMQuoteItemInline(admin.TabularInline):
+    model = CRMQuoteItem
+    extra = 0
+
+
+@admin.register(CRMQuote)
+class CRMQuoteAdmin(admin.ModelAdmin):
+    list_display = ("quote_number", "title", "status", "company", "total", "currency", "valid_until", "created_at")
+    list_filter = ("status", "tenant")
+    search_fields = ("quote_number", "title", "company__name", "contact__full_name")
+    inlines = [CRMQuoteItemInline]
+'''
+
+p.write_text(s)
+print("quote admin added")
+PY
+cat > templates/crm/quote_list.html <<'EOF'
+{% extends "base/base.html" %}
+{% block title %}عروض الأسعار{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between mb-3">
+    <h2>عروض الأسعار</h2>
+    <div>
+      <a class="btn btn-outline-secondary crm-smart-back" href="{{ back_url|default:'/crm/' }}">رجوع</a>
+      <a class="btn btn-primary" href="{% url 'crm:quote_create' %}">+ عرض سعر</a>
+    </div>
+  </div>
+
+  <div class="card table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>الرقم</th><th>العنوان</th><th>الحالة</th><th>العميل</th><th>الإجمالي</th><th>الصلاحية</th><th></th></tr></thead>
+      <tbody>
+      {% for q in quotes %}
+        <tr>
+          <td>{{ q.quote_number }}</td>
+          <td>{{ q.title }}</td>
+          <td>{{ q.get_status_display }}</td>
+          <td>{{ q.company|default:"-" }}</td>
+          <td>{{ q.total }} {{ q.currency }}</td>
+          <td>{{ q.valid_until|default:"-" }}</td>
+          <td>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'crm:quote_detail' q.pk %}">فتح</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'crm:quote_edit' q.pk %}">تعديل</a>
+            <form method="post" action="{% url 'crm:quote_delete' q.pk %}" style="display:inline" onsubmit="return confirm('حذف عرض السعر؟');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">حذف</button></form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-3">لا توجد عروض أسعار.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

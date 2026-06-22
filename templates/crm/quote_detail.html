@@ -1,0 +1,54 @@
+{% extends "base/base.html" %}
+{% block title %}{{ quote.quote_number }}{% endblock %}
+{% block page_title %}<i class="bi bi-file-earmark-text me-2"></i>{{ quote.quote_number }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'crm:quote_list' %}" class="btn btn-outline-secondary btn-sm">← العروض</a>
+<a href="{% url 'crm:quote_edit' quote.pk %}" class="btn btn-warning btn-sm">✏️ تعديل</a>
+<a href="{% url 'crm:quote_pdf' quote.pk %}" class="btn btn-primary btn-sm" target="_blank">⬇ PDF</a>
+<form method="post" action="{% url 'crm:quote_to_invoice' quote.pk %}" style="display:inline" onsubmit="return confirm('تحويل هذا العرض إلى فاتورة مبيعات؟');">{% csrf_token %}<button class="btn btn-success btn-sm">📄 تحويل لفاتورة</button></form>
+<form method="post" action="{% url 'crm:quote_delete' quote.pk %}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا العرض؟');">{% csrf_token %}<button class="btn btn-danger btn-sm">🗑 حذف</button></form>
+<form method="post" action="{% url 'crm:quote_send_email' quote.pk %}" style="display:inline" onsubmit="return confirm('إرسال هذا العرض بالبريد للعميل؟');">{% csrf_token %}<button class="btn btn-info btn-sm">📧 إرسال بالبريد</button></form>
+{% endblock %}
+{% block content %}
+{% with c=company q=quote %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الإجمالي الفرعي</div><div class="h5 fw-bold">{{ q.subtotal }} {{ q.currency }}</div></div></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الضريبة ({{ q.tax_rate }}%)</div><div class="h5 fw-bold text-primary">{{ q.tax_amount }} {{ q.currency }}</div></div></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الإجمالي الكلي</div><div class="h4 fw-bold text-success">{{ q.total }} {{ q.currency }}</div></div></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الحالة</div>
+    <span class="badge fs-6 {% if q.status == 'accepted' %}bg-success{% elif q.status == 'rejected' %}bg-danger{% elif q.status == 'sent' %}bg-info{% elif q.status == 'expired' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">{{ q.get_status_display }}</span>
+  </div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <h6 class="fw-bold mb-3">معلومات العرض</h6>
+      <table class="table table-sm">
+        <tr><th>رقم العرض</th><td class="fw-bold">{{ q.quote_number }}</td></tr>
+        <tr><th>العنوان</th><td>{{ q.title }}</td></tr>
+        <tr><th>الشركة</th><td>{{ q.company.name|default:"-" }}</td></tr>
+        <tr><th>جهة الاتصال</th><td>{{ q.contact.full_name|default:"-" }}</td></tr>
+        <tr><th>الصفقة</th><td>{{ q.deal.title|default:"-" }}</td></tr>
+        <tr><th>صالح حتى</th><td>{{ q.valid_until|date:"Y-m-d"|default:"-" }}</td></tr>
+        <tr><th>تاريخ الإنشاء</th><td>{{ q.created_at|date:"Y-m-d H:i" }}</td></tr>
+        {% if q.notes %}<tr><th>ملاحظات</th><td>{{ q.notes }}</td></tr>{% endif %}
+      </table>
+    </div></div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100"><div class="card-body">
+      <h6 class="fw-bold mb-3">البنود</h6>
+      <table class="table table-sm align-middle">
+        <thead><tr><th>#</th><th>البيان</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead>
+        <tbody>
+          {% for it in q.items.all %}
+          <tr><td>{{ forloop.counter }}</td><td>{{ it.description }}</td><td>{{ it.quantity }}</td><td>{{ it.unit_price }}</td><td class="fw-bold">{{ it.line_total }}</td></tr>
+          {% empty %}<tr><td colspan="5" class="text-center text-muted">لا توجد بنود</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

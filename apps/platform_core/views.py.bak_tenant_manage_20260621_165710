@@ -1,0 +1,221 @@
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from .forms import LIMIT_FIELDS, MODULE_FIELDS, TenantForm, TenantMembershipForm, TenantRoleForm
+from .models import PlatformAuditLog, Tenant, TenantMembership, TenantRole
+
+
+def _platform_owner_required(view_func):
+    return staff_member_required(view_func)
+
+
+def _log(request, tenant, action, target, data=None):
+    PlatformAuditLog.objects.create(
+        actor=request.user if request.user.is_authenticated else None,
+        tenant=tenant,
+        action=action,
+        target_model=target.__class__.__name__ if target else "",
+        target_id=str(getattr(target, "pk", "")) if target else "",
+        data=data or {},
+    )
+
+
+@_platform_owner_required
+def dashboard(request):
+    tenants = Tenant.objects.all()
+    context = {
+        "tenants_count": tenants.count(),
+        "active_count": tenants.filter(status=Tenant.STATUS_ACTIVE).count(),
+        "trial_count": tenants.filter(status=Tenant.STATUS_TRIAL).count(),
+        "suspended_count": tenants.filter(status=Tenant.STATUS_SUSPENDED).count(),
+        "recent_tenants": tenants[:8],
+        "recent_logs": PlatformAuditLog.objects.select_related("actor", "tenant")[:10],
+    }
+    return render(request, "platform_core/dashboard.html", context)
+
+
+@_platform_owner_required
+def tenant_list(request):
+    q = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "").strip()
+    tenants = Tenant.objects.all()
+
+    if q:
+        tenants = tenants.filter(Q(name__icontains=q) | Q(slug__icontains=q) | Q(owner_email__icontains=q))
+    if status:
+        tenants = tenants.filter(status=status)
+
+    return render(request, "platform_core/tenant_list.html", {
+        "tenants": tenants,
+        "q": q,
+        "status": status,
+        "status_choices": Tenant.STATUS_CHOICES,
+    })
+
+
+@_platform_owner_required
+def tenant_create(request):
+    if request.method == "POST":
+        form = TenantForm(request.POST)
+        if form.is_valid():
+            tenant = form.save()
+            _log(request, tenant, "tenant_created", tenant, {"name": tenant.name, "slug": tenant.slug})
+            messages.success(request, "تم إنشاء النسخة بنجاح.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantForm()
+
+    return render(request, "platform_core/tenant_form.html", {
+        "form": form,
+        "title": "إضافة نسخة جديدة",
+        "module_fields": MODULE_FIELDS,
+        "limit_fields": LIMIT_FIELDS,
+    })
+
+
+@_platform_owner_required
+def tenant_detail(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    memberships = TenantMembership.objects.select_related("user", "role").filter(tenant=tenant)
+    roles = TenantRole.objects.filter(tenant=tenant)
+    logs = PlatformAuditLog.objects.select_related("actor").filter(tenant=tenant)[:20]
+
+    crm_stats = {
+        "companies": 0,
+        "contacts": 0,
+        "deals": 0,
+        "open_tasks": 0,
+    }
+    try:
+        from apps.crm.models import CRMCompany, CRMContact, CRMDeal, CRMTask
+        crm_stats = {
+            "companies": CRMCompany.objects.filter(tenant=tenant).count(),
+            "contacts": CRMContact.objects.filter(tenant=tenant).count(),
+            "deals": CRMDeal.objects.filter(tenant=tenant).count(),
+            "open_tasks": CRMTask.objects.filter(tenant=tenant, status="open").count(),
+        }
+    except Exception:
+        pass
+
+    return render(request, "platform_core/tenant_detail.html", {
+        "tenant": tenant,
+        "memberships": memberships,
+        "roles": roles,
+        "logs": logs,
+        "crm_stats": crm_stats,
+    })
+
+
+@_platform_owner_required
+def tenant_edit(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    if request.method == "POST":
+        form = TenantForm(request.POST, instance=tenant)
+        if form.is_valid():
+            tenant = form.save()
+            _log(request, tenant, "tenant_updated", tenant, {"name": tenant.name, "slug": tenant.slug})
+            messages.success(request, "تم تحديث النسخة بنجاح.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantForm(instance=tenant)
+
+    return render(request, "platform_core/tenant_form.html", {
+        "form": form,
+        "tenant": tenant,
+        "title": "تعديل النسخة",
+        "module_fields": MODULE_FIELDS,
+        "limit_fields": LIMIT_FIELDS,
+    })
+
+
+@_platform_owner_required
+def role_create(request, tenant_pk):
+    tenant = get_object_or_404(Tenant, pk=tenant_pk)
+    if request.method == "POST":
+        form = TenantRoleForm(request.POST, tenant=tenant)
+        if form.is_valid():
+            role = form.save()
+            _log(request, tenant, "role_created", role, {"name": role.name})
+            messages.success(request, "تم إنشاء الدور بنجاح.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantRoleForm(tenant=tenant)
+
+    return render(request, "platform_core/role_form.html", {"tenant": tenant, "form": form, "title": "إضافة دور"})
+
+
+@_platform_owner_required
+def role_edit(request, tenant_pk, role_pk):
+    tenant = get_object_or_404(Tenant, pk=tenant_pk)
+    role = get_object_or_404(TenantRole, pk=role_pk, tenant=tenant)
+    if request.method == "POST":
+        form = TenantRoleForm(request.POST, tenant=tenant, instance=role)
+        if form.is_valid():
+            role = form.save()
+            _log(request, tenant, "role_updated", role, {"name": role.name})
+            messages.success(request, "تم تحديث الدور بنجاح.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantRoleForm(tenant=tenant, instance=role)
+
+    return render(request, "platform_core/role_form.html", {"tenant": tenant, "role": role, "form": form, "title": "تعديل دور"})
+
+
+@_platform_owner_required
+@require_POST
+def role_delete(request, tenant_pk, role_pk):
+    tenant = get_object_or_404(Tenant, pk=tenant_pk)
+    role = get_object_or_404(TenantRole, pk=role_pk, tenant=tenant)
+    name = role.name
+    role.delete()
+    _log(request, tenant, "role_deleted", None, {"name": name})
+    messages.success(request, "تم حذف الدور.")
+    return redirect("platform_core:tenant_detail", pk=tenant.pk)
+
+
+@_platform_owner_required
+def member_create(request, tenant_pk):
+    tenant = get_object_or_404(Tenant, pk=tenant_pk)
+    if request.method == "POST":
+        form = TenantMembershipForm(request.POST, tenant=tenant)
+        if form.is_valid():
+            membership = form.save()
+            _log(request, tenant, "member_created", membership, {"user": str(membership.user)})
+            messages.success(request, "تم إضافة المستخدم للنسخة.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantMembershipForm(tenant=tenant)
+
+    return render(request, "platform_core/member_form.html", {"tenant": tenant, "form": form, "title": "إضافة مستخدم"})
+
+
+@_platform_owner_required
+def member_edit(request, tenant_pk, membership_pk):
+    tenant = get_object_or_404(Tenant, pk=tenant_pk)
+    membership = get_object_or_404(TenantMembership.objects.select_related("user"), pk=membership_pk, tenant=tenant)
+    if request.method == "POST":
+        form = TenantMembershipForm(request.POST, tenant=tenant, instance=membership)
+        if form.is_valid():
+            membership = form.save()
+            _log(request, tenant, "member_updated", membership, {"user": str(membership.user)})
+            messages.success(request, "تم تحديث صلاحيات المستخدم.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantMembershipForm(tenant=tenant, instance=membership)
+
+    return render(request, "platform_core/member_form.html", {"tenant": tenant, "membership": membership, "form": form, "title": "تعديل مستخدم"})
+
+
+@_platform_owner_required
+@require_POST
+def member_delete(request, tenant_pk, membership_pk):
+    tenant = get_object_or_404(Tenant, pk=tenant_pk)
+    membership = get_object_or_404(TenantMembership.objects.select_related("user"), pk=membership_pk, tenant=tenant)
+    username = str(membership.user)
+    membership.delete()
+    _log(request, tenant, "member_removed", None, {"user": username})
+    messages.success(request, "تم إزالة المستخدم من النسخة.")
+    return redirect("platform_core:tenant_detail", pk=tenant.pk)

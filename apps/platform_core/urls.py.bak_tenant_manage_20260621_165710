@@ -1,0 +1,19 @@
+from django.urls import path
+
+from . import views
+
+app_name = "platform_core"
+
+urlpatterns = [
+    path("", views.dashboard, name="dashboard"),
+    path("tenants/", views.tenant_list, name="tenant_list"),
+    path("tenants/new/", views.tenant_create, name="tenant_create"),
+    path("tenants/<int:pk>/", views.tenant_detail, name="tenant_detail"),
+    path("tenants/<int:pk>/edit/", views.tenant_edit, name="tenant_edit"),
+    path("tenants/<int:tenant_pk>/roles/new/", views.role_create, name="role_create"),
+    path("tenants/<int:tenant_pk>/roles/<int:role_pk>/edit/", views.role_edit, name="role_edit"),
+    path("tenants/<int:tenant_pk>/roles/<int:role_pk>/delete/", views.role_delete, name="role_delete"),
+    path("tenants/<int:tenant_pk>/members/new/", views.member_create, name="member_create"),
+    path("tenants/<int:tenant_pk>/members/<int:membership_pk>/edit/", views.member_edit, name="member_edit"),
+    path("tenants/<int:tenant_pk>/members/<int:membership_pk>/delete/", views.member_delete, name="member_delete"),
+]

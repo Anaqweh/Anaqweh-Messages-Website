@@ -1,0 +1,26 @@
+{% extends "base/base.html" %}
+{% block title %}فاتورة{% endblock %}
+{% block page_title %}فاتورة {{ invoice.invoice_number }}{% endblock %}
+{% block content %}
+<div class="data-table p-4" dir="rtl">
+  <div style="border-bottom:3px solid #0f766e;padding-bottom:16px;margin-bottom:20px">
+    <h2 class="fw-bold mb-1">شركة التميز الابتكاري</h2>
+    <div class="text-muted">فاتورة دفع إلكتروني</div>
+  </div>
+  <div class="row g-3">
+    <div class="col-md-6"><b>رقم الفاتورة:</b> {{ invoice.invoice_number }}</div>
+    <div class="col-md-6"><b>التاريخ:</b> {{ invoice.created_at|date:"Y-m-d H:i" }}</div>
+    <div class="col-md-6"><b>العميل:</b> {{ invoice.payment.customer_name|default:"-" }}</div>
+    <div class="col-md-6"><b>البريد:</b> {{ invoice.payment.customer_email|default:"-" }}</div>
+  </div>
+  <hr>
+  <table class="table">
+    <tr><th>الوصف</th><td>{{ invoice.payment.description|default:"دفع خدمة" }}</td></tr>
+    <tr><th>المبلغ</th><td>{{ invoice.payment.amount }} {{ invoice.payment.currency|upper }}</td></tr>
+    <tr><th>رسوم Stripe</th><td>{{ invoice.payment.stripe_fee }}</td></tr>
+    <tr><th>الصافي</th><td>{{ invoice.payment.net_amount }}</td></tr>
+    <tr><th>الحالة</th><td>{{ invoice.payment.get_status_display }}</td></tr>
+  </table>
+  <div class="alert alert-light border">فتح البريد: {{ invoice.open_count }} مرة | آخر فتح: {{ invoice.opened_at|default:"-" }}</div>
+</div>
+{% endblock %}

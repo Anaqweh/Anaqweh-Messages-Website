@@ -1,0 +1,44 @@
+{% extends "base/base.html" %}
+{% block title %}إضافة موظف{% endblock %}
+{% block page_title %}<i class="bi bi-person-plus me-2"></i>إضافة موظف — {{ tenant.name }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'platform_core:tenant_list' %}" class="btn btn-outline-secondary btn-sm">قائمة الشركات</a>
+<a href="{% url 'platform_core:tenant_detail' tenant.pk %}" class="btn btn-outline-primary btn-sm">تفاصيل الشركة</a>
+{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post" action="{% url 'platform_core:tenant_add_manager' tenant.pk %}">{% csrf_token %}
+
+  <h6 class="fw-bold mb-3">بيانات المستخدم</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">{{ form.email.label_tag }}{{ form.email }}</div>
+    <div class="col-md-6">{{ form.username.label_tag }}{{ form.username }}</div>
+    <div class="col-md-6">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
+    <div class="col-md-6">{{ form.password.label_tag }}{{ form.password }}</div>
+  </div>
+
+  <h6 class="fw-bold mb-3">المسمى الوظيفي والدور</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      {{ form.role_name.label_tag }}{{ form.role_name }}
+      <div class="form-text">مثال: محاسب، مبيعات، إداري، مدير فرع...</div>
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+      <label class="form-check fs-6">{{ form.is_tenant_admin }} <span class="fw-bold">مدير الشركة (صلاحيات كاملة)</span></label>
+    </div>
+  </div>
+
+  <h6 class="fw-bold mb-3">الصلاحيات <small class="text-muted fw-normal">(مقيّدة بوحدات الشركة)</small></h6>
+  <div class="row g-3 mb-4">
+    {% if form.perm_email %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_email }} {{ form.perm_email.label }}</label><div class="small text-muted mt-1">الحملات، الإرسال، القوالب</div></div></div>{% endif %}
+    {% if form.perm_finance %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_finance }} {{ form.perm_finance.label }}</label><div class="small text-muted mt-1">الفواتير، المصروفات، التقارير المالية</div></div></div>{% endif %}
+    {% if form.perm_crm %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_crm }} {{ form.perm_crm.label }}</label><div class="small text-muted mt-1">الشركات، الفرص، عروض الأسعار</div></div></div>{% endif %}
+    {% if form.perm_reports %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_reports }} {{ form.perm_reports.label }}</label><div class="small text-muted mt-1">تقارير الحملات والأداء</div></div></div>{% endif %}
+    {% if form.perm_settings %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_settings }} {{ form.perm_settings.label }}</label><div class="small text-muted mt-1">إدارة الإعدادات والمستخدمين</div></div></div>{% endif %}
+  </div>
+
+  {% if form.errors %}<div class="alert alert-danger">{{ form.errors }}</div>{% endif %}
+  <button class="btn btn-primary px-5">إضافة</button>
+</form>
+</div></div>
+{% endblock %}

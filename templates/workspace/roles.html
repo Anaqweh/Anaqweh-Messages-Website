@@ -1,0 +1,50 @@
+{% extends "base/base.html" %}
+{% block title %}الأدوار{% endblock %}
+{% block page_title %}<i class="bi bi-shield-check me-2"></i>الأدوار — {{ tenant.name }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'workspace:members' %}" class="btn btn-outline-secondary btn-sm">← الفريق</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-7">
+    <div class="data-table p-3">
+      <table class="table table-sm">
+        <thead><tr><th>الدور</th><th>الصلاحيات</th><th></th></tr></thead>
+        <tbody>
+          {% for r in roles %}
+          <tr>
+            <td class="fw-bold">{{ r.name }}<div class="small text-muted">{{ r.description }}</div></td>
+            <td>
+              {% if r.permissions.email.view %}<span class="badge bg-info me-1">البريد</span>{% endif %}
+              {% if r.permissions.finance.view %}<span class="badge bg-success me-1">المالية</span>{% endif %}
+              {% if r.permissions.crm.view %}<span class="badge bg-primary me-1">CRM</span>{% endif %}
+              {% if r.permissions.reports.view %}<span class="badge bg-secondary me-1">التقارير</span>{% endif %}
+            </td>
+            <td>{% if not r.is_system %}<span class="badge bg-light text-dark">مخصص</span>{% else %}<span class="badge bg-dark">نظام</span>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center text-muted">لا توجد أدوار بعد</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm"><div class="card-body">
+      <h6 class="fw-bold mb-3">+ دور جديد</h6>
+      <form method="post">{% csrf_token %}
+        <div class="mb-3"><label class="form-label fw-bold">اسم الدور *</label><input name="name" class="form-control" placeholder="محاسب، مبيعات..." required></div>
+        <div class="mb-3"><label class="form-label fw-bold">الوصف</label><input name="description" class="form-control"></div>
+        <div class="mb-3">
+          {% if modules.email %}<label class="form-check"><input type="checkbox" name="perm_email" class="form-check-input"> البريد الإلكتروني</label>{% endif %}
+          {% if modules.finance %}<label class="form-check"><input type="checkbox" name="perm_finance" class="form-check-input"> المالية</label>{% endif %}
+          {% if modules.crm %}<label class="form-check"><input type="checkbox" name="perm_crm" class="form-check-input"> CRM</label>{% endif %}
+          {% if modules.reports %}<label class="form-check"><input type="checkbox" name="perm_reports" class="form-check-input"> التقارير</label>{% endif %}
+          <label class="form-check"><input type="checkbox" name="perm_settings" class="form-check-input"> الإعدادات</label>
+        </div>
+        <button class="btn btn-primary w-100">إنشاء الدور</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

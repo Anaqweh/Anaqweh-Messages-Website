@@ -1,0 +1,23 @@
+{% extends "base/base.html" %}
+{% block title %}{% if expense %}تعديل تكلفة{% else %}إضافة تكلفة{% endif %}{% endblock %}
+{% block page_title %}{% if expense %}تعديل تكلفة{% else %}إضافة تكلفة{% endif %}{% endblock %}
+{% block top_actions %}<a href="{% url 'payments:expenses' %}" class="btn btn-outline-secondary btn-sm">← المصروفات</a>{% endblock %}
+{% block content %}
+<div class="data-table p-4">
+<form method="post" enctype="multipart/form-data" action="{% if expense %}{% url 'payments:expense_edit' expense.pk %}{% else %}{% url 'payments:expense_create' %}{% endif %}">{% csrf_token %}
+  <div class="mb-3"><label class="form-label">الوصف</label><input name="title" value="{{ expense.title|default:'' }}" class="form-control" required></div>
+  <div class="row g-3">
+    <div class="col-md-4"><label class="form-label">النوع</label><select name="category" class="form-select">{% for v,l in categories %}<option value="{{ v }}" {% if expense.category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label">المبلغ</label><input name="amount" type="number" step="0.01" value="{{ expense.amount|default:'' }}" class="form-control" required></div>
+    <div class="col-md-4"><label class="form-label">العملة</label><input name="currency" value="{{ expense.currency|default:'aed' }}" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">التاريخ</label><input name="spent_at" type="date" value="{{ expense.spent_at|date:'Y-m-d' }}" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">التكرار</label><select name="recurrence" class="form-select">{% for v,l in recurrences %}<option value="{{ v }}" {% if expense.recurrence == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="mb-3 mt-3"><label class="form-label">ملاحظات</label><textarea name="notes" class="form-control">{{ expense.notes|default:'' }}</textarea></div>
+  <div class="mb-3"><label class="form-label">مرفق (اختياري - فاتورة/إيصال)</label><input name="attachment" type="file" class="form-control">
+    {% if expense.attachment %}<div class="small mt-1">المرفق الحالي: <a href="{{ expense.attachment.url }}" target="_blank">عرض</a> (رفع ملف جديد سيستبدله)</div>{% endif %}
+  </div>
+  <button class="btn btn-inexc">{% if expense %}حفظ التعديلات{% else %}حفظ{% endif %}</button>
+</form>
+</div>
+{% endblock %}

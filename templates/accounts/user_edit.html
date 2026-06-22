@@ -1,0 +1,102 @@
+{% extends 'base/base.html' %}
+{% block title %}تعديل {{ u.username }}{% endblock %}
+{% block content %}
+<div class="container-fluid px-4 py-4" dir="rtl">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="d-flex align-items-center mb-4 gap-3">
+        <div class="rounded-3 p-3" style="background:#6366f1;"><i class="fas fa-user-edit text-white fs-4"></i></div>
+        <div>
+          <h4 class="mb-0 fw-bold">تعديل: {{ u.username }}</h4>
+          <small class="text-muted">{{ u.email }}</small>
+        </div>
+        <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary btn-sm ms-auto">رجوع</a>
+      </div>
+      {% if messages %}{% for msg in messages %}<div class="alert alert-{{ msg.tags }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="card border-0 shadow-sm rounded-4 mb-3">
+          <div class="card-body p-4">
+            <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-user me-2"></i>البيانات الأساسية</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">البريد الإلكتروني</label>
+                <input type="email" name="email" value="{{ u.email }}" class="form-control">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">الاسم الأول</label>
+                <input type="text" name="first_name" value="{{ u.first_name }}" class="form-control">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold">اسم العائلة</label>
+                <input type="text" name="last_name" value="{{ u.last_name }}" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">الصلاحية</label>
+                <select name="role" class="form-select">
+                  <option value="staff" {% if not u.is_superuser %}selected{% endif %}>موظف</option>
+                  <option value="admin" {% if u.is_superuser %}selected{% endif %}>مدير</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">الحالة</label>
+                <select name="is_active" class="form-select">
+                  <option value="1" {% if u.is_active %}selected{% endif %}>نشط</option>
+                  <option value="0" {% if not u.is_active %}selected{% endif %}>معطّل</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">حد الإرسال (0=بلا حد)</label>
+                <input type="number" name="max_sends" value="{{ profile.max_sends }}" class="form-control" min="0">
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold">ملاحظة</label>
+                <textarea name="note" class="form-control" rows="2" placeholder="ملاحظة خاصة عن هذا المستخدم">{{ profile.note }}</textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">كلمة مرور جديدة (اتركها فارغة إذا لا تريد تغييرها)</label>
+                <input type="password" name="new_password" class="form-control" placeholder="••••••••">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+          <div class="card-body p-4">
+            <h6 class="fw-bold mb-3 text-muted"><i class="fas fa-envelope-open-text me-2"></i>إعدادات EmailJS</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Service ID</label>
+                <input type="text" name="service_id" value="{{ cfg.service_id }}" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Template ID</label>
+                <input type="text" name="template_id" value="{{ cfg.template_id }}" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Public Key</label>
+                <input type="text" name="public_key" value="{{ cfg.public_key }}" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Private Key</label>
+                <input type="password" name="private_key" value="{{ cfg.private_key }}" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">بريد المرسِل</label>
+                <input type="email" name="from_email" value="{{ cfg.from_email }}" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">اسم المرسِل</label>
+                <input type="text" name="from_name" value="{{ cfg.from_name }}" class="form-control">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>حفظ التعديلات</button>
+          <a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary px-4">إلغاء</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

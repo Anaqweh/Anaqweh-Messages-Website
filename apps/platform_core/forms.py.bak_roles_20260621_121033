@@ -1,0 +1,88 @@
+from django import forms
+
+from .models import Tenant
+
+
+MODULE_FIELDS = [
+    ("email", "النظام البريدي"),
+    ("finance", "المالية"),
+    ("crm", "CRM"),
+    ("accounting", "المحاسبة"),
+    ("reports", "التقارير"),
+]
+
+LIMIT_FIELDS = [
+    ("users", "عدد المستخدمين"),
+    ("campaigns_per_month", "الحملات شهرياً"),
+    ("contacts", "عدد العملاء/جهات الاتصال"),
+    ("invoices_per_month", "الفواتير شهرياً"),
+    ("storage_mb", "مساحة التخزين MB"),
+]
+
+
+class TenantForm(forms.ModelForm):
+    class Meta:
+        model = Tenant
+        fields = [
+            "name",
+            "slug",
+            "status",
+            "owner_name",
+            "owner_email",
+            "owner_phone",
+            "domain",
+            "plan_name",
+            "subscription_starts_at",
+            "subscription_ends_at",
+            "notes",
+        ]
+        widgets = {
+            "subscription_starts_at": forms.DateInput(attrs={"type": "date"}),
+            "subscription_ends_at": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        modules = self.instance.modules if self.instance and self.instance.pk else {}
+        limits = self.instance.limits if self.instance and self.instance.pk else {}
+
+        for code, label in MODULE_FIELDS:
+            self.fields[f"module_{code}"] = forms.BooleanField(
+                label=label,
+                required=False,
+                initial=modules.get(code, code != "crm"),
+            )
+
+        for code, label in LIMIT_FIELDS:
+            self.fields[f"limit_{code}"] = forms.IntegerField(
+                label=label,
+                min_value=0,
+                required=False,
+                initial=limits.get(code),
+            )
+
+        for field in self.fields.values():
+            css = "form-control"
+            if isinstance(field.widget, forms.CheckboxInput):
+                css = "form-check-input"
+            field.widget.attrs.setdefault("class", css)
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+
+        obj.modules = {
+            code: bool(self.cleaned_data.get(f"module_{code}"))
+            for code, _label in MODULE_FIELDS
+        }
+
+        obj.limits = {
+            code: int(self.cleaned_data.get(f"limit_{code}") or 0)
+            for code, _label in LIMIT_FIELDS
+        }
+
+        if commit:
+            obj.save()
+
+        return obj

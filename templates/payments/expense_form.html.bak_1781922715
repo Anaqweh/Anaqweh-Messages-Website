@@ -1,0 +1,19 @@
+{% extends "base/base.html" %}
+{% block title %}إضافة تكلفة{% endblock %}
+{% block page_title %}إضافة تكلفة{% endblock %}
+{% block content %}
+<div class="data-table p-4">
+<form method="post">{% csrf_token %}
+  <div class="mb-3"><label class="form-label">الوصف</label><input name="title" class="form-control" required></div>
+  <div class="row g-3">
+    <div class="col-md-4"><label class="form-label">النوع</label><select name="category" class="form-select">{% for v,l in categories %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label">المبلغ</label><input name="amount" type="number" step="0.01" class="form-control" required></div>
+    <div class="col-md-4"><label class="form-label">العملة</label><input name="currency" value="aed" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">التاريخ</label><input name="spent_at" type="date" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label">التكرار</label><select name="recurrence" class="form-select">{% for v,l in recurrences %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+  </div>
+  <div class="mb-3 mt-3"><label class="form-label">ملاحظات</label><textarea name="notes" class="form-control"></textarea></div>
+  <button class="btn btn-inexc">حفظ</button>
+</form>
+</div>
+{% endblock %}

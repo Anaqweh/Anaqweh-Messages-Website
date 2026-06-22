@@ -1,0 +1,51 @@
+from django.urls import reverse
+from django.utils import timezone
+
+
+def send_invoice_email(invoice):
+    from apps.campaigns.emailjs_service import send_via_emailjs
+
+    payment = invoice.payment
+    if not payment.customer_email:
+        return False
+
+    base = 'http://165.232.167.39:8000'
+    public_url = base + reverse('payments:invoice_public', args=[invoice.token])
+    open_url = base + reverse('payments:invoice_open', args=[invoice.token])
+
+    html = f'''
+    <div dir="rtl" style="font-family:Arial,Tahoma,sans-serif;background:#f6f8fb;padding:24px">
+      <div style="max-width:680px;margin:auto;background:#fff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
+        <div style="background:#0f766e;color:#fff;padding:24px;text-align:center">
+          <h1 style="margin:0">شركة التميز الابتكاري</h1>
+          <p style="margin:8px 0 0">فاتورة الدفع الإلكتروني</p>
+        </div>
+        <div style="padding:24px;color:#1f2937;line-height:1.9">
+          <h2>شكراً لدفعك</h2>
+          <p>تم استلام دفعتك بنجاح.</p>
+          <p><b>رقم الفاتورة:</b> {invoice.invoice_number}</p>
+          <p><b>المبلغ:</b> {payment.amount} {payment.currency.upper()}</p>
+          <p><b>رسوم Stripe:</b> {payment.stripe_fee}</p>
+          <p><b>الصافي:</b> {payment.net_amount}</p>
+          <p style="text-align:center;margin-top:22px">
+            <a href="{public_url}" style="background:#0f766e;color:white;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:bold">عرض الفاتورة</a>
+          </p>
+          <img src="{open_url}" width="1" height="1" style="display:none" alt="">
+        </div>
+      </div>
+    </div>
+    '''
+
+    result = send_via_emailjs(
+        to_email=payment.customer_email,
+        to_name=payment.customer_name or payment.customer_email,
+        subject=f'فاتورتك من INEXC - شركة التميز الابتكاري - {invoice.invoice_number}',
+        body_html=html,
+        body_text=f'فاتورتك {invoice.invoice_number}: {public_url}',
+    )
+
+    if result.get('success'):
+        invoice.email_sent_at = timezone.now()
+        invoice.save(update_fields=['email_sent_at'])
+        return True
+    return False

@@ -1,0 +1,40 @@
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+
+from .models import Tenant, TenantMembership
+
+
+def _can_manage_workspace(membership):
+    if not membership:
+        return False
+    return bool(
+        membership.is_tenant_admin
+        or membership.permissions.get("settings", {}).get("manage_users")
+    )
+
+
+def _workspace_tenants_for(user):
+    if user.is_staff:
+        return Tenant.objects.all()
+    memberships = TenantMembership.objects.select_related("tenant").filter(user=user, is_active=True)
+    return [m.tenant for m in memberships if _can_manage_workspace(m)]
+
+
+@login_required
+def home(request):
+    tenants = list(_workspace_tenants_for(request.user))
+    if len(tenants) == 1:
+        return redirect("workspace:dashboard", tenant_pk=tenants[0].pk)
+    return render(request, "workspace/home.html", {"tenants": tenants})
+
+
+@login_required
+def dashboard(request, tenant_pk):
+    tenant = Tenant.objects.get(pk=tenant_pk)
+    roles = tenant.roles.all()
+    memberships = tenant.memberships.select_related("user", "role").all()
+    return render(request, "workspace/dashboard.html", {
+        "tenant": tenant,
+        "roles": roles,
+        "memberships": memberships,
+    })

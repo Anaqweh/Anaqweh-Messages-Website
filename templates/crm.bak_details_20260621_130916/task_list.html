@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}المهام{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between mb-3"><h2>المهام والمتابعات</h2><a class="btn btn-primary" href="{% url 'crm:task_create
+cat > templates/crm/company_detail.html <<'EOF'
+{% extends "base.html" %}
+{% block title %}{{ company.name }}{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between mb-3"><h2>{{ company.name }}</h2><a class="btn btn-outline-secondary" href="{% url 'crm:company_list' %}">رجوع</a></div>
+  <div class="card p-3 mb-3"><p><b>الحالة:</b> {{ company.get_status_display }}</p><p><b>البريد:</b> {{ company.email|default:"-" }}</p><p><b>الهاتف:</b> <span dir="ltr" style="unicode-bidi:isolate">{{ company.phone|default:"-" }}</span></p><p>{{ company.notes }}</p></div>
+  <div class="row g-3"><div class="col-md-6"><div class="card p-3"><h5>جهات الاتصال</h5>{% for c in contacts %}<div><a href="{% url 'crm:contact_detail' c.pk %}">{{ c.full_name }}</a></div>{% empty %}<div class="text-muted">لا يوجد.</div>{% endfor %}</div></div><div class="col-md-6"><div class="card p-3"><h5>الفرص</h5>{% for d in deals %}<div><a href="{% url 'crm:deal_detail' d.pk %}">{{ d.title }}</a></div>{% empty %}<div class="text-muted">لا يوجد.</div>{% endfor %}</div></div></div>
+  <div class="card p-3 mt-3"><h5>إضافة ملاحظة</h5><form method="post" action="{% url 'crm:activity_add' 'company' company.pk %}">{% csrf_token %}{{ activity_form.as_p }}<button class="btn btn-primary">حفظ</button></form></div>
+  <div class="card p-3 mt-3"><h5>السجل</h5>{% for a in activities %}<div class="border-bottom py-2"><b>{{ a.subject }}</b><div class="text-muted small">{{ a.created_at }}</div><div>{{ a.body }}</div></div>{% empty %}<div class="text-muted">لا يوجد سجل.</div>{% endfor %}</div>
+</div>
+{% endblock %}

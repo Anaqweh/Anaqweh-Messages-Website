@@ -1,25 +1,49 @@
 {% extends "base/base.html" %}
-{% block title %}الحملات – INEXC{% endblock %}
+{% block title %}الحملات - INEXC{% endblock %}
 {% block page_title %}<i class="bi bi-megaphone-fill me-2"></i>الحملات البريدية{% endblock %}
 {% block top_actions %}<a href="{% url 'campaigns:campaign_create' %}" class="btn btn-inexc btn-sm">+ حملة جديدة</a>{% endblock %}
 {% block content %}
+<div class="row g-3 mb-3">
+<div class="col-md-2 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي</div><div class="h4 mb-0 fw-bold">{{ stats.total|default:0 }}</div></div></div></div>
+<div class="col-md-2 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">جارية</div><div class="h4 mb-0 text-primary fw-bold">{{ stats.running|default:0 }}</div></div></div></div>
+<div class="col-md-2 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">مجدولة</div><div class="h4 mb-0 text-info fw-bold">{{ stats.scheduled|default:0 }}</div></div></div></div>
+<div class="col-md-2 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">مكتملة</div><div class="h4 mb-0 text-success fw-bold">{{ stats.completed|default:0 }}</div></div></div></div>
+<div class="col-md-2 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">مرسل</div><div class="h4 mb-0 text-success fw-bold">{{ stats.sent|default:0 }}</div></div></div></div>
+<div class="col-md-2 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">فاشل</div><div class="h4 mb-0 text-danger fw-bold">{{ stats.failed|default:0 }}</div></div></div></div>
+</div>
+
+
+{% if has_running_without_recipients %}
+<div class="alert alert-warning border-0 shadow-sm mb-3">
+  تنبيه: توجد حملة جارية بدون مستلمين. راجع القائمة البريدية قبل الإرسال.
+</div>
+{% endif %}
+
 <div class="data-table">
-  <div class="p-3 border-bottom d-flex gap-2"><form method="get" class="d-flex gap-2 flex-grow-1"><input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="بحث..."><select name="status" class="form-select form-select-sm" style="width:auto"><option value="">كل الحالات</option>{% for v,l in status_choices %}<option value="{{ v }}" {% if v == status_filter %}selected{% endif %}>{{ l }}</option>{% endfor %}</select><button class="btn btn-sm btn-outline-primary">بحث</button></form></div>
-  <table class="table table-hover"><thead><tr><th>الاسم</th><th>الحالة</th><th>المستلمون</th><th>مرسل</th><th>فاشل</th><th>النجاح</th><th>إجراءات</th></tr></thead><tbody>
-    {% for c in campaigns %}
-    <tr>
-      <td><a href="{% url 'campaigns:campaign_detail' c.pk %}" class="fw-bold text-decoration-none text-dark">{{ c.name }}</a></td>
-      <td><span class="badge bg-{{ c.get_status_color }}">{{ c.get_status_display }}</span></td>
-      <td>{{ c.total_recipients }}</td><td class="text-success fw-bold">{{ c.sent_count }}</td><td class="text-danger">{{ c.failed_count }}</td>
-      <td><small>{{ c.success_rate }}%</small></td>
-      <td><div class="d-flex gap-1">
-        <a href="{% url 'campaigns:campaign_detail' c.pk %}" class="btn btn-xs btn-outline-primary"><i class="bi bi-eye"></i></a>
-        {% if c.status in 'draft,paused' %}<a href="{% url 'campaigns:campaign_action' c.pk 'start' %}" class="btn btn-xs btn-success"><i class="bi bi-play-fill"></i></a>{% endif %}
-        {% if c.status == 'running' %}<a href="{% url 'campaigns:campaign_action' c.pk 'pause' %}" class="btn btn-xs btn-warning"><i class="bi bi-pause-fill"></i></a>{% endif %}
-        {% if c.status not in 'completed,cancelled' %}<a href="{% url 'campaigns:campaign_action' c.pk 'cancel' %}" class="btn btn-xs btn-danger" onclick="return confirm('إلغاء؟')"><i class="bi bi-x-lg"></i></a>{% endif %}
-      </div></td>
-    </tr>
-    {% empty %}<tr><td colspan="7" class="text-center text-muted py-5">لا توجد حملات</td></tr>{% endfor %}
-  </tbody></table>
+<div class="p-3 border-bottom"><form method="get" class="row g-2 align-items-center">
+<div class="col-md-8"><input type="text" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="بحث باسم الحملة أو العنوان..."></div>
+<div class="col-md-3"><select name="status" class="form-select form-select-sm"><option value="">كل الحالات</option>{% for v,l in status_choices %}<option value="{{ v }}" {% if v == status_filter %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+<div class="col-md-1 d-grid"><button class="btn btn-sm btn-outline-primary">بحث</button></div>
+</form></div>
+
+<div class="table-responsive"><table class="table table-hover align-middle mb-0">
+<thead><tr><th>الاسم</th><th>الحالة</th><th>الجدولة</th><th>الرسائل</th><th>المستلمون</th><th>مرسل</th><th>فاشل</th><th>النجاح</th><th style="width:210px">إجراءات</th></tr></thead>
+<tbody>
+{% for c in campaigns %}
+<tr>
+<td><a href="{% url 'campaigns:campaign_detail' c.pk %}" class="fw-bold text-decoration-none text-dark">{{ c.name }}</a><div class="small text-muted">{{ c.subject|truncatechars:55 }}</div><div class="small text-muted">#{{ c.id }} · آخر تحديث: {% if c.updated_at %}{{ c.updated_at|date:"Y-m-d H:i" }}{% elif c.created_at %}{{ c.created_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</div>{% if c.total_recipients == 0 %}<span class="badge bg-warning text-dark mt-1">لا يوجد مستلمون</span>{% endif %}</td>
+<td><span class="badge bg-{{ c.get_status_color }}">{{ c.get_status_display }}</span></td>
+<td>{% if c.scheduled_at %}<div class="small">موعد: {{ c.scheduled_at|date:"Y-m-d H:i" }}</div>{% endif %}{% if c.next_run %}<div class="small text-primary">التالي: {{ c.next_run|date:"Y-m-d H:i" }}</div>{% endif %}{% if c.is_recurring_active %}<span class="badge bg-info text-dark">{{ c.get_recurrence_display }}</span>{% else %}<span class="text-muted small">بدون تكرار</span>{% endif %}</td>
+<td><a href="{% url 'campaigns:campaign_detail' c.pk %}" class="badge bg-light text-dark border text-decoration-none">متسلسلة: {{ c.message_steps.count }}</a></td>
+<td class="fw-bold">{{ c.total_recipients }}</td>
+<td class="text-success fw-bold">{{ c.sent_count }}</td>
+<td class="text-danger">{{ c.failed_count }}</td>
+<td><div class="small">{{ c.success_rate }}%</div><div class="progress" style="height:6px"><div class="progress-bar bg-success" style="width:{{ c.success_rate }}%"></div></div></td>
+<td><div class="d-flex flex-wrap gap-1"><a title="عرض" href="{% url 'campaigns:campaign_detail' c.pk %}" class="btn btn-xs btn-outline-primary"><i class="bi bi-eye"></i></a>{% if c.status in 'draft,paused' %}<a title="تشغيل" href="{% url 'campaigns:campaign_action' c.pk 'start' %}" class="btn btn-xs btn-success"><i class="bi bi-play-fill"></i></a>{% endif %}{% if c.status == 'running' %}<a title="إيقاف مؤقت" href="{% url 'campaigns:campaign_action' c.pk 'pause' %}" class="btn btn-xs btn-warning"><i class="bi bi-pause-fill"></i></a>{% endif %}{% if c.status not in 'completed,cancelled' %}<a title="إلغاء" href="{% url 'campaigns:campaign_action' c.pk 'cancel' %}" class="btn btn-xs btn-danger" onclick="return confirm('إلغاء؟')"><i class="bi bi-x-lg"></i></a>{% endif %}</div></td>
+</tr>
+{% empty %}
+<tr><td colspan="9" class="text-center text-muted py-5">لا توجد حملات</td></tr>
+{% endfor %}
+</tbody></table></div>
 </div>
 {% endblock %}

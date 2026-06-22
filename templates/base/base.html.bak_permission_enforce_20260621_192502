@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}INEXC Email Manager{% endblock %}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+*{font-family:'Tajawal',sans-serif}
+body{background:#f0f4f8;min-height:100vh}
+.sidebar{position:fixed;top:0;right:0;width:260px;height:100vh;background:linear-gradient(180deg,#1e3a6e,#2a5298);overflow-y:auto;z-index:1000}
+.sidebar-brand{padding:1.5rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center}
+.brand-icon{width:42px;height:42px;background:#00b4d8;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;margin-left:.75rem}
+.brand-title{font-size:1.3rem;font-weight:800;color:#fff}
+.brand-sub{font-size:.72rem;color:rgba(255,255,255,.55)}
+.nav-section-title{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;padding:.9rem 1.25rem .3rem}
+.sidebar .nav-link{display:flex;align-items:center;gap:.6rem;padding:.62rem 1.25rem;color:rgba(255,255,255,.75);border-radius:8px;margin:2px .5rem;font-size:.9rem}
+.sidebar .nav-link:hover,.sidebar .nav-link.active{background:rgba(255,255,255,.15);color:#fff}
+.main-content{margin-right:260px;min-height:100vh}
+.top-bar{background:#fff;border-bottom:1px solid #e2e8f0;padding:.85rem 1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.06);display:flex;justify-content:space-between;align-items:center}
+.page-title{font-size:1.15rem;font-weight:700;color:#1e3a6e}
+.content-area{padding:1.75rem}
+.stat-card{background:#fff;border-radius:14px;padding:1.4rem;border:1px solid #e8edf5;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.stat-value{font-size:2rem;font-weight:800;color:#1a202c}
+.stat-label{font-size:.82rem;color:#718096}
+.data-table{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.05);border:1px solid #e8edf5}
+.data-table .table{margin:0}
+.data-table thead th{background:#f8fafc;color:#1e3a6e;font-weight:700;font-size:.85rem;padding:.9rem 1rem}
+.data-table td{padding:.8rem 1rem;vertical-align:middle;font-size:.88rem}
+.btn-inexc{background:#1e3a6e;color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600}
+.btn-inexc:hover{background:#2a5298;color:#fff}
+.form-card{background:#fff;border-radius:14px;padding:2rem;border:1px solid #e8edf5;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.form-control,.form-select{border-radius:8px;border:1.5px solid #d1d5db;font-size:.9rem}
+.messages-container{position:fixed;top:1rem;left:1rem;z-index:9999;min-width:320px}
+.btn-xs{padding:.2rem .5rem;font-size:.75rem}
+.progress{border-radius:10px;height:8px}
+@media(max-width:768px){.sidebar{display:none}.main-content{margin-right:0}}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- INEXC_PLATFORM_NAV_START -->
+<style>
+.inexc-platform-nav{
+  direction:rtl;
+  background:#ffffff;
+  border-bottom:1px solid #d9e4f2;
+  box-shadow:0 4px 14px rgba(11,78,162,.06);
+  padding:10px 18px;
+}
+.inexc-platform-nav .nav-inner{
+  max-width:1280px;
+  margin:0 auto;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+}
+.inexc-platform-nav a{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  text-decoration:none;
+  background:#eef5ff;
+  color:#0b4ea2;
+  border:1px solid #cfe0f8;
+  border-radius:8px;
+  padding:8px 12px;
+  font-weight:700;
+  font-size:14px;
+}
+.inexc-platform-nav a.primary{
+  background:#0b4ea2;
+  color:#fff;
+  border-color:#0b4ea2;
+}
+.inexc-platform-nav .nav-label{
+  color:#667085;
+  font-size:13px;
+  margin-left:4px;
+}
+@media(max-width:700px){
+  .inexc-platform-nav{padding:8px}
+  .inexc-platform-nav .nav-inner{gap:6px}
+  .inexc-platform-nav a{font-size:13px;padding:8px 9px}
+  .inexc-platform-nav .nav-label{width:100%;margin-bottom:2px}
+}
+@media print{
+  .inexc-platform-nav{display:none!important}
+}
+</style>
+
+{% if user.is_authenticated %}
+<div class="inexc-platform-nav">
+  <div class="nav-inner">
+    {% if user.is_superuser or user.is_staff %}
+      <span class="nav-label">مدير المنصة:</span>
+      <a class="primary" href="{% url 'platform_core:tenant_list' %}">إدارة المنصة</a>
+      <a href="{% url 'platform_core:tenant_list' %}">الشركات والصلاحيات</a>
+      <a href="{% url 'accounts:user_list' %}">مستخدمو المنصة</a>
+      <a href="{% url 'crm:dashboard' %}">CRM</a>
+      <a href="{% url 'payments:dashboard' %}">المالية</a>
+      <a href="{% url 'campaigns:dashboard' %}">الرئيسية</a>
+    {% else %}
+      <span class="nav-label">مساحة الشركة:</span>
+      <a class="primary" href="{% url 'workspace:home' %}">لوحة الشركة</a>
+      {% if tenant_permissions.crm.view %}
+        <a href="{% url 'crm:dashboard' %}">CRM</a>
+      {% endif %}
+      {% if tenant_permissions.finance.view %}
+        <a href="{% url 'payments:dashboard' %}">المالية</a>
+      {% endif %}
+      {% if tenant_permissions.email.view %}
+        <a href="{% url 'campaigns:dashboard' %}">البريد والحملات</a>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<!-- INEXC_PLATFORM_NAV_END -->
+
+
+{% if user.is_authenticated %}
+<nav class="sidebar">
+  <div class="sidebar-brand"><div class="brand-icon"><i class="bi bi-envelope-fill"></i></div><div><div class="brand-title">INEXC</div><div class="brand-sub">Email Manager</div></div></div>
+  <div class="nav-section-title">الرئيسية</div>
+  <a href="{% url 'campaigns:dashboard' %}" class="nav-link"><i class="bi bi-grid-fill"></i> لوحة التحكم</a>
+  <div class="nav-section-title">الحملات</div>
+  <a href="{% url 'campaigns:campaign_list' %}" class="nav-link"><i class="bi bi-megaphone-fill"></i> الحملات</a>
+  <a href="{% url 'campaigns:campaign_create' %}" class="nav-link"><i class="bi bi-plus-circle-fill"></i> حملة جديدة</a>
+    <a href="{% url 'campaigns:smart_send' %}" class="nav-link"><i class="bi bi-send-fill"></i> الإرسال الذكي</a>
+  <div class="nav-section-title">القوالب والمستلمون</div>
+  <a href="{% url 'templates_mgr:template_list' %}" class="nav-link"><i class="bi bi-file-earmark-richtext-fill"></i> القوالب</a>
+  <a href="{% url 'templates_mgr:builder' %}" class="nav-link"><i class="bi bi-palette"></i> محرر مرئي</a>
+  <a href="{% url 'recipients:list_view' %}" class="nav-link"><i class="bi bi-people-fill"></i> القوائم</a>
+  <a href="{% url 'recipients:unsubscribe_list' %}" class="nav-link"><i class="bi bi-slash-circle-fill"></i> إلغاء الاشتراك</a>
+  <div class="nav-section-title">الإدارة العليا</div>
+  <a href="/platform/tenants/" class="nav-link"><i class="bi bi-buildings"></i> الشركات/النسخ</a>
+  <a href="/workspace/" class="nav-link"><i class="bi bi-person-workspace"></i> مساحة العمل</a>
+  <div class="nav-section-title">إدارة العملاء</div>
+  <a href="/crm/" class="nav-link"><i class="bi bi-diagram-3"></i> CRM</a>
+  <a href="/crm/companies/" class="nav-link"><i class="bi bi-building"></i> الشركات</a>
+  <a href="/crm/contacts/" class="nav-link"><i class="bi bi-people"></i> جهات الاتصال</a>
+  <a href="/crm/deals/" class="nav-link"><i class="bi bi-graph-up-arrow"></i> الفرص</a>
+  <a href="/crm/quotes/" class="nav-link"><i class="bi bi-file-earmark-text"></i> عروض الأسعار</a>
+  <a href="/crm/tasks/" class="nav-link"><i class="bi bi-check2-square"></i> المهام</a>
+  <div class="nav-section-title">التقارير</div>
+  <a href="{% url 'reports:dashboard' %}" class="nav-link"><i class="bi bi-bar-chart-fill"></i> التقارير</a>
+        <a href="{% url 'payments:dashboard' %}" class="nav-link"><i class="bi bi-cash-coin"></i> المالية</a>
+  {% if user.is_superuser %}
+  <div class="nav-section-title">الإدارة</div>
+  <a href="{% url 'accounts:user_list' %}" class="nav-link"><i class="bi bi-person-gear"></i> المستخدمون</a>
+  <a href="{% url 'accounts:audit_log' %}" class="nav-link"><i class="bi bi-journal-text"></i> سجل النشاط</a>
+  {% endif %}
+  <div class="nav-section-title">الحساب</div>
+    <a href="{% url 'accounts:emailjs_settings' %}" class="nav-link"><i class="bi bi-envelope-gear"></i> إعدادات EmailJS</a>
+  <a href="{% url 'accounts:logout' %}" class="nav-link"><i class="bi bi-box-arrow-left"></i> تسجيل الخروج</a>
+</nav>
+{% endif %}
+<div class="{% if user.is_authenticated %}main-content{% endif %}">
+  {% if user.is_authenticated %}
+  <div class="top-bar"><span class="page-title">{% block page_title %}{% endblock %}</span><div class="d-flex align-items-center gap-3"><span class="text-muted small"><i class="bi bi-person-circle me-1"></i>{{ user.username }}</span>{% block top_actions %}{% endblock %}</div></div>
+  {% endif %}
+  {% if messages %}<div class="messages-container">{% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}</div>{% endif %}
+  <div class="{% if user.is_authenticated %}content-area{% endif %}">{% block content %}{% endblock %}</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -12,4 +12,7 @@ urlpatterns = [
     path('campaigns/<int:pk>/<str:action>/', views.campaign_action, name='campaign_action'),
     path('track/open/<int:log_id>/', tracking.track_open, name='track_open'),
     path('track/click/<int:log_id>/', tracking.track_click, name='track_click'),
+    path('smart-send/', views.smart_send, name='smart_send'),
+    path("smart-send/parse-excel/", views.parse_excel, name="parse_excel"),
+    path('smart-send/do-send/', views.do_smart_send, name='do_smart_send'),
 ]

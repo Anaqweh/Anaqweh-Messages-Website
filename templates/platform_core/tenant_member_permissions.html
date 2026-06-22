@@ -1,0 +1,50 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<style>
+.pc-wrap{direction:rtl;max-width:980px;margin:24px auto;padding:0 14px;color:#102033}
+.pc-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.pc-head h1{font-size:25px;margin:0;color:#0b4ea2}
+.pc-btn{border:0;border-radius:8px;padding:10px 15px;background:#0b4ea2;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}
+.pc-btn.light{background:#eef5ff;color:#0b4ea2;border:1px solid #cfe0f8}
+.pc-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:18px;box-shadow:0 8px 24px rgba(11,78,162,.08);margin-bottom:16px}
+.pc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pc-group h3{margin:0 0 12px;color:#0b4ea2;font-size:18px}
+.pc-check{display:block;background:#f8fbff;border:1px solid #d9e4f2;border-radius:8px;padding:10px;margin:8px 0}
+@media(max-width:760px){.pc-grid{grid-template-columns:1fr}}
+</style>
+
+<div class="pc-wrap">
+  <div class="pc-head">
+    <h1>صلاحيات العضو</h1>
+    <div>
+      <button type="button" class="pc-btn light" onclick="history.back()">رجوع</button>
+      <a class="pc-btn light" href="{% url 'platform_core:tenant_detail' tenant.pk %}">الشركة</a>
+    </div>
+  </div>
+
+  <div class="pc-card">
+    <strong>{{ membership.user }}</strong>
+    <div>{{ tenant.name }}</div>
+  </div>
+
+  <form method="post" class="pc-card">
+    {% csrf_token %}
+    <div class="pc-grid">
+      {% for group in grouped_permissions %}
+      <div class="pc-group">
+        <h3>{{ group.label }}</h3>
+        {% for field in group.fields %}
+          <label class="pc-check">{{ field }} {{ field.label }}</label>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="pc-btn" type="submit">حفظ الصلاحيات</button>
+      <a class="pc-btn light" href="{% url 'platform_core:tenant_detail' tenant.pk %}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

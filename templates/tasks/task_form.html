@@ -1,0 +1,26 @@
+{% extends "base/base.html" %}
+{% block title %}{% if task %}تعديل مهمة{% else %}مهمة جديدة{% endif %}{% endblock %}
+{% block page_title %}<i class="bi bi-plus-square me-2"></i>{% if task %}تعديل: {{ task.title }}{% else %}مهمة جديدة{% endif %}{% endblock %}
+{% block top_actions %}<a href="{% url 'tasks:task_list' %}" class="btn btn-outline-secondary btn-sm">← المهام</a>{% endblock %}
+{% block content %}
+<form method="post" action="{% if task %}{% url 'tasks:task_edit' task.pk %}{% else %}{% url 'tasks:task_create' %}{% endif %}">{% csrf_token %}
+<div class="card border-0 shadow-sm mb-3"><div class="card-body">
+  <h6 class="fw-bold mb-3">معلومات المهمة</h6>
+  <div class="row g-3">
+    <div class="col-md-8"><label class="form-label fw-bold">عنوان المهمة *</label><input name="title" value="{{ task.title|default:'' }}" class="form-control" required></div>
+    <div class="col-md-4"><label class="form-label fw-bold">نوع المهمة</label><input name="task_type" value="{{ task.task_type|default:'' }}" class="form-control" placeholder="تصميم إعلان، كتابة منشور..."></div>
+    <div class="col-md-12"><label class="form-label fw-bold">الوصف</label><textarea name="description" class="form-control" rows="3">{{ task.description|default:'' }}</textarea></div>
+    <div class="col-md-3"><label class="form-label fw-bold">الأولوية</label><select name="priority" class="form-select">{% for v,l in priority_choices %}<option value="{{ v }}" {% if task.priority == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label fw-bold">الحالة</label><select name="status" class="form-select">{% for v,l in status_choices %}<option value="{{ v }}" {% if task.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-md-3"><label class="form-label fw-bold">تاريخ البداية</label><input type="date" name="start_date" value="{{ task.start_date|date:'Y-m-d'|default:'' }}" class="form-control"></div>
+    <div class="col-md-3"><label class="form-label fw-bold">تاريخ الاستحقاق</label><input type="date" name="due_date" value="{{ task.due_date|date:'Y-m-d'|default:'' }}" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label fw-bold">المسؤول</label><select name="assigned_to" class="form-select"><option value="">--- اختر مسؤولاً ---</option>{% for u in users %}<option value="{{ u.pk }}" {% if task.assigned_to_id == u.pk %}selected{% endif %}>{{ u.get_full_name|default:u.username }}</option>{% endfor %}</select></div>
+    <div class="col-md-6"><label class="form-label fw-bold">قالب سير العمل</label><select name="workflow_template" class="form-select"><option value="">--- بدون قالب ---</option>{% for w in workflows %}<option value="{{ w.pk }}" {% if task.workflow_template_id == w.pk %}selected{% endif %}>{{ w.name }}</option>{% endfor %}</select></div>
+    <div class="col-md-12"><label class="form-label fw-bold">ملاحظات</label><textarea name="notes" class="form-control" rows="2">{{ task.notes|default:'' }}</textarea></div>
+    <div class="col-md-12"><label class="form-label fw-bold">روابط خارجية</label><textarea name="external_links" class="form-control" rows="2" placeholder="رابط في كل سطر">{{ task.external_links|default:'' }}</textarea></div>
+    {% if task %}<div class="col-md-12"><label class="form-label fw-bold">سبب الإرجاع</label><textarea name="return_reason" class="form-control" rows="2">{{ task.return_reason|default:'' }}</textarea></div>{% endif %}
+  </div>
+</div></div>
+<div class="text-center mb-4"><button class="btn btn-primary btn-lg px-5">{% if task %}حفظ التعديلات{% else %}إنشاء المهمة{% endif %}</button></div>
+</form>
+{% endblock %}

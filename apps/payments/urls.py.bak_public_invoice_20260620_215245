@@ -1,0 +1,24 @@
+from django.urls import path
+from . import views
+
+app_name = 'payments'
+
+urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+    path('invoices/', views.invoices, name='invoices'),
+    path('invoices/<int:pk>/pdf/', views.invoice_pdf, name='invoice_pdf'),
+    path('invoices/<int:pk>/', views.invoice_detail, name='invoice_detail'),
+    path('invoice/<uuid:token>/', views.invoice_public, name='invoice_public'),
+    path('invoice/open/<uuid:token>/', views.invoice_open, name='invoice_open'),
+    path('expenses/', views.expenses, name='expenses'),
+    path('payouts/', views.payouts, name='payouts'),
+    path('reports/', views.reports, name='reports'),
+    path('expenses/new/', views.expense_create, name='expense_create'),
+    path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
+    path('sales-invoices/', views.sales_invoices, name='sales_invoices'),
+    path('sales-invoices/new/', views.sales_invoice_create, name='sales_invoice_create'),
+    path('sales-invoice/<uuid:token>/', views.sales_invoice_print, name='sales_invoice_print'),
+    path('sales-invoice/<uuid:token>/pdf/', views.sales_invoice_pdf, name='sales_invoice_pdf'),
+    path('expenses/<int:pk>/edit/', views.expense_edit, name='expense_edit'),
+    path('expenses/<int:pk>/delete/', views.expense_delete, name='expense_delete'),
+]

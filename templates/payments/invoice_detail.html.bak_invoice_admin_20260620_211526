@@ -1,0 +1,124 @@
+{% extends "base/base.html" %}
+{% block title %}فاتورة {{ invoice.invoice_number }}{% endblock %}
+{% block page_title %}<i class="bi bi-receipt me-2"></i>فاتورة {{ invoice.invoice_number }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'payments:invoices' %}" class="btn btn-outline-secondary btn-sm">← الفواتير</a>
+<button onclick="window.print()" class="btn btn-outline-primary btn-sm"><i class="bi bi-printer"></i> طباعة</button>
+<a href="{% url 'payments:invoice_public' invoice.token %}" target="_blank" class="btn btn-outline-info btn-sm"><i class="bi bi-eye"></i> عرض العميل</a>
+{% endblock %}
+{% block content %}
+<style>
+.inv-sheet{max-width:860px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(11,78,162,.10);overflow:hidden}
+.inv-head{background:linear-gradient(135deg,#0b4ea2,#1565c0);color:#fff;padding:28px 36px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.inv-head .brand{display:flex;align-items:center;gap:14px}
+.inv-head .brand img{max-height:72px;background:#fff;padding:6px;border-radius:8px}
+.inv-head .brand .bn{font-size:16px;font-weight:800;line-height:1.5}
+.inv-head .brand .bn small{display:block;font-size:11px;opacity:.8;font-weight:400}
+.inv-head .invno{text-align:left}
+.inv-head .invno h2{font-size:24px;font-weight:800;letter-spacing:2px;margin:0}
+.inv-head .invno .dt{font-size:12px;opacity:.85;margin-top:4px}
+.inv-ribbon{display:inline-block;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700;margin-top:6px}
+.ribbon-paid{background:#d1fae5;color:#065f46}
+.ribbon-pending{background:#fef3c7;color:#92400e}
+.inv-cinfo{display:flex;flex-wrap:wrap;gap:6px 24px;padding:12px 36px;background:#f4f7fb;font-size:12.5px;color:#475569;border-bottom:1px solid #e8eef5}
+.inv-cinfo b{color:#0b4ea2}
+.inv-parties{display:flex;flex-wrap:wrap;gap:16px;padding:20px 36px}
+.inv-parties .card{flex:1;min-width:200px;background:#f8fafc;border:1px solid #e8eef5;border-radius:12px;padding:14px 16px}
+.inv-parties .card .t{font-size:11px;color:#7a8699;font-weight:700;letter-spacing:1px;margin-bottom:6px}
+.inv-parties .card .v{font-size:15px;font-weight:700;color:#111827}
+.inv-parties .card .s{font-size:12px;color:#64748b;margin-top:2px}
+.inv-table{width:100%;border-collapse:collapse;margin:0 36px;width:calc(100% - 72px)}
+.inv-table thead th{background:#0b4ea2;color:#fff;padding:12px 16px;font-size:13px;text-align:right}
+.inv-table tbody td{padding:14px 16px;border-bottom:1px solid #eef2f7;font-size:14px}
+.inv-total{padding:16px 36px;display:flex;justify-content:flex-end}
+.inv-total .tbox{min-width:280px}
+.inv-total .row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;color:#475569;border-bottom:1px solid #f1f5f9}
+.inv-total .row.grand{border-top:2px solid #0b4ea2;border-bottom:none;padding-top:12px;font-size:18px;font-weight:800;color:#0b4ea2}
+.inv-admin{margin:0 36px 20px;background:#f8fafc;border:1px solid #e8eef5;border-radius:12px;padding:14px 16px;font-size:13px;color:#475569}
+.inv-admin .t{font-size:11px;font-weight:700;color:#0b4ea2;margin-bottom:8px;letter-spacing:1px}
+.inv-foot{background:linear-gradient(135deg,#0b4ea2,#1565c0);color:#fff;text-align:center;padding:12px;font-size:12px}
+@media(max-width:600px){.inv-head{padding:18px 16px}.inv-head .invno h2{font-size:18px}.inv-cinfo{padding:10px 16px}.inv-parties{padding:14px 16px}.inv-table{margin:0 12px;width:calc(100% - 24px)}.inv-total{padding:12px 16px}.inv-admin{margin:0 16px 16px}}
+@media print{body{background:#fff}.inv-sheet{box-shadow:none;border-radius:0;max-width:100%}{% block top_actions %}{% endblock %},.btn{display:none!important}@page{size:A4;margin:10mm}}
+</style>
+<div class="inv-sheet" dir="rtl">
+{% with p=invoice.payment c=company %}
+  <div class="inv-head">
+    <div class="brand">
+      {% if c.logo %}<img src="{{ c.logo.url }}" alt="logo">{% endif %}
+      <div class="bn">{{ c.name_ar }}<small>{{ c.name_en }}</small></div>
+    </div>
+    <div class="invno">
+      <h2>INVOICE</h2>
+      <div class="dt">{{ invoice.created_at|date:"Y-m-d H:i" }}</div>
+      <span class="inv-ribbon {% if p.status == 'paid' %}ribbon-paid{% else %}ribbon-pending{% endif %}">{{ p.get_status_display }}</span>
+    </div>
+  </div>
+
+  <div class="inv-cinfo">
+    {% if c.phone %}<span>📞 <b>{{ c.phone }}</b></span>{% endif %}
+    {% if c.email %}<span>✉️ <b>{{ c.email }}</b></span>{% endif %}
+    {% if c.website %}<span>🌐 <b>{{ c.website }}</b></span>{% endif %}
+    {% if c.trn %}<span>TRN: <b>{{ c.trn }}</b></span>{% endif %}
+    {% if c.license_no %}<span>رخصة: <b>{{ c.license_no }}</b></span>{% endif %}
+  </div>
+
+  <div class="inv-parties">
+    <div class="card">
+      <div class="t">فاتورة إلى</div>
+      <div class="v">{{ p.customer_name|default:"عميل" }}</div>
+      {% if p.customer_email %}<div class="s">{{ p.customer_email }}</div>{% endif %}
+    </div>
+    <div class="card">
+      <div class="t">رقم الفاتورة</div>
+      <div class="v">{{ invoice.invoice_number }}</div>
+      <div class="s">{{ invoice.created_at|date:"Y-m-d" }}</div>
+    </div>
+    <div class="card">
+      <div class="t">حالة الدفع</div>
+      <div class="v {% if p.status == 'paid' %}text-success{% else %}text-warning{% endif %}">{{ p.get_status_display }}</div>
+      {% if p.paid_at %}<div class="s">{{ p.paid_at|date:"Y-m-d H:i" }}</div>{% endif %}
+    </div>
+  </div>
+
+  <table class="inv-table">
+    <thead><tr><th>الوصف</th><th style="text-align:center;width:80px">الكمية</th><th style="text-align:left;width:150px">المبلغ</th></tr></thead>
+    <tbody>
+      <tr><td>{{ p.description|default:"خدمة / دفع إلكتروني" }}</td><td style="text-align:center">1</td><td style="text-align:left">{{ p.amount }} {{ p.currency|upper }}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="inv-total">
+    <div class="tbox">
+      <div class="row"><span>الإجمالي الفرعي</span><span>{{ p.amount }} {{ p.currency|upper }}</span></div>
+      <div class="row"><span>رسوم Stripe</span><span class="text-danger">{{ p.stripe_fee }}</span></div>
+      <div class="row"><span>الصافي</span><span class="text-success">{{ p.net_amount }}</span></div>
+      <div class="row grand"><span>الإجمالي</span><span>{{ p.amount }} {{ p.currency|upper }}</span></div>
+    </div>
+  </div>
+
+  <div class="inv-admin">
+    <div class="t">معلومات إدارية (للمدير فقط)</div>
+    <div class="row g-3">
+      <span class="me-4">📧 فتح البريد: <b>{{ invoice.open_count }} مرة</b></span>
+      <span class="me-4">🕐 آخر فتح: <b>{{ invoice.opened_at|date:"Y-m-d H:i"|default:"لم يُفتح" }}</b></span>
+      {% if invoice.last_open_ip %}<span class="me-4">🌐 IP: <b>{{ invoice.last_open_ip }}</b></span>{% endif %}
+      <span>📤 بريد مُرسل: <b>{% if invoice.email_sent_at %}{{ invoice.email_sent_at|date:"Y-m-d H:i" }}{% else %}لم يُرسل{% endif %}</b></span>
+    </div>
+  </div>
+
+  {% if c.stamp or c.signature %}
+  <div style="display:flex;justify-content:flex-end;align-items:flex-end;gap:20px;padding:0 36px 20px">
+    {% if c.signature %}
+    <div style="text-align:center">
+      <div style="font-size:12px;font-weight:700;color:#0b4ea2;margin-bottom:4px">التوقيع المعتمد</div>
+      <img src="{{ c.signature.url }}" style="max-height:55px">
+    </div>
+    {% endif %}
+    {% if c.stamp %}<img src="{{ c.stamp.url }}" style="max-height:100px;opacity:.95">{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="inv-foot">{{ c.name_ar }} &nbsp;•&nbsp; {{ c.website }} &nbsp;•&nbsp; {{ c.phone }}</div>
+{% endwith %}
+</div>
+{% endblock %}

@@ -1,9 +1,15 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path('crm/', include('apps.crm.urls', namespace='crm')),
+    path('tasks/', include('apps.tasks.urls', namespace='tasks')),
+    path('workspace/', include('apps.platform_core.workspace_urls', namespace='workspace')),
+    path('platform/', include('apps.platform_core.urls', namespace='platform_core')),
+    path('payments/', include('apps.payments.urls', namespace='payments')),
+    path('accounting/', include('apps.accounting.urls', namespace='accounting')),
     path('django-admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls', namespace='accounts')),
     path('', include('apps.campaigns.urls', namespace='campaigns')),

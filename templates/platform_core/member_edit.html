@@ -1,0 +1,62 @@
+{% extends "base/base.html" %}
+{% block title %}تعديل موظف — {{ tenant.name }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-gear me-2"></i>تعديل: {{ membership.user.get_full_name|default:membership.user.username }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'platform_core:tenant_detail' tenant.pk %}" class="btn btn-outline-secondary btn-sm">← تفاصيل الشركة</a>
+{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post" action="{% url 'platform_core:tenant_member_edit' membership.pk %}">{% csrf_token %}
+  <h6 class="fw-bold mb-3">بيانات الموظف</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6"><label class="form-label fw-bold">الاسم الكامل</label>
+      <input name="full_name" value="{{ membership.user.get_full_name }}" class="form-control"></div>
+    <div class="col-md-6"><label class="form-label fw-bold">البريد الإلكتروني</label>
+      <input value="{{ membership.user.email }}" class="form-control" disabled></div>
+  </div>
+  <h6 class="fw-bold mb-3">المسمى الوظيفي والدور</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6"><label class="form-label fw-bold">المسمى الوظيفي</label>
+      <input name="role_name" value="{{ membership.role_name|default:'' }}" class="form-control" placeholder="محاسب، مبيعات، إداري..."></div>
+    <div class="col-md-6 d-flex align-items-end">
+      <label class="form-check fs-6"><input type="checkbox" name="is_tenant_admin" class="form-check-input" {% if membership.is_tenant_admin %}checked{% endif %}> <span class="fw-bold">مدير الشركة</span></label>
+    </div>
+  </div>
+  <h6 class="fw-bold mb-3">الصلاحيات</h6>
+  <div class="row g-3 mb-4">
+    {% if modules.email %}<div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold"><input type="checkbox" name="perm_email" class="form-check-input" {% if membership.permissions.email.view %}checked{% endif %}> البريد الإلكتروني</label>
+    </div></div>{% endif %}
+    {% if modules.finance %}<div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold"><input type="checkbox" name="perm_finance" class="form-check-input" {% if membership.permissions.finance.view %}checked{% endif %}> المالية</label>
+    </div></div>{% endif %}
+    {% if modules.crm %}<div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold"><input type="checkbox" name="perm_crm" class="form-check-input" {% if membership.permissions.crm.view %}checked{% endif %}> CRM</label>
+    </div></div>{% endif %}
+    {% if modules.reports %}<div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold"><input type="checkbox" name="perm_reports" class="form-check-input" {% if membership.permissions.reports.view %}checked{% endif %}> التقارير</label>
+    </div></div>{% endif %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold"><input type="checkbox" name="perm_settings" class="form-check-input" {% if membership.permissions.settings.view %}checked{% endif %}> الإعدادات</label>
+    </div></div>
+  </div>
+  <button class="btn btn-primary px-5">حفظ التعديلات</button>
+</form>
+<hr>
+<h6 class="fw-bold">إعادة تعيين كلمة المرور</h6>
+<div class="row g-3 mb-3">
+  <div class="col-md-6">
+    <form method="post" action="{% url 'platform_core:tenant_member_reset_password' membership.pk %}" onsubmit="return confirm('إرسال كلمة مرور جديدة للبريد؟');">{% csrf_token %}
+      <button class="btn btn-outline-warning w-100">📧 إرسال كلمة مرور جديدة للبريد</button>
+    </form>
+  </div>
+  <div class="col-md-6">
+    <a href="/platform/members/{{ membership.pk }}/set-password/" class="btn btn-warning w-100">🔑 تعيين كلمة مرور مباشرة</a>
+  </div>
+</div>
+<p class="text-muted small">سيتم إرسال كلمة مرور جديدة لـ <b>{{ membership.user.email }}</b></p>
+<form method="post" action="{% url 'platform_core:tenant_member_reset_password' membership.pk %}" onsubmit="return confirm('إرسال كلمة مرور جديدة لـ {{ membership.user.email }}؟');">{% csrf_token %}
+  <button class="btn btn-warning">🔑 إعادة تعيين كلمة المرور وإرسالها بالبريد</button>
+</form>
+</div></div>
+{% endblock %}

@@ -1,0 +1,115 @@
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.shortcuts import get_object_or_404, redirect, render
+
+from .forms import LIMIT_FIELDS, MODULE_FIELDS, TenantForm
+from .models import PlatformAuditLog, Tenant, TenantMembership
+
+
+def _platform_owner_required(view_func):
+    return staff_member_required(view_func)
+
+
+@_platform_owner_required
+def dashboard(request):
+    tenants = Tenant.objects.all()
+    context = {
+        "tenants_count": tenants.count(),
+        "active_count": tenants.filter(status=Tenant.STATUS_ACTIVE).count(),
+        "trial_count": tenants.filter(status=Tenant.STATUS_TRIAL).count(),
+        "suspended_count": tenants.filter(status=Tenant.STATUS_SUSPENDED).count(),
+        "recent_tenants": tenants[:8],
+        "recent_logs": PlatformAuditLog.objects.select_related("actor", "tenant")[:10],
+    }
+    return render(request, "platform_core/dashboard.html", context)
+
+
+@_platform_owner_required
+def tenant_list(request):
+    q = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "").strip()
+
+    tenants = Tenant.objects.all()
+
+    if q:
+        tenants = tenants.filter(name__icontains=q) | Tenant.objects.filter(slug__icontains=q) | Tenant.objects.filter(owner_email__icontains=q)
+
+    if status:
+        tenants = tenants.filter(status=status)
+
+    return render(request, "platform_core/tenant_list.html", {
+        "tenants": tenants,
+        "q": q,
+        "status": status,
+        "status_choices": Tenant.STATUS_CHOICES,
+    })
+
+
+@_platform_owner_required
+def tenant_create(request):
+    if request.method == "POST":
+        form = TenantForm(request.POST)
+        if form.is_valid():
+            tenant = form.save()
+            PlatformAuditLog.objects.create(
+                actor=request.user,
+                tenant=tenant,
+                action="tenant_created",
+                target_model="Tenant",
+                target_id=str(tenant.id),
+                data={"name": tenant.name, "slug": tenant.slug},
+            )
+            messages.success(request, "تم إنشاء النسخة بنجاح.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantForm()
+
+    return render(request, "platform_core/tenant_form.html", {
+        "form": form,
+        "title": "إضافة نسخة جديدة",
+        "module_fields": MODULE_FIELDS,
+        "limit_fields": LIMIT_FIELDS,
+    })
+
+
+@_platform_owner_required
+def tenant_detail(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+    memberships = TenantMembership.objects.select_related("user").filter(tenant=tenant)
+    logs = PlatformAuditLog.objects.select_related("actor").filter(tenant=tenant)[:20]
+
+    return render(request, "platform_core/tenant_detail.html", {
+        "tenant": tenant,
+        "memberships": memberships,
+        "logs": logs,
+    })
+
+
+@_platform_owner_required
+def tenant_edit(request, pk):
+    tenant = get_object_or_404(Tenant, pk=pk)
+
+    if request.method == "POST":
+        form = TenantForm(request.POST, instance=tenant)
+        if form.is_valid():
+            tenant = form.save()
+            PlatformAuditLog.objects.create(
+                actor=request.user,
+                tenant=tenant,
+                action="tenant_updated",
+                target_model="Tenant",
+                target_id=str(tenant.id),
+                data={"name": tenant.name, "slug": tenant.slug},
+            )
+            messages.success(request, "تم تحديث النسخة بنجاح.")
+            return redirect("platform_core:tenant_detail", pk=tenant.pk)
+    else:
+        form = TenantForm(instance=tenant)
+
+    return render(request, "platform_core/tenant_form.html", {
+        "form": form,
+        "tenant": tenant,
+        "title": "تعديل النسخة",
+        "module_fields": MODULE_FIELDS,
+        "limit_fields": LIMIT_FIELDS,
+    })

@@ -1,0 +1,22 @@
+{% extends "base/base.html" %}
+{% block title %}{% if customer %}تعديل عميل{% else %}عميل جديد{% endif %}{% endblock %}
+{% block page_title %}<i class="bi bi-person-plus me-2"></i>{% if customer %}تعديل عميل{% else %}عميل جديد{% endif %}{% endblock %}
+{% block top_actions %}<a href="{% url 'accounting:customers' %}" class="btn btn-outline-secondary btn-sm">← العملاء</a>{% endblock %}
+{% block content %}
+<form method="post" action="{% if customer %}{% url 'accounting:customer_edit' customer.pk %}{% else %}{% url 'accounting:customer_create' %}{% endif %}">
+  {% csrf_token %}
+  <div class="card border-0 shadow-sm mb-3"><div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label small fw-bold">الاسم *</label><input name="name" value="{{ customer.name|default:'' }}" class="form-control" required></div>
+      <div class="col-md-6"><label class="form-label small fw-bold">الشركة/الجهة</label><input name="company" value="{{ customer.company|default:'' }}" class="form-control"></div>
+      <div class="col-md-6"><label class="form-label small fw-bold">البريد الإلكتروني</label><input name="email" type="email" value="{{ customer.email|default:'' }}" class="form-control"></div>
+      <div class="col-md-6"><label class="form-label small fw-bold">الهاتف</label><input name="phone" value="{{ customer.phone|default:'' }}" class="form-control"></div>
+      <div class="col-md-8"><label class="form-label small fw-bold">العنوان</label><input name="address" value="{{ customer.address|default:'' }}" class="form-control"></div>
+      <div class="col-md-4"><label class="form-label small fw-bold">الرقم الضريبي</label><input name="trn" value="{{ customer.trn|default:'' }}" class="form-control"></div>
+      <div class="col-12"><label class="form-label small fw-bold">ملاحظات</label><textarea name="notes" class="form-control" rows="2">{{ customer.notes|default:'' }}</textarea></div>
+      {% if customer %}<div class="col-12"><div class="form-check"><input type="checkbox" name="is_active" class="form-check-input" id="act" {% if customer.is_active %}checked{% endif %}><label class="form-check-label" for="act">نشط</label></div></div>{% endif %}
+    </div>
+  </div></div>
+  <div class="text-center mb-4"><button class="btn btn-primary btn-lg px-5">{% if customer %}حفظ التعديلات{% else %}إضافة العميل{% endif %}</button></div>
+</form>
+{% endblock %}

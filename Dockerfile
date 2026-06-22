@@ -8,6 +8,7 @@ WORKDIR /app
 # System deps
 RUN apt-get update && apt-get install -y \
     libpq-dev gcc curl \
+    libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libffi-dev libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Python deps

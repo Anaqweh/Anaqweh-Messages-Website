@@ -1,0 +1,55 @@
+{% extends "base/base.html" %}
+{% block title %}المهام{% endblock %}
+{% block page_title %}<i class="bi bi-kanban me-2"></i>لوحة المهام{% endblock %}
+{% block top_actions %}
+<a href="{% url 'tasks:task_create' %}" class="btn btn-primary btn-sm">+ مهمة جديدة</a>
+<a href="{% url 'tasks:kanban' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-kanban"></i> INEXC Flow</a>
+<a href="{% url 'tasks:task_list' %}" class="btn btn-outline-secondary btn-sm">القائمة الكاملة</a>
+<a href="{% url 'tasks:workflow_list' %}" class="btn btn-outline-info btn-sm">قوالب سير العمل</a>
+{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الإجمالي</div><div class="h3 fw-bold">{{ total }}</div></div></div></div>
+  <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">جديدة</div><div class="h3 fw-bold text-primary">{{ new }}</div></div></div></div>
+  <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">قيد التنفيذ</div><div class="h3 fw-bold text-info">{{ in_progress }}</div></div></div></div>
+  <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">متأخرة</div><div class="h3 fw-bold text-danger">{{ late }}</div></div></div></div>
+  <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">معادة</div><div class="h3 fw-bold text-warning">{{ returned }}</div></div></div></div>
+  <div class="col-md-2"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">مكتملة</div><div class="h3 fw-bold text-success">{{ completed }}</div></div></div></div>
+</div>
+
+{% if urgent %}
+<div class="card border-0 shadow-sm border-danger mb-3"><div class="card-body">
+  <h6 class="fw-bold text-danger mb-3">🔴 مهام عاجلة</h6>
+  {% for t in urgent %}
+  <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+    <a href="{% url 'tasks:task_detail' t.pk %}" class="fw-bold text-decoration-none">{{ t.title }}</a>
+    <div>
+      {% if t.due_date %}<span class="badge bg-danger me-1">{{ t.due_date }}</span>{% endif %}
+      <span class="badge bg-secondary">{{ t.get_status_display }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
+
+<div class="card border-0 shadow-sm"><div class="card-body">
+  <h6 class="fw-bold mb-3">آخر المهام</h6>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>المهمة</th><th>النوع</th><th>الأولوية</th><th>الحالة</th><th>المسؤول</th><th>الاستحقاق</th></tr></thead>
+    <tbody>
+      {% for t in recent %}
+      <tr>
+        <td><a href="{% url 'tasks:task_detail' t.pk %}" class="fw-bold text-decoration-none">{{ t.title }}</a></td>
+        <td><span class="text-muted small">{{ t.task_type|default:"-" }}</span></td>
+        <td><span class="badge {% if t.priority == 'urgent' %}bg-danger{% elif t.priority == 'high' %}bg-warning text-dark{% elif t.priority == 'medium' %}bg-info{% else %}bg-secondary{% endif %}">{{ t.get_priority_display }}</span></td>
+        <td><span class="badge {% if t.status == 'completed' %}bg-success{% elif t.status == 'late' %}bg-danger{% elif t.status == 'returned' %}bg-warning text-dark{% else %}bg-primary{% endif %}">{{ t.get_status_display }}</span></td>
+        <td>{{ t.assigned_to.get_full_name|default:t.assigned_to.username|default:"-" }}</td>
+        <td>{{ t.due_date|date:"Y-m-d"|default:"-" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="text-center text-muted">لا توجد مهام بعد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div>
+{% endblock %}

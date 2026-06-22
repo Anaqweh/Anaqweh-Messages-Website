@@ -1,0 +1,49 @@
+{% extends "base/base.html" %}
+{% block title %}المصروفات والتكاليف{% endblock %}
+{% block page_title %}<i class="bi bi-wallet2 me-2"></i>المصروفات والتكاليف{% endblock %}
+{% block top_actions %}
+<a href="{% url 'payments:dashboard' %}" class="btn btn-outline-secondary btn-sm">← المالية</a>
+<a href="{% url 'payments:reports' %}" class="btn btn-outline-primary btn-sm">التقارير</a>
+<a href="{% url 'accounting:reports' %}" class="btn btn-outline-info btn-sm">تقارير وتصدير</a>
+<a href="{% url 'payments:expense_create' %}" class="btn btn-primary btn-sm">+ إضافة تكلفة</a>
+{% endblock %}
+{% block content %}
+<form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3"><label class="form-label small fw-bold">بحث</label><input name="q" value="{{ q }}" class="form-control" placeholder="الوصف أو الملاحظات..."></div>
+    <div class="col-md-2"><label class="form-label small fw-bold">النوع</label>
+      <select name="category" class="form-select"><option value="">الكل</option>{% for v,l in categories %}<option value="{{ v }}" {% if category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-md-2"><label class="form-label small fw-bold">من</label><input type="date" name="from" value="{{ start }}" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label small fw-bold">إلى</label><input type="date" name="to" value="{{ end }}" class="form-control"></div>
+    <div class="col-md-3"><button class="btn btn-primary">تصفية</button> <a href="{% url 'payments:expenses' %}" class="btn btn-outline-secondary">إلغاء</a></div>
+  </div>
+</div></div>
+
+<div class="card border-0 shadow-sm mb-3"><div class="card-body text-center">
+  <span class="text-muted small">إجمالي المصروفات المعروضة:</span> <span class="h5 fw-bold text-warning">{{ total }} AED</span>
+</div></div>
+
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead><tr><th>الوصف</th><th>النوع</th><th>المبلغ</th><th>التاريخ</th><th>التكرار</th><th>مرفق</th><th>إجراءات</th></tr></thead>
+    <tbody>
+      {% for e in expenses %}
+      <tr>
+        <td class="fw-bold">{{ e.title }}</td>
+        <td>{{ e.get_category_display }}</td>
+        <td>{{ e.amount }} {{ e.currency|upper }}</td>
+        <td>{{ e.spent_at }}</td>
+        <td>{{ e.get_recurrence_display }}</td>
+        <td>{% if e.attachment %}<a href="{{ e.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">عرض</a>{% else %}-{% endif %}</td>
+        <td>
+          <a href="{% url 'payments:expense_edit' e.pk %}" class="btn btn-sm btn-outline-warning">تعديل</a>
+          <form method="post" action="{% url 'payments:expense_delete' e.pk %}" style="display:inline" onsubmit="return confirm('هل أنت متأكد من حذف هذه التكلفة؟');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">حذف</button></form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="text-center text-muted">لا توجد تكاليف مطابقة</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

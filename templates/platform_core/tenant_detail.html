@@ -1,0 +1,153 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<style>
+.pc-wrap{direction:rtl;max-width:1180px;margin:24px auto;padding:0 14px;color:#102033}
+.pc-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+.pc-head h1{font-size:25px;margin:0;color:#0b4ea2}
+.pc-btn{border:0;border-radius:8px;padding:10px 15px;background:#0b4ea2;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}
+.pc-btn.light{background:#eef5ff;color:#0b4ea2;border:1px solid #cfe0f8}
+.pc-layout{display:grid;grid-template-columns:1fr 360px;gap:16px}
+.pc-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:16px;box-shadow:0 8px 24px rgba(11,78,162,.08);margin-bottom:16px}
+.pc-card h3{margin:0 0 14px;color:#0b4ea2}
+.pc-info{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pc-info div{background:#f8fbff;border:1px solid #edf2f7;border-radius:8px;padding:10px}
+.pc-info small{display:block;color:#667085;margin-bottom:5px}
+.pc-tags{display:flex;gap:8px;flex-wrap:wrap}
+.pc-tag{display:inline-flex;border-radius:999px;padding:6px 10px;background:#eef5ff;color:#0b4ea2;font-size:12px;font-weight:700}
+.pc-tag.off{background:#f2f4f7;color:#667085}
+.pc-table{width:100%;border-collapse:collapse}
+.pc-table th,.pc-table td{padding:12px;border-bottom:1px solid #edf2f7;text-align:right}
+.pc-table th{background:#f5f8fc;color:#344054;font-size:13px}
+.pc-field{margin-bottom:12px}
+.pc-field label{display:block;margin-bottom:6px;font-weight:700;color:#344054}
+.form-control{width:100%;box-sizing:border-box;border:1px solid #d0d5dd;border-radius:8px;padding:10px}
+.pc-check{display:block;margin:8px 0}
+.pc-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.pc-layout{grid-template-columns:1fr}.pc-info{grid-template-columns:1fr}.pc-table{min-width:720px}.pc-table-wrap{overflow-x:auto}}
+</style>
+
+<div class="pc-wrap">
+  <div class="pc-head">
+    <h1>{{ tenant.name }}</h1>
+    <div class="pc-row-actions">
+      <button type="button" class="pc-btn light" onclick="history.back()">رجوع</button>
+      <a class="pc-btn light" href="{% url 'platform_core:tenant_list' %}">قائمة الشركات</a>
+      <a class="pc-btn light" href="{% url 'platform_core:tenant_members' tenant.pk %}">الأعضاء والصلاحيات</a>
+      <a class="pc-btn" href="{% url 'platform_core:tenant_edit' tenant.pk %}">تعديل</a>
+    </div>
+  </div>
+
+  <div class="pc-layout">
+    <div>
+      <div class="pc-card">
+        <h3>بيانات الشركة</h3>
+        <div class="pc-info">
+          <div><small>الحالة</small>{{ tenant.get_status_display|default:tenant.status }}</div>
+          <div><small>الخطة</small>{{ tenant.plan_name|default:"-" }}</div>
+          <div><small>المالك</small>{{ tenant.owner_name|default:"-" }}</div>
+          <div><small>البريد</small>{{ tenant.owner_email|default:"-" }}</div>
+          <div><small>الهاتف</small><span dir="ltr">{{ tenant.owner_phone|default:"-" }}</span></div>
+          <div><small>الدومين</small>{{ tenant.domain|default:"-" }}</div>
+        </div>
+      </div>
+
+      <div class="pc-card">
+        <h3>الوحدات</h3>
+        <div class="pc-tags">
+          {% for code, enabled in module_items %}
+            <span class="pc-tag {% if not enabled %}off{% endif %}">{{ code }}: {% if enabled %}مفعل{% else %}مغلق{% endif %}</span>
+          {% empty %}
+            <span class="pc-tag off">لا توجد وحدات</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="pc-card">
+        <h3>الحدود</h3>
+        <div class="pc-tags">
+          {% for code, value in limit_items %}
+            <span class="pc-tag">{{ code }}: {{ value }}</span>
+          {% empty %}
+            <span class="pc-tag off">لا توجد حدود</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="pc-card">
+        <h3>أعضاء الشركة</h3>
+        <div class="pc-table-wrap">
+          <table class="pc-table">
+            <thead>
+              <tr>
+                <th>المستخدم</th>
+                <th>الدور</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for membership in memberships %}
+              <tr>
+                <td>{{ membership.user }}<br><small>{{ membership.user.email }}</small></td>
+                <td>{{ membership.role_name|default:membership.role.name|default:"-" }}</td>
+                <td>{% if membership.is_active %}مفعل{% else %}موقوف{% endif %}</td>
+                <td>
+                  <div class="pc-row-actions">
+                    <a class="pc-btn light" href="{% url 'platform_core:tenant_member_edit' membership.pk %}">تعديل</a>
+                    <a class="pc-btn light" href="{% url 'platform_core:tenant_member_permissions' membership.pk %}">الصلاحيات</a>
+                    <form method="post" action="{% url 'platform_core:tenant_member_toggle' membership.pk %}">
+                      {% csrf_token %}
+                      <button class="pc-btn light" type="submit">تبديل الحالة</button>
+                    </form>
+                    <form method="post" action="{% url 'platform_core:tenant_member_delete' membership.pk %}" onsubmit="return confirm('حذف العضو من الشركة؟');">
+                      {% csrf_token %}
+                      <button class="pc-btn light" type="submit">حذف</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4">لا يوجد أعضاء بعد.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="pc-card">
+        <h3>فريق الشركة</h3>
+        <a class="pc-btn" href="{% url 'platform_core:tenant_roles' tenant.pk %}" style="display:block;text-align:center;margin-bottom:8px;background:#7c3aed">⚙ إدارة الأدوار</a>
+        <a class="pc-btn" href="{% url 'platform_core:tenant_add_member' tenant.pk %}" style="display:block;text-align:center;margin-bottom:16px">+ إضافة موظف</a>
+        {% for m in memberships %}
+        {% if m.is_tenant_admin %}
+        <!-- المدير -->
+        <div style="background:#eef5ff;border-right:3px solid #0b4ea2;border-radius:8px;padding:10px 12px;margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="fw-bold">{{ m.user.get_full_name|default:m.user.username }}</div>
+              <div class="small" style="color:#0b4ea2;font-weight:700">{{ m.role_name|default:"مدير الشركة" }}</div>
+              <div class="small text-muted">{{ m.user.email }}</div>
+            </div>
+            <span class="badge bg-primary">مدير</span>
+          </div>
+        </div>
+        {% else %}
+        <!-- الموظف — مزاح للجانب -->
+        <div style="margin-right:16px;border-right:2px solid #e8eef5;padding:8px 12px;margin-bottom:4px;position:relative">
+          <div style="position:absolute;right:-2px;top:16px;width:12px;height:2px;background:#e8eef5"></div>
+          <div class="fw-bold small">{{ m.user.get_full_name|default:m.user.username }}</div>
+          <div class="small" style="color:#059669;font-weight:600">{{ m.role_name|default:"موظف" }}</div>
+          <div class="small text-muted">{{ m.user.email }}</div>
+        </div>
+        {% endif %}
+        {% empty %}
+        <div class="text-muted small text-center py-3">لا يوجد أعضاء بعد</div>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+</div>
+{% endblock %}

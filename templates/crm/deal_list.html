@@ -1,0 +1,10 @@
+{% extends "base/base.html" %}
+{% block title %}الفرص{% endblock %}
+{% block content %}
+<div class="container py-4" dir="rtl">
+  <div class="d-flex justify-content-between mb-3"><h2>الفرص</h2><a class="btn btn-primary" href="{% url 'crm:deal_create' %}">+ إضافة</a></div>
+  <div class="card table-responsive"><table class="table mb-0"><thead><tr><th>العنوان</th><th>المرحلة</th><th>القيمة</th><th>الشركة</th><th></th></tr></thead><tbody>
+  {% for d in deals %}<tr><td>{{ d.title }}</td><td>{{ d.get_stage_display }}</td><td>{{ d.value }} {{ d.currency }}</td><td>{{ d.company|default:"-" }}</td><td><a class="btn btn-sm btn-outline-secondary" href="{% url 'crm:deal_edit' d.pk %}">تعديل</a><form method="post" action="{% url 'crm:deal_delete' d.pk %}" style="display:inline" onsubmit="return confirm('حذف الفرصة؟');">{% csrf_token %}<button class="btn btn-sm btn-outline-danger">حذف</button></form></td></tr>{% empty %}<tr><td colspan="5" class="text-center text-muted py-3">لا توجد فرص.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

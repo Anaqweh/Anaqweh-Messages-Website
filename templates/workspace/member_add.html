@@ -1,0 +1,32 @@
+{% extends "base/base.html" %}
+{% block title %}إضافة موظف{% endblock %}
+{% block page_title %}<i class="bi bi-person-plus me-2"></i>إضافة موظف — {{ tenant.name }}{% endblock %}
+{% block top_actions %}<a href="{% url 'workspace:members' %}" class="btn btn-outline-secondary btn-sm">← الفريق</a>{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post">{% csrf_token %}
+  <h6 class="fw-bold mb-3">بيانات الموظف</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">{{ form.email.label_tag }}{{ form.email }}</div>
+    <div class="col-md-6">{{ form.username.label_tag }}{{ form.username }}</div>
+    <div class="col-md-6">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
+    <div class="col-md-6">{{ form.password.label_tag }}{{ form.password }}</div>
+  </div>
+  <h6 class="fw-bold mb-3">المسمى الوظيفي</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">{{ form.role_name.label_tag }}{{ form.role_name }}<div class="form-text">مثال: محاسب، مبيعات، إداري...</div></div>
+    <div class="col-md-6 d-flex align-items-end"><label class="form-check fs-6">{{ form.is_tenant_admin }} <span class="fw-bold">مدير الشركة</span></label></div>
+  </div>
+  <h6 class="fw-bold mb-3">الصلاحيات <small class="text-muted fw-normal">(حسب وحدات شركتك)</small></h6>
+  <div class="row g-3 mb-4">
+    {% if form.perm_email %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_email }} البريد الإلكتروني</label><div class="small text-muted mt-1">الحملات والإرسال</div></div></div>{% endif %}
+    {% if form.perm_finance %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_finance }} المالية</label><div class="small text-muted mt-1">الفواتير والمصروفات</div></div></div>{% endif %}
+    {% if form.perm_crm %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_crm }} CRM</label><div class="small text-muted mt-1">العملاء والفرص</div></div></div>{% endif %}
+    {% if form.perm_reports %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_reports }} التقارير</label></div></div>{% endif %}
+    {% if form.perm_settings %}<div class="col-md-4"><div class="card border-0 bg-light p-3"><label class="form-check fw-bold">{{ form.perm_settings }} الإعدادات</label></div></div>{% endif %}
+  </div>
+  {% if form.errors %}<div class="alert alert-danger">{{ form.errors }}</div>{% endif %}
+  <button class="btn btn-primary px-5">إضافة الموظف</button>
+</form>
+</div></div>
+{% endblock %}

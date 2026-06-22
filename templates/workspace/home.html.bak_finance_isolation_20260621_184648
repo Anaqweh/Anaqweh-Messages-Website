@@ -1,0 +1,69 @@
+{% extends "base/base.html" %}
+
+{% block content %}
+<style>
+.ws-wrap{direction:rtl;max-width:1180px;margin:24px auto;padding:0 14px;color:#102033}
+.ws-head{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
+.ws-head h1{margin:0 0 8px;color:#0b4ea2;font-size:28px}
+.ws-head p{margin:0;color:#667085}
+.ws-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.ws-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:18px;text-decoration:none;color:#102033;box-shadow:0 8px 24px rgba(11,78,162,.08)}
+.ws-card h3{margin:0 0 8px;color:#0b4ea2}
+.ws-card p{margin:0;color:#667085}
+.ws-muted{background:#f8fbff;border:1px dashed #bcd3f0;border-radius:10px;padding:18px;color:#667085}
+@media(max-width:850px){.ws-grid{grid-template-columns:1fr}}
+</style>
+
+<div class="ws-wrap">
+  <div class="ws-head">
+    {% if tenant %}
+      <h1>مساحة عمل {{ tenant.name }}</h1>
+      <p>هذه لوحة مدير الشركة والموظفين حسب الصلاحيات الممنوحة.</p>
+    {% else %}
+      <h1>مساحة العمل</h1>
+      <p>هذا الحساب غير مربوط حالياً بشركة. يرجى مراجعة مدير المنصة.</p>
+    {% endif %}
+  </div>
+
+  {% if tenant %}
+  <div class="ws-grid">
+    {% if permissions.crm.view %}
+      <a class="ws-card" href="{% url 'crm:dashboard' %}">
+        <h3>CRM</h3>
+        <p>الشركات، جهات الاتصال، الفرص، المهام، وعروض الأسعار.</p>
+      </a>
+    {% endif %}
+
+    {% if permissions.finance.view %}
+      <a class="ws-card" href="{% url 'payments:dashboard' %}">
+        <h3>المالية</h3>
+        <p>الفواتير، المصروفات، التحويلات، والتقارير المالية.</p>
+      </a>
+    {% endif %}
+
+    {% if permissions.email.view %}
+      <a class="ws-card" href="{% url 'campaigns:dashboard' %}">
+        <h3>البريد والحملات</h3>
+        <p>إدارة الحملات البريدية والقوالب والمستلمين.</p>
+      </a>
+    {% endif %}
+
+    {% if permissions.reports.view %}
+      <a class="ws-card" href="/reports/">
+        <h3>التقارير</h3>
+        <p>تقارير الأداء والمتابعة.</p>
+      </a>
+    {% endif %}
+
+    {% if permissions.settings.manage_users %}
+      <a class="ws-card" href="#">
+        <h3>الموظفون والصلاحيات</h3>
+        <p>سيتم تفعيل إدارة موظفي الشركة في الخطوة التالية.</p>
+      </a>
+    {% endif %}
+  </div>
+  {% else %}
+    <div class="ws-muted">لا توجد شركة مرتبطة بهذا الحساب.</div>
+  {% endif %}
+</div>
+{% endblock %}

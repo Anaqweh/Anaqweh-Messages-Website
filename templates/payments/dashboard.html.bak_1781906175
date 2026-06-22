@@ -1,0 +1,24 @@
+{% extends "base/base.html" %}
+{% block title %}المالية{% endblock %}
+{% block page_title %}<i class="bi bi-cash-coin me-2"></i>المالية{% endblock %}
+{% block top_actions %}<a href="{% url 'payments:expense_create' %}" class="btn btn-inexc btn-sm">+ إضافة تكلفة</a>{% endblock %}
+{% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">دخل اليوم</div><div class="h4 fw-bold">{{ cards.today_income }} AED</div></div></div></div>
+  <div class="col-md-3 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">دخل الأسبوع</div><div class="h4 fw-bold">{{ cards.week_income }} AED</div></div></div></div>
+  <div class="col-md-3 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">دخل الشهر</div><div class="h4 fw-bold text-success">{{ cards.month_income }} AED</div></div></div></div>
+  <div class="col-md-3 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">صافي الربح</div><div class="h4 fw-bold text-primary">{{ cards.net }} AED</div></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted small">دخل السنة</div><div class="h5">{{ cards.year_income }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted small">رسوم Stripe</div><div class="h5 text-danger">{{ cards.stripe_fees }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body"><div class="text-muted small">المصروفات</div><div class="h5 text-warning">{{ cards.expenses }} AED</div></div></div></div>
+</div>
+<div class="data-table p-3">
+  <h6 class="fw-bold mb-3">آخر المدفوعات</h6>
+  <table class="table table-sm align-middle">
+    <thead><tr><th>العميل</th><th>المبلغ</th><th>الرسوم</th><th>الصافي</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+    <tbody>{% for p in payments %}<tr><td>{{ p.customer_email|default:p.customer_name|default:"-" }}</td><td>{{ p.amount }} {{ p.currency|upper }}</td><td>{{ p.stripe_fee }}</td><td>{{ p.net_amount }}</td><td>{{ p.get_status_display }}</td><td>{{ p.created_at|date:"Y-m-d H:i" }}</td></tr>{% empty %}<tr><td colspan="6" class="text-center text-muted">لا توجد مدفوعات بعد</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}
