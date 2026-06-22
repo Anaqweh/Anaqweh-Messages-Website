@@ -1,7 +1,0 @@
-
-TOKEN=$(cat token.txt | tr -d '[:space:]') && git remote set-url origin "https://Anaqweh:${TOKEN}@github.com/Anaqweh/Anaqweh-Messages-Website.git" && git push origin main && rm token.txt && echo "✅ تم الرفع وحُذف الملف"
-cd /opt/Messages-Website && git status && echo "---" && git log origin/main..HEAD --oneline 2>/dev/null | head -5
-
-cd /opt/Messages-Website && git status && echo "---" && git log origin/main..HEAD --oneline 2>/dev/null | head -5
-cd /opt/Messages-Website && git push origin main
-

@@ -19,3 +19,9 @@ dist/
 .pytest_cache/
 celerybeat-schedule
 celerybeat.pid
+
+*.bak
+*.bak_*
+backups/
+token.txt*
+*.save
