@@ -25,3 +25,4 @@ celerybeat.pid
 backups/
 token.txt*
 *.save
+.env.bak*
