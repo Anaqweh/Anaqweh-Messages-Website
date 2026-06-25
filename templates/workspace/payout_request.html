@@ -50,7 +50,7 @@
 <div class="table-responsive">
 <table class="table table-hover align-middle">
   <thead class="table-light">
-    <tr><th>التاريخ</th><th>النوع</th><th>الإجمالي</th><th>الرسوم</th><th>الصافي</th><th>الحالة</th></tr>
+    <tr><th>التاريخ</th><th>النوع</th><th>الإجمالي</th><th>الرسوم</th><th>الصافي</th><th>الحالة</th><th>تفاصيل التحويل</th></tr>
   </thead>
   <tbody>
     {% for r in requests_list %}
@@ -64,6 +64,13 @@
         {% if r.status == 'paid' %}<span class="badge bg-success">تم التحويل</span>
         {% elif r.status == 'rejected' %}<span class="badge bg-danger">مرفوض</span>
         {% else %}<span class="badge bg-warning text-dark">قيد المراجعة</span>{% endif %}
+      </td>
+      <td class="small">
+        {% if r.status == 'paid' %}
+          {% if r.transfer_reference %}<div>المرجع: <strong>{{ r.transfer_reference }}</strong></div>{% endif %}
+          {% if r.transfer_date %}<div>التاريخ: {{ r.transfer_date|date:"Y-m-d" }}</div>{% endif %}
+          {% if r.transfer_receipt %}<a href="{{ r.transfer_receipt.url }}" target="_blank" class="badge bg-primary text-decoration-none">عرض الإيصال</a>{% endif %}
+        {% else %}<span class="text-muted">—</span>{% endif %}
       </td>
     </tr>
     {% empty %}

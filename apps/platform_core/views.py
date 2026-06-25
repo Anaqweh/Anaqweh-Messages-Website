@@ -701,6 +701,12 @@ def platform_payouts(request):
             if action == "paid":
                 pr.status = "paid"
                 pr.processed_at = timezone.now()
+                pr.transfer_reference = request.POST.get("transfer_reference", "").strip()
+                _td = request.POST.get("transfer_date", "").strip()
+                if _td:
+                    pr.transfer_date = _td
+                if request.FILES.get("transfer_receipt"):
+                    pr.transfer_receipt = request.FILES["transfer_receipt"]
                 messages.success(request, f"تم تأكيد تحويل {pr.net_amount} لـ {pr.tenant.name}")
             elif action == "rejected":
                 pr.status = "rejected"
