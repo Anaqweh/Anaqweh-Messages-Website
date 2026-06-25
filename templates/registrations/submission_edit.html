@@ -1,0 +1,36 @@
+{% extends "base/base.html" %}
+{% block content %}
+<style>
+.reg-edit{direction:rtl;max-width:900px;margin:28px auto;padding:0 14px}
+.reg-card{background:#fff;border:1px solid #d7e6f8;border-radius:12px;padding:22px;box-shadow:0 14px 34px rgba(11,78,162,.08)}
+.reg-field{margin-bottom:12px}
+.reg-field label{display:block;color:#0b4ea2;font-weight:900;margin-bottom:5px}
+.reg-field textarea{width:100%;border:1px solid #cbd8e7;border-radius:8px;padding:10px;min-height:46px}
+.reg-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.reg-btn{border:0;border-radius:8px;background:#0b4ea2;color:#fff;padding:9px 14px;font-weight:900;text-decoration:none;cursor:pointer}
+.reg-btn.light{background:#eef6ff;color:#0b4ea2;border:1px solid #bdd7f7}
+</style>
+
+<div class="reg-edit">
+  <div class="reg-card">
+    <h1 style="color:#0b4ea2">تعديل التسجيل #{{ submission.pk }}</h1>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for item in editable_items %}
+        <div class="reg-field">
+          <label>{{ item.label }}</label>
+          <textarea name="{{ item.key }}">{{ item.value }}</textarea>
+        </div>
+      {% empty %}
+        <p>لا توجد بيانات قابلة للتعديل.</p>
+      {% endfor %}
+
+      <div class="reg-actions">
+        <a class="reg-btn light" href="{% url 'registrations:submission_detail' submission.pk %}">إلغاء</a>
+        <button class="reg-btn" type="submit">حفظ التعديل</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

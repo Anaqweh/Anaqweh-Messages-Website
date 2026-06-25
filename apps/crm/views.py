@@ -39,8 +39,8 @@ def dashboard(request):
     return render(request, "crm/dashboard.html", {
         "companies_count": companies.count(),
         "contacts_count": contacts.count(),
-        "quotes_count": CRMQuote.objects.count(),
-        "quotes_pending": CRMQuote.objects.filter(status__in=["draft","sent"]).count(),
+        "quotes_count": _scope(CRMQuote.objects.all(), request.user).count(),
+        "quotes_pending": _scope(CRMQuote.objects.filter(status__in=["draft","sent"]), request.user).count(),
         "open_deals_count": deals.exclude(stage__in=["won","lost"]).count(),
         "won_value": deals.filter(stage="won").aggregate(total=Sum("value"))["total"] or 0,
         "open_tasks": tasks.filter(status="open")[:10],
@@ -290,7 +290,7 @@ def quote_list(request):
     from django.db.models import Q
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status', '')
-    qs = CRMQuote.objects.select_related('company', 'contact', 'deal')
+    qs = _scope(CRMQuote.objects.select_related('company', 'contact', 'deal'), request.user)
     tid = _tenant_ids(request.user)
     if tid is not None:
         qs = qs.filter(tenant_id__in=tid)
@@ -353,7 +353,7 @@ def quote_create(request):
 
 @login_required
 def quote_detail(request, pk):
-    quote = get_object_or_404(CRMQuote.objects.prefetch_related('items'), pk=pk)
+    quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
     from apps.payments.models import CompanySettings
     company = CompanySettings.load()
     return render(request, 'crm/quote_detail.html', {
@@ -363,7 +363,7 @@ def quote_detail(request, pk):
 
 @login_required
 def quote_edit(request, pk):
-    quote = get_object_or_404(CRMQuote.objects.prefetch_related('items'), pk=pk)
+    quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
     companies = CRMCompany.objects.all()
     contacts = CRMContact.objects.all()
     deals = CRMDeal.objects.all()
@@ -415,7 +415,7 @@ def quote_delete(request, pk):
 
 
 def quote_pdf(request, pk):
-    quote = get_object_or_404(CRMQuote.objects.prefetch_related('items'), pk=pk)
+    quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
     from apps.payments.models import CompanySettings
     company = CompanySettings.load()
     qr_data_uri = ''
@@ -448,7 +448,7 @@ def quote_pdf(request, pk):
 def quote_to_invoice(request, pk):
     from decimal import Decimal, InvalidOperation
     from apps.payments.models import SalesInvoice, SalesInvoiceItem
-    quote = get_object_or_404(CRMQuote.objects.prefetch_related('items'), pk=pk)
+    quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
     inv = SalesInvoice.objects.create(
         kind='sales',
         customer_name=quote.company.name if quote.company else (quote.contact.full_name if quote.contact else quote.title),
@@ -477,7 +477,7 @@ def quote_to_invoice(request, pk):
 @login_required
 @require_POST
 def quote_send_email(request, pk):
-    quote = get_object_or_404(CRMQuote.objects.prefetch_related('items'), pk=pk)
+    quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
     from .services import send_quote_email
     success, msg = send_quote_email(quote, request)
     if success:

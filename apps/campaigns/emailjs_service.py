@@ -33,10 +33,14 @@ def get_user_emailjs_config(user):
 
 def send_via_emailjs(to_email, to_name, subject, body_html,
                      body_text='', extra_params=None,
-                     service_id=None, template_id=None, user=None):
+                     service_id=None, template_id=None, user=None,
+                     public_key=None, private_key=None):
     body_html = ensure_email_payment_links(body_html)
 
-    if user and not (service_id and template_id):
+    if public_key and service_id and template_id:
+        # مفاتيح مُمرّرة مباشرة (مثل تسجيلات الشركات) - تُستخدم كما هي
+        private_key = private_key or ''
+    elif user and not (service_id and template_id):
         cfg = get_user_emailjs_config(user)
         service_id  = service_id  or cfg['service_id']
         template_id = template_id or cfg['template_id']

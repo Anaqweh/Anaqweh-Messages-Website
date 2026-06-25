@@ -1,0 +1,59 @@
+{% extends "base/base.html" %}
+{% block title %}لوحتي المالية{% endblock %}
+{% block page_title %}<i class="bi bi-wallet2 me-2"></i>لوحتي المالية — {{ tenant.name }}{% endblock %}
+{% block content %}
+
+{% if mode == 'platform' and not bank_ok %}
+<div class="alert alert-warning d-flex align-items-center mb-4" style="border-right:5px solid #f59e0b">
+  <i class="bi bi-exclamation-triangle-fill me-3" style="font-size:1.5rem;color:#f59e0b"></i>
+  <div>أكمل بيانات حسابك البنكي في <strong>إعدادات الدفع</strong> حتى نتمكن من تحويل أموالك المستحقة إليك.</div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center">
+    <div class="text-muted small">إجمالي مدفوعاتك</div>
+    <div class="fs-4 fw-bold text-primary">{{ total }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center">
+    <div class="text-muted small">رسوم الخدمة ({{ rate }}%)</div>
+    <div class="fs-4 fw-bold text-secondary">{{ commission }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center">
+    <div class="text-muted small">صافي المستحق لك</div>
+    <div class="fs-4 fw-bold text-success">{{ net }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card border-0 shadow-sm"><div class="card-body text-center">
+    <div class="text-muted small">نوع الخدمة</div>
+    <div class="fs-6 fw-bold mt-2">{% if mode == 'own' %}<span class="badge bg-info">حسابك الخاص</span>{% else %}<span class="badge bg-secondary">حساب المنصة</span>{% endif %}</div>
+  </div></div></div>
+</div>
+
+<div class="card border-0 shadow-sm"><div class="card-body">
+<h6 class="fw-bold mb-3">سجل المدفوعات</h6>
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead class="table-light">
+    <tr><th>العميل</th><th>الوصف</th><th>المبلغ</th><th>العملة</th><th>التاريخ</th></tr>
+  </thead>
+  <tbody>
+    {% for p in payments %}
+    <tr>
+      <td>{{ p.customer_name|default:p.customer_email|default:"—" }}</td>
+      <td>{{ p.description|default:"—" }}</td>
+      <td class="fw-bold">{{ p.amount }}</td>
+      <td>{{ p.currency|upper }}</td>
+      <td class="small text-muted">{{ p.created_at|date:"Y-m-d" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" class="text-center text-muted py-4">لا توجد مدفوعات بعد</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="alert alert-info small mt-2 mb-0">
+  <i class="bi bi-info-circle me-1"></i>
+  {% if mode == 'platform' %}مدفوعاتك تمر عبر حساب المنصة. يُخصم {{ rate }}% رسوم خدمة، ويُحوّل الصافي إلى حسابك البنكي.{% else %}مدفوعاتك تمر عبر حسابك الخاص. تُخصم {{ rate }}% رسوم منصة فقط.{% endif %}
+</div>
+</div></div>
+{% endblock %}

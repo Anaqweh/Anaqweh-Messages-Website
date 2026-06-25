@@ -1,0 +1,30 @@
+{% extends "base/base.html" %}
+{% block title %}إعدادات المنصة{% endblock %}
+{% block page_title %}<i class="bi bi-sliders me-2"></i>إعدادات المنصة — النسب{% endblock %}
+{% block content %}
+<div class="card border-0 shadow-sm" style="max-width:640px"><div class="card-body">
+<form method="post">{% csrf_token %}
+
+  <div class="alert alert-info small mb-4">
+    <i class="bi bi-info-circle me-1"></i>
+    هذه النسب تُطبّق على عمليات الدفع. عند تفعيل خدمة Stripe لأي شركة، تُحفظ النسبة المناسبة تلقائياً حسب نوع الخدمة الذي تختاره الشركة.
+  </div>
+
+  <h6 class="fw-bold mb-3">نسب العمولة</h6>
+
+  <div class="mb-4">
+    <label class="form-label fw-bold">عمولة استخدام حساب Stripe المدير العام (%)</label>
+    <input type="number" step="0.01" min="0" max="100" name="commission_platform_stripe" class="form-control" value="{{ ps.commission_platform_stripe }}" style="max-width:200px">
+    <div class="form-text">تُخصم من الشركات التي تستخدم حساب Stripe الخاص بك. (مثال: 7%)</div>
+  </div>
+
+  <div class="mb-4">
+    <label class="form-label fw-bold">عمولة المنصة على Stripe الشركة (%)</label>
+    <input type="number" step="0.01" min="0" max="100" name="commission_own_stripe" class="form-control" value="{{ ps.commission_own_stripe }}" style="max-width:200px">
+    <div class="form-text">تُخصم من الشركات التي تستخدم حساب Stripe الخاص بها. (مثال: 2%)</div>
+  </div>
+
+  <button class="btn btn-primary px-5">حفظ النسب</button>
+</form>
+</div></div>
+{% endblock %}

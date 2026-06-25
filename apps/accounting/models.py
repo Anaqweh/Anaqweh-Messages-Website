@@ -4,6 +4,7 @@ from django.utils import timezone
 
 
 class Customer(models.Model):
+    tenant = models.ForeignKey("platform_core.Tenant", null=True, blank=True, on_delete=models.SET_NULL, related_name="accounting_customers")
     name = models.CharField('الاسم', max_length=200)
     email = models.EmailField('البريد', blank=True, db_index=True)
     phone = models.CharField('الهاتف', max_length=50, blank=True)

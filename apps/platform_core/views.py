@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from .forms import TenantForm, TenantManagerForm, MembershipPermissionsForm
-from .models import Tenant, TenantMembership, TenantRole
+from .models import Tenant, TenantMembership, TenantRole, default_permissions
 
 
 def _platform_admin(user):
@@ -96,8 +96,26 @@ def home(request):
 def tenant_list(request):
     tenants = Tenant.objects.all().order_by(_tenant_ordering())
 
+    # أسماء الوحدات بالعربي
+    from .forms import MODULE_CHOICES
+    module_labels = dict(MODULE_CHOICES)
+
+    cards = []
+    for t in tenants:
+        memberships = TenantMembership.objects.filter(tenant=t)
+        admin = memberships.filter(is_tenant_admin=True).first()
+        mods = t.modules or {}
+        active_mods = [module_labels.get(code, code) for code, on in mods.items() if on and code in module_labels]
+        cards.append({
+            "tenant": t,
+            "admin_username": admin.user.username if admin else None,
+            "members_count": memberships.count(),
+            "active_modules": active_mods,
+        })
+
     context = {
         "tenants": tenants,
+        "cards": cards,
         "total_tenants": tenants.count(),
         "active_tenants": Tenant.objects.filter(status="active").count() if _has_field(Tenant, "status") else 0,
         "membership_count": TenantMembership.objects.count(),
@@ -512,4 +530,154 @@ def tenant_member_set_password(request, membership_pk):
             return redirect('platform_core:tenant_detail', pk=membership.tenant.pk)
     return render(request, 'platform_core/set_password.html', {
         'membership': membership, 'tenant': membership.tenant,
+    })
+
+
+@login_required
+@platform_required
+def platform_settings(request):
+    """إعدادات المنصة (النسب) للمدير العام."""
+    from .models import PlatformSettings
+    ps = PlatformSettings.get_solo()
+    if request.method == 'POST':
+        try:
+            ps.commission_platform_stripe = float(request.POST.get('commission_platform_stripe', 7) or 7)
+            ps.commission_own_stripe = float(request.POST.get('commission_own_stripe', 2) or 2)
+            ps.save()
+            messages.success(request, 'تم حفظ النسب بنجاح')
+        except (ValueError, TypeError):
+            messages.error(request, 'قيمة غير صالحة')
+        return redirect('platform_core:platform_settings')
+    return render(request, 'platform_core/platform_settings.html', {'ps': ps})
+
+
+@login_required
+@platform_required
+def platform_finance(request):
+    """لوحة مالية للمدير العام: مستحقات كل شركة."""
+    from .models import Tenant, PlatformSettings
+    from apps.payments.models import Payment
+    from decimal import Decimal
+    ps = PlatformSettings.get_solo()
+    rows = []
+    grand_total = Decimal('0')
+    grand_commission = Decimal('0')
+    grand_net = Decimal('0')
+    for t in Tenant.objects.all():
+        pays = Payment.objects.filter(tenant=t, status='paid')
+        total = sum((pp.amount or Decimal('0')) for pp in pays)
+        total = Decimal(str(total))
+        # النسبة: من الشركة إن وُجدت، وإلا الافتراضي حسب النوع
+        if t.commission_rate is not None:
+            rate = Decimal(str(t.commission_rate))
+        elif t.stripe_mode == 'own':
+            rate = Decimal(str(ps.commission_own_stripe))
+        else:
+            rate = Decimal(str(ps.commission_platform_stripe))
+        commission = (total * rate / Decimal('100')).quantize(Decimal('0.01'))
+        net = (total - commission).quantize(Decimal('0.01'))
+        grand_total += total
+        grand_commission += commission
+        grand_net += net
+        rows.append({
+            'tenant': t,
+            'count': pays.count(),
+            'total': total,
+            'rate': rate,
+            'commission': commission,
+            'net': net,
+            'mode': t.stripe_mode,
+            'bank_ok': bool(t.bank_iban or t.bank_account_number),
+        })
+    return render(request, 'platform_core/platform_finance.html', {
+        'rows': rows,
+        'grand_total': grand_total,
+        'grand_commission': grand_commission,
+        'grand_net': grand_net,
+        'ps': ps,
+    })
+
+
+@login_required
+@platform_required
+def tenant_wizard(request):
+    """معالج موحّد: إنشاء شركة + تفعيل وحدات + إنشاء حساب المدير، في خطوة واحدة."""
+    from .forms import MODULE_CHOICES
+    from .models import default_tenant_modules
+    User = get_user_model()
+    created_info = None
+
+    if request.method == "POST":
+        company_name = request.POST.get("company_name", "").strip()
+        mgr_full_name = request.POST.get("mgr_full_name", "").strip()
+        mgr_username = request.POST.get("mgr_username", "").strip()
+        mgr_email = request.POST.get("mgr_email", "").strip().lower()
+        mgr_password = request.POST.get("mgr_password", "").strip()
+
+        errors = []
+        if not company_name:
+            errors.append("اسم الشركة مطلوب")
+        if not mgr_username:
+            errors.append("اسم المستخدم للمدير مطلوب")
+        if not mgr_password:
+            errors.append("كلمة المرور مطلوبة")
+        if User.objects.filter(username=mgr_username).exists():
+            errors.append(f"اسم المستخدم '{mgr_username}' مستخدم بالفعل")
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+            return render(request, "platform_core/tenant_wizard.html", {
+                "module_choices": MODULE_CHOICES,
+                "form_data": request.POST,
+            })
+
+        # 1) إنشاء الشركة + الوحدات
+        modules = default_tenant_modules()
+        for code, _ in MODULE_CHOICES:
+            modules[code] = (request.POST.get(f"module_{code}") == "on")
+        tenant = Tenant.objects.create(
+            name=company_name,
+            owner_name=mgr_full_name,
+            owner_email=mgr_email,
+            modules=modules,
+        )
+
+        # 2) إنشاء حساب المدير
+        user = User(username=mgr_username, email=mgr_email)
+        if mgr_full_name:
+            parts = mgr_full_name.split(" ", 1)
+            user.first_name = parts[0]
+            if len(parts) > 1:
+                user.last_name = parts[1]
+        user.set_password(mgr_password)
+        user.save()
+
+        # 3) العضوية كمدير شركة بكامل الصلاحيات
+        perms = default_permissions()
+        for sec in perms:
+            for act in perms[sec]:
+                perms[sec][act] = True
+        TenantMembership.objects.create(
+            tenant=tenant, user=user,
+            role_name="مدير الشركة",
+            is_tenant_admin=True,
+            is_active=True,
+            permissions=perms,
+        )
+
+        messages.success(request, f"تم إنشاء شركة '{company_name}' ومديرها بنجاح")
+        created_info = {
+            "company": company_name,
+            "username": mgr_username,
+            "password": mgr_password,
+            "tenant_pk": tenant.pk,
+        }
+        return render(request, "platform_core/tenant_wizard.html", {
+            "module_choices": MODULE_CHOICES,
+            "created_info": created_info,
+        })
+
+    return render(request, "platform_core/tenant_wizard.html", {
+        "module_choices": MODULE_CHOICES,
     })

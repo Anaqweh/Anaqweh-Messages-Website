@@ -10,6 +10,8 @@ def default_tenant_modules():
         "accounting": True,
         "reports": True,
         "tasks": False,
+        "registrations": False,
+        "stripe": False,
     }
 
 
@@ -30,6 +32,8 @@ def default_permissions():
         "crm": {"view": False, "create": False, "edit": False, "delete": False, "export": False},
         "reports": {"view": False, "export": False},
         "settings": {"view": False, "edit": False, "manage_users": False},
+        "registrations": {"view": False, "create": False, "edit": False, "delete": False, "settings": False},
+        "stripe": {"view": False, "settings": False, "payouts": False},
     }
 
 
@@ -78,6 +82,34 @@ class Tenant(models.Model):
     notes = models.TextField(blank=True)
     subscription_starts_at = models.DateField(null=True, blank=True)
     subscription_ends_at = models.DateField(null=True, blank=True)
+    emailjs_service_id = models.CharField(max_length=100, blank=True, default="")
+    emailjs_template_id = models.CharField(max_length=100, blank=True, default="")
+    emailjs_public_key = models.CharField(max_length=100, blank=True, default="")
+    emailjs_private_key = models.CharField(max_length=100, blank=True, default="")
+    registration_admin_email = models.EmailField(blank=True, default="")
+
+    # ===== خدمة Stripe =====
+    STRIPE_MODE_PLATFORM = "platform"   # حساب المدير العام
+    STRIPE_MODE_OWN = "own"             # حساب الشركة الخاص
+    STRIPE_MODE_CHOICES = [
+        (STRIPE_MODE_PLATFORM, "حساب المدير العام"),
+        (STRIPE_MODE_OWN, "حساب الشركة الخاص"),
+    ]
+    stripe_enabled = models.BooleanField(default=False)
+    stripe_mode = models.CharField(max_length=20, choices=STRIPE_MODE_CHOICES, default=STRIPE_MODE_PLATFORM)
+    stripe_secret_key = models.CharField(max_length=255, blank=True, default="")
+    stripe_publishable_key = models.CharField(max_length=255, blank=True, default="")
+    stripe_webhook_secret = models.CharField(max_length=255, blank=True, default="")
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    # ===== بيانات الحساب البنكي (للتحويل اليدوي) =====
+    bank_name = models.CharField(max_length=180, blank=True, default="")
+    bank_country = models.CharField(max_length=100, blank=True, default="")
+    bank_account_holder = models.CharField(max_length=180, blank=True, default="")
+    bank_iban = models.CharField(max_length=100, blank=True, default="")
+    bank_account_number = models.CharField(max_length=100, blank=True, default="")
+    bank_swift = models.CharField(max_length=50, blank=True, default="")
+    bank_currency = models.CharField(max_length=10, blank=True, default="")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -146,3 +178,23 @@ class PlatformAuditLog(models.Model):
 
     def __str__(self):
         return f"{self.action} - {self.created_at:%Y-%m-%d %H:%M}"
+
+
+class PlatformSettings(models.Model):
+    """إعدادات المنصة العامة (يديرها المدير العام)."""
+    commission_platform_stripe = models.DecimalField(max_digits=5, decimal_places=2, default=7)
+    commission_own_stripe = models.DecimalField(max_digits=5, decimal_places=2, default=2)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "إعدادات المنصة"
+
+    def __str__(self):
+        return "إعدادات المنصة"
+
+    @classmethod
+    def get_solo(cls):
+        obj = cls.objects.first()
+        if not obj:
+            obj = cls.objects.create()
+        return obj

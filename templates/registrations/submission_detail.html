@@ -1,0 +1,63 @@
+{% extends "base/base.html" %}
+{% block content %}
+<style>
+.reg-detail{direction:rtl;max-width:1100px;margin:28px auto;padding:0 14px}
+.reg-card{background:#fff;border:1px solid #d7e6f8;border-radius:12px;padding:22px;box-shadow:0 14px 34px rgba(11,78,162,.08)}
+.reg-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.reg-actions{display:flex;gap:8px;flex-wrap:wrap}
+.reg-btn{border:0;border-radius:8px;background:#0b4ea2;color:#fff;padding:9px 14px;font-weight:900;text-decoration:none;cursor:pointer}
+.reg-btn.light{background:#eef6ff;color:#0b4ea2;border:1px solid #bdd7f7}
+.reg-btn.danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+.reg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.reg-field{border:1px solid #e4edf8;border-radius:10px;background:#fbfdff;padding:12px}
+.reg-label{font-size:12px;color:#667085;margin-bottom:4px}
+.reg-value{font-weight:800;word-break:break-word;white-space:pre-wrap}
+.email-box{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.email-box input{flex:1;min-width:240px;border:1px solid #cbd8e7;border-radius:8px;padding:10px}
+@media print{.reg-actions,.email-box,.no-print{display:none!important}.reg-card{box-shadow:none}.reg-detail{margin:0;max-width:100%}}
+@media(max-width:700px){.reg-grid{grid-template-columns:1fr}}
+</style>
+
+<div class="reg-detail">
+  <div class="reg-card">
+    <div class="reg-head">
+      <div>
+        <h1 style="color:#0b4ea2;margin:0">طلب تسجيل #{{ submission.pk }}</h1>
+        <div style="color:#667085">{{ submission.created_at|date:"Y-m-d H:i" }}</div>
+      </div>
+
+      <div class="reg-actions">
+        <a class="reg-btn light" href="{% url 'registrations:submission_pdf' submission.pk %}" target="_blank">طباعة</a>
+        <a class="reg-btn" href="{% url 'registrations:submission_pdf' submission.pk %}">تحميل PDF</a>
+        <a class="reg-btn light" href="{% url 'registrations:submission_edit' submission.pk %}">تعديل</a>
+        <a class="reg-btn light" href="{% url 'registrations:dashboard' %}">رجوع</a>
+        <form method="post" action="{% url 'registrations:submission_delete' submission.pk %}" onsubmit="return confirm('حذف التسجيل نهائياً؟')" style="display:inline">
+          {% csrf_token %}
+          <button class="reg-btn danger" type="submit">حذف</button>
+        </form>
+      </div>
+    </div>
+
+    <form class="email-box no-print" method="post" action="{% url 'registrations:submission_email' submission.pk %}">
+      {% csrf_token %}
+      <input type="email" name="recipient" value="{{ submission.student_email }}" placeholder="البريد الإلكتروني">
+      <button class="reg-btn" type="submit">إرسال على البريد</button>
+    </form>
+
+    <hr>
+
+    <div class="reg-grid">
+      {% for item in display_items %}
+        <div class="reg-field">
+          <div class="reg-label">{{ item.label }}</div>
+          <div class="reg-value">{{ item.value|default:"-" }}</div>
+        </div>
+      {% empty %}
+        <div class="reg-field">
+          <div class="reg-value">لا توجد بيانات محفوظة.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

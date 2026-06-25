@@ -12,6 +12,18 @@
     <div class="col-md-6">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
     <div class="col-md-6">{{ form.password.label_tag }}{{ form.password }}</div>
   </div>
+  {% if roles %}
+  <h6 class="fw-bold mb-3">اختر دوراً جاهزاً <small class="text-muted fw-normal">(يطبّق الصلاحيات تلقائياً)</small></h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <select id="roleSelect" class="form-select" onchange="applyRole()">
+        <option value="">— تحديد الصلاحيات يدوياً —</option>
+        {% for r in roles %}<option value="{{ r.pk }}">{{ r.name }}</option>{% endfor %}
+      </select>
+      <div class="form-text">اختر دوراً لتعبئة الصلاحيات تلقائياً، أو حددها يدوياً بالأسفل.</div>
+    </div>
+  </div>
+  {% endif %}
   <h6 class="fw-bold mb-3">المسمى الوظيفي</h6>
   <div class="row g-3 mb-4">
     <div class="col-md-6">{{ form.role_name.label_tag }}{{ form.role_name }}<div class="form-text">مثال: محاسب، مبيعات، إداري...</div></div>
@@ -29,4 +41,31 @@
   <button class="btn btn-primary px-5">إضافة الموظف</button>
 </form>
 </div></div>
+
+<script>
+const ROLES_PERMS = {{ roles_json|safe }};
+function applyRole(){
+  const sel = document.getElementById('roleSelect');
+  const roleId = sel.value;
+  // أسماء حقول الصلاحيات في النموذج
+  const sections = ['email','finance','crm','reports','settings','registrations'];
+  if(!roleId || !ROLES_PERMS[roleId]){
+    // يدوي - لا نغير شيئاً
+    return;
+  }
+  const perms = ROLES_PERMS[roleId];
+  sections.forEach(sec => {
+    const cb = document.querySelector('[name="perm_'+sec+'"]');
+    if(cb){
+      // إذا القسم فيه أي صلاحية مفعّلة
+      const secPerms = perms[sec] || {};
+      const anyOn = Object.values(secPerms).some(v => v === true);
+      cb.checked = anyOn;
+    }
+  });
+  // اسم الدور
+  const roleName = document.querySelector('[name="role_name"]');
+  if(roleName){ roleName.value = sel.options[sel.selectedIndex].text; }
+}
+</script>
 {% endblock %}

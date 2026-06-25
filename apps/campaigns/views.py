@@ -18,21 +18,44 @@ def _guard_campaign(campaign, request):
     if not request.user.is_superuser and campaign.owner_id and campaign.owner_id != request.user.id:
         raise Http404('غير مصرح')
 
+def _company_user_ids(request):
+    """يرجع قائمة بمعرفات كل مستخدمي شركة المستخدم الحالي (للعزل حسب الشركة)."""
+    from apps.platform_core.navigation import active_membership_for
+    from apps.platform_core.models import TenantMembership
+    membership = active_membership_for(request.user)
+    if not membership:
+        return [request.user.id]
+    user_ids = list(
+        TenantMembership.objects.filter(tenant=membership.tenant)
+        .values_list("user_id", flat=True)
+    )
+    if request.user.id not in user_ids:
+        user_ids.append(request.user.id)
+    return user_ids
+
 def _owned(qs, request):
     if request.user.is_superuser:
         return qs
-    return qs.filter(owner=request.user)
+    return qs.filter(owner_id__in=_company_user_ids(request))
+
+def _owned_logs(qs, request):
+    """عزل سجلات الإيميل حسب الشركة (عبر الحملة المالكة)."""
+    if request.user.is_superuser:
+        return qs
+    return qs.filter(campaign__owner_id__in=_company_user_ids(request))
 
 @login_required
 def dashboard(request):
     campaigns = _owned(Campaign.objects.all(), request)[:10]
+    _camp = _owned(Campaign.objects.all(), request)
+    _logs = _owned_logs(EmailLog.objects.all(), request)
     stats = {
-        'total_campaigns': Campaign.objects.count(),
-        'running': Campaign.objects.filter(status='running').count(),
-        'completed': Campaign.objects.filter(status='completed').count(),
-        'total_emails_sent': EmailLog.objects.filter(status='sent').count(),
-        'total_failed': EmailLog.objects.filter(status='failed').count(),
-        'total_pending': EmailLog.objects.filter(status__in=['pending','sending']).count(),
+        'total_campaigns': _camp.count(),
+        'running': _camp.filter(status='running').count(),
+        'completed': _camp.filter(status='completed').count(),
+        'total_emails_sent': _logs.filter(status='sent').count(),
+        'total_failed': _logs.filter(status='failed').count(),
+        'total_pending': _logs.filter(status__in=['pending','sending']).count(),
     }
     recent_logs = EmailLog.objects.select_related('campaign').order_by('-created_at')[:20]
     return render(request, 'campaigns/dashboard.html', {'campaigns': campaigns, 'stats': stats, 'recent_logs': recent_logs})
@@ -71,8 +94,8 @@ def campaign_list(request):
 
 @login_required
 def campaign_create(request):
-    templates = EmailTemplate.objects.filter(is_active=True)
-    lists = MailingList.objects.all()
+    templates = _owned(EmailTemplate.objects.filter(is_active=True), request)
+    lists = _owned(MailingList.objects.all(), request)
     if request.method == 'POST':
         name = request.POST.get('name','').strip()
         template_id = request.POST.get('template')

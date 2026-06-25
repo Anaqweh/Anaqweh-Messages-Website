@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ar" dir="ltr">
+<head>
+<meta charset="utf-8">
+<style>
+@page{size:A4;margin:11mm}
+*{box-sizing:border-box}
+body{font-family:Arial,Tahoma,"DejaVu Sans",sans-serif;color:#222;margin:0;font-size:13px;line-height:1.4}
+.spark-paper{background:#fff;padding:6px}
+
+/* الهيدر */
+.spark-head{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px;padding-bottom:14px;border-bottom:3px solid #a86532}
+.spark-logo{max-width:200px;max-height:95px;object-fit:contain}
+.logo-fallback{font-size:36px;font-weight:900;color:#3e4f22;line-height:1}
+.logo-slogan{color:#a86532;letter-spacing:2px;font-size:10px;margin-top:4px}
+.spark-title{text-align:right;color:#a86532;font-size:24px;font-weight:900;line-height:1.2}
+.spark-title .en{font-size:18px;display:block}
+
+/* نوع التسجيل */
+.type-row{direction:rtl;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.type-card{border:2px solid #d9e4d0;border-radius:10px;background:#fbfff7;padding:12px;display:flex;align-items:center;gap:10px}
+.type-card.on{background:#3e4f22;border-color:#3e4f22}
+.type-card.on .type-card-txt strong,.type-card.on .type-card-txt small{color:#fff}
+.type-check{width:22px;height:22px;border:2px solid #3e4f22;background:#fff;flex:0 0 22px;border-radius:3px;position:relative}
+.type-card.on .type-check{background:#fff}
+.type-card.on .type-check:after{content:"\2713";position:absolute;top:-3px;left:2px;color:#3e4f22;font-weight:900;font-size:16px}
+.type-card-txt strong{display:block;font-size:15px;color:#3e4f22}
+.type-card-txt small{display:block;font-size:12px;color:#667085}
+
+/* عناوين الأقسام */
+.section-title{display:flex;justify-content:space-between;align-items:center;color:#3e4f22;font-size:19px;font-weight:900;margin:22px 0 12px;border-bottom:2px solid #e6ecdf;padding-bottom:6px;page-break-after:avoid}
+
+/* الحقول */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px 28px}
+.field{margin-bottom:2px}
+.field-label{display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:6px;color:#333}
+.field-label small{font-weight:600;color:#888}
+.field-val{width:100%;border-bottom:2px dotted #555;padding:6px 6px;font-size:14px;font-weight:700;color:#0b4ea2;min-height:30px;word-break:break-word}
+
+/* الجنس */
+.inline-opts{display:flex;gap:24px;align-items:center;padding-top:4px}
+.opt{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700}
+
+/* الدورات */
+.subhead{font-size:16px;font-weight:900;margin:16px 0 10px;color:#3e4f22;border-right:4px solid #a86532;padding-right:10px}
+.course-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 16px;margin-bottom:6px}
+.days-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.dur-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.chk{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;line-height:1.3}
+.box{width:22px;height:22px;border:2px solid #3e4f22;display:inline-block;background:#fff;flex:0 0 22px;border-radius:3px;position:relative}
+.box.on{background:#3e4f22}
+.box.on:after{content:"\2713";position:absolute;top:-3px;left:2px;color:#fff;font-weight:900;font-size:16px}
+
+/* الدفع */
+.pay-methods{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.pay-boxes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.pay-box{text-align:center}
+.pay-box .pv{height:44px;border:2px solid #555;border-radius:6px;font-size:16px;padding:10px;font-weight:800;color:#0b4ea2;display:flex;align-items:center;justify-content:center}
+.pay-box .pl{font-size:12px;font-weight:700;margin-top:5px}
+
+/* الشروط */
+.terms-wrap{background:#fffdf8;border:1px solid #dfd4bd;border-radius:12px;padding:16px;margin-top:18px;page-break-inside:avoid}
+.terms-wrap h2{color:#3e4f22;font-size:17px;margin:0 0 12px;text-align:center;border-bottom:2px solid #e6ddc9;padding-bottom:8px}
+.terms-block{background:#fff;border:1px solid #e3d8c8;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.terms-block .bt{color:#3e4f22;font-weight:900;font-size:14px;margin-bottom:8px;direction:rtl;text-align:right}
+.terms-block ul{margin:0;padding:0;list-style:none;direction:rtl;text-align:right}
+.terms-block li{font-size:12px;line-height:1.7;padding-right:18px;position:relative;margin-bottom:3px}
+.terms-block li:before{content:"\2022";color:#a86532;position:absolute;right:4px;font-weight:900}
+.terms-ack{margin-top:12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:12px;font-weight:900;color:#065f46;direction:rtl;text-align:right;font-size:13px}
+
+/* التوقيعات */
+.sign-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:center;margin-top:26px;page-break-inside:avoid}
+.sign-box .sig-area{height:90px;border:1px solid #ddd;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.sign-box .sig-area img{max-height:86px;max-width:95%;object-fit:contain}
+.sign-line{border-top:2px dotted #333;padding-top:8px;font-size:13px;font-weight:900;margin-top:8px;direction:rtl}
+.sign-line .en{display:block;font-size:11px;color:#667085;direction:ltr}
+</style>
+</head>
+<body>
+{% with d=submission.data %}
+<div class="spark-paper">
+
+  <!-- الهيدر -->
+  <div class="spark-head">
+    <div>
+      {% if submission.template.logo %}
+        <img class="spark-logo" src="{{ submission.template.logo.url }}" alt="Spark Logo">
+      {% else %}
+        <div class="logo-fallback">SPARK<br>INSTITUTE</div>
+        <div class="logo-slogan">Light Your Way To Success</div>
+      {% endif %}
+    </div>
+    <div class="spark-title">استمارة تسجيل<span class="en">Registration Form</span></div>
+  </div>
+
+  <!-- نوع التسجيل -->
+  <div class="type-row">
+    {% for opt in registration_types %}
+      <div class="type-card {% if d.registration_type == opt.value %}on{% endif %}">
+        <span class="type-check"></span>
+        <span class="type-card-txt"><strong>{{ opt.ar }}</strong><small>{{ opt.en }}</small></span>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- المعلومات الشخصية -->
+  <div class="section-title"><span>Personal Information</span><span>المعلومات الشخصية</span></div>
+  <div class="grid2">
+    <div class="field"><div class="field-label"><span>Full name <small>(passport/ID)</small></span><span>الاسم كامل</span></div><div class="field-val">{{ d.full_name|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Mobile Number</span><span>رقم الموبايل</span></div><div class="field-val">{{ d.mobile|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Company</span><span>الشركة</span></div><div class="field-val">{{ d.company|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Email</span><span>البريد الإلكتروني</span></div><div class="field-val">{{ d.email|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Address</span><span>العنوان</span></div><div class="field-val">{{ d.address|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Nationality</span><span>الجنسية</span></div><div class="field-val">{{ d.nationality|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Date of Birth</span><span>تاريخ الميلاد</span></div><div class="field-val">{{ d.date_of_birth|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Gender</span><span>الجنس</span></div><div class="inline-opts"><span class="opt"><span class="box {% if d.gender == 'Male' %}on{% endif %}"></span>Male / ذكر</span><span class="opt"><span class="box {% if d.gender == 'Female' %}on{% endif %}"></span>Female / أنثى</span></div></div>
+    <div class="field"><div class="field-label"><span>Emirates ID</span><span>رقم الهوية</span></div><div class="field-val">{{ d.emirates_id|default:"" }}</div></div>
+  </div>
+
+  <!-- المؤهلات -->
+  <div class="section-title"><span>Educational Background</span><span>المؤهلات العلمية</span></div>
+  <div class="grid2">
+    <div class="field"><div class="field-label"><span>School / University</span><span>المدرسة / الجامعة</span></div><div class="field-val">{{ d.school_university|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Major / Degree</span><span>التخصص / الدرجة</span></div><div class="field-val">{{ d.major_degree|default:"" }}</div></div>
+  </div>
+
+  <!-- الدورات -->
+  <div class="section-title"><span>Courses</span><span>البرامج</span></div>
+  <div class="subhead">General English</div>
+  <div class="course-grid">
+    <span class="chk"><span class="box {% if 'Foundation' in d.courses %}on{% endif %}"></span>Foundation / التأسيسي</span>
+    {% for i in "123456789" %}<span class="chk"><span class="box {% if 'Level '|add:i in d.courses %}on{% endif %}"></span>Level {{ i }} / المستوى {{ i }}</span>{% endfor %}
+    <span class="chk"><span class="box {% if 'Level 10' in d.courses %}on{% endif %}"></span>Level 10 / المستوى 10</span>
+    <span class="chk"><span class="box {% if 'Level 11' in d.courses %}on{% endif %}"></span>Level 11 / المستوى 11</span>
+  </div>
+
+  <div class="subhead">ESP</div>
+  <div class="course-grid">
+    <span class="chk"><span class="box {% if 'Market Leader 1' in d.courses %}on{% endif %}"></span>Market Leader 1</span>
+    <span class="chk"><span class="box {% if 'Market Leader 2' in d.courses %}on{% endif %}"></span>Market Leader 2</span>
+    <span class="chk"><span class="box {% if 'Market Leader 3' in d.courses %}on{% endif %}"></span>Market Leader 3</span>
+    <span class="chk"><span class="box {% if 'English for Marketing' in d.courses %}on{% endif %}"></span>English for Marketing</span>
+    <span class="chk"><span class="box {% if 'English for Customer Care' in d.courses %}on{% endif %}"></span>English for Customer Care</span>
+    <span class="chk"><span class="box {% if 'English for Business' in d.courses %}on{% endif %}"></span>English for Business</span>
+    <span class="chk"><span class="box {% if 'English for Meeting' in d.courses %}on{% endif %}"></span>English for Meeting</span>
+    <span class="chk"><span class="box {% if 'English for Presentations' in d.courses %}on{% endif %}"></span>English for Presentations</span>
+    <span class="chk"><span class="box {% if 'Other Languages' in d.courses %}on{% endif %}"></span>Other Languages</span>
+  </div>
+
+  <div class="subhead">Academic</div>
+  <div class="course-grid">
+    <span class="chk"><span class="box {% if 'TOFEL' in d.courses %}on{% endif %}"></span>TOFEL</span>
+    <span class="chk"><span class="box {% if 'IELTS' in d.courses %}on{% endif %}"></span>IELTS</span>
+    <span class="chk"><span class="box {% if 'ALCPT' in d.courses %}on{% endif %}"></span>ALCPT</span>
+    <span class="chk"><span class="box {% if 'PTE' in d.courses %}on{% endif %}"></span>PTE</span>
+  </div>
+
+  <!-- الجدول -->
+  <div class="section-title"><span>Preferred Time and Schedule</span><span>أوقات الدورة</span></div>
+  <div class="days-grid">
+    <span class="chk"><span class="box {% if 'Sunday' in d.preferred_days %}on{% endif %}"></span>Sunday<br>الأحد</span>
+    <span class="chk"><span class="box {% if 'Monday' in d.preferred_days %}on{% endif %}"></span>Monday<br>الإثنين</span>
+    <span class="chk"><span class="box {% if 'Tuesday' in d.preferred_days %}on{% endif %}"></span>Tuesday<br>الثلاثاء</span>
+    <span class="chk"><span class="box {% if 'Wednesday' in d.preferred_days %}on{% endif %}"></span>Wednesday<br>الأربعاء</span>
+    <span class="chk"><span class="box {% if 'Thursday' in d.preferred_days %}on{% endif %}"></span>Thursday<br>الخميس</span>
+    <span class="chk"><span class="box {% if 'Saturday' in d.preferred_days %}on{% endif %}"></span>Saturday<br>السبت</span>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="field"><div class="field-label"><span>Course Time</span><span>وقت الدورة</span></div><div class="field-val">{{ d.course_time|default:"" }}</div></div>
+    <div class="field"><div class="field-label"><span>Start Time</span><span>تاريخ بدء الدورة</span></div><div class="field-val">{{ d.start_time|default:"" }}</div></div>
+  </div>
+
+  <!-- الدفع -->
+  <div class="section-title"><span>Method of Payment</span><span>طريقة الدفع</span></div>
+  <div class="pay-methods">
+    <span class="chk"><span class="box {% if d.payment_method == 'Bank Transfer' %}on{% endif %}"></span>Bank Transfer</span>
+    <span class="chk"><span class="box {% if d.payment_method == 'Visa' %}on{% endif %}"></span>Visa</span>
+    <span class="chk"><span class="box {% if d.payment_method == 'Cheque' %}on{% endif %}"></span>Cheque</span>
+    <span class="chk"><span class="box {% if d.payment_method == 'Cash' %}on{% endif %}"></span>Cash</span>
+  </div>
+  <div class="pay-boxes">
+    <div class="pay-box"><div class="pv">{{ d.course_fee|default:"" }}</div><div class="pl">Course Fee / رسوم الدورة</div></div>
+    <div class="pay-box"><div class="pv">{{ d.initial_payment|default:"" }}</div><div class="pl">Initial Payment / الدفعة الأولية</div></div>
+    <div class="pay-box"><div class="pv">{{ d.balance|default:"" }}</div><div class="pl">Balance / المتبقي</div></div>
+  </div>
+
+  <!-- المدة -->
+  <div class="section-title"><span>Duration to complete</span><span>المدة لإنهاء الدورة</span></div>
+  <div class="dur-grid">
+    {% for m in "2468" %}<span class="chk"><span class="box {% if d.duration == m|add:' Months' %}on{% endif %}"></span>{{ m }} Months<br>{{ m }} أشهر</span>{% endfor %}
+    <span class="chk"><span class="box {% if d.duration == '10 Months' %}on{% endif %}"></span>10 Months<br>10 أشهر</span>
+    <span class="chk"><span class="box {% if d.duration == '12 Months' %}on{% endif %}"></span>12 Months<br>12 شهر</span>
+  </div>
+
+  <!-- الشروط -->
+  <div class="terms-wrap">
+    <h2>بنود عقد التسجيل / Partnership Contract Terms</h2>
+    <div class="terms-block">
+      <div class="bt">1-3: تطوير الدورات، المجموعات، شروط الانتساب</div>
+      <ul>
+        <li>يحتفظ المعهد بحق تطوير أو تعديل أو تغيير المناهج أو المدربين حسب ما يراه مناسباً.</li>
+        <li>عدد الساعات للمستوى الواحد ضمن المجموعات 30 ساعة حضورياً، و20 ساعة دراسة عن بعد.</li>
+        <li>عدد الساعات للبرامج الأكاديمية 30 ساعة حضورية، و24 ساعة عن بعد.</li>
+        <li>يعتبر التسجيل منتسباً للدراسة عند استكمال الدفعات المالية المستحقة.</li>
+        <li>التسجيل حق فردي للعضو المسجل ولا يجوز نقله إلا بطلب خطي وموافقة الإدارة.</li>
+      </ul>
+    </div>
+    <div class="terms-block">
+      <div class="bt">4-6: سياسة التسجيل، الانضباط، وعدد المتدربين</div>
+      <ul>
+        <li>عند التسجيل في باقة مستويات، وقت وأيام المستويات اللاحقة غير ملزمة بوقت المستوى الأول.</li>
+        <li>لإدارة المعهد الحق بتغيير المدرسين للمستويات اللاحقة دون إخطار الطالب إذا رأت ذلك مناسباً.</li>
+        <li>يمنع استخدام أجهزة الكمبيوتر أو مرافق التدريب لغير أغراض الدورة.</li>
+        <li>يمنع نسخ البرامج أو إساءة استخدام أجهزة وممتلكات المعهد.</li>
+        <li>للمعهد اتخاذ الإجراءات اللازمة عند مخالفة قواعد السلوك والانضباط.</li>
+        <li>تبدأ الدورة عند اكتمال عدد المتدربين المناسب لها.</li>
+      </ul>
+    </div>
+    <div class="terms-block">
+      <div class="bt">7-9: الدفع، الشهادات، الإلغاء والاسترداد</div>
+      <ul>
+        <li>الرسوم المدفوعة لا تشمل ثمن الكتب الدراسية.</li>
+        <li>لا يحق للطالب إلغاء الدورة بعد التسجيل أو تأكيد الحجز أو بدء الدراسة إلا حسب سياسة المعهد.</li>
+        <li>لا يحق للطالب حضور الدورة إلا بعد دفع الرسوم المستحقة عليه كاملة أو حسب الاتفاق.</li>
+        <li>يحق للطالب الحصول على شهادة عند تحقيق نسبة الحضور والنجاح المطلوبة.</li>
+        <li>لا تصدر شهادة دراسية عند الإخلال ببنود العقد أو التعليمات.</li>
+        <li>في حال تغيير رأي الطالب لأي سبب وكان المعهد غير مخل بالشروط، لا يتم إرجاع المبلغ المدفوع.</li>
+        <li>قد يبقى المبلغ رصيداً للطالب يمكن استخدامه في دورات أخرى حسب السياسة المعتمدة.</li>
+      </ul>
+    </div>
+    {% if d.contract_acknowledged == 'yes' %}
+    <div class="terms-ack">&#10003; أقر بأنني قرأت بنود العقد وأوافق عليها وأتعهد بالالتزام بها / I agree to the registration contract terms</div>
+    {% endif %}
+  </div>
+
+  <!-- التوقيعات -->
+  <div class="sign-grid">
+    <div class="sign-box">
+      <div class="sig-area">{% if d.signature_data %}<img src="{{ d.signature_data }}" alt="sig">{% endif %}</div>
+      <div class="sign-line">توقيع مقدم الطلب<span class="en">Applicant Signature & Date</span></div>
+    </div>
+    <div class="sign-box">
+      <div class="sig-area">{% if d.advisor_signature_data %}<img src="{{ d.advisor_signature_data }}" alt="sig">{% endif %}</div>
+      <div class="sign-line">المستشار التعليمي<span class="en">Educational Advisor</span></div>
+    </div>
+    <div class="sign-box">
+      <div class="sig-area">{% if d.director_signature_data %}<img src="{{ d.director_signature_data }}" alt="sig">{% endif %}</div>
+      <div class="sign-line">مدير المعهد<span class="en">Director's Signature</span></div>
+    </div>
+  </div>
+
+</div>
+{% endwith %}
+</body>
+</html>

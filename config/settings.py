@@ -9,6 +9,7 @@ DEBUG = False
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")
 
 INSTALLED_APPS = [
+    "apps.registrations.apps.RegistrationsConfig",
     'apps.crm',
     'apps.platform_core',
     'apps.tasks',
@@ -170,3 +171,6 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="INEXC <info@inexc.com>")
+
+
+CSRF_TRUSTED_ORIGINS = ["http://165.232.167.39:8000", "http://165.232.167.39"]

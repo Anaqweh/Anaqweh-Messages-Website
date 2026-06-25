@@ -6,29 +6,67 @@ from django.http import HttpResponse
 from apps.campaigns.models import Campaign, EmailLog
 from apps.recipients.models import MailingList, Recipient
 
+
+def _rep_company_user_ids(request):
+    """معرفات كل مستخدمي شركة المستخدم الحالي."""
+    from apps.platform_core.navigation import active_membership_for
+    from apps.platform_core.models import TenantMembership
+    m = active_membership_for(request.user)
+    if not m:
+        return [request.user.id]
+    ids = list(TenantMembership.objects.filter(tenant=m.tenant).values_list("user_id", flat=True))
+    if request.user.id not in ids:
+        ids.append(request.user.id)
+    return ids
+
+def _rep_campaigns(request):
+    qs = Campaign.objects.all()
+    if request.user.is_superuser:
+        return qs
+    return qs.filter(owner_id__in=_rep_company_user_ids(request))
+
+def _rep_logs(request):
+    qs = EmailLog.objects.all()
+    if request.user.is_superuser:
+        return qs
+    return qs.filter(campaign__owner_id__in=_rep_company_user_ids(request))
+
+def _rep_lists(request):
+    qs = MailingList.objects.all()
+    if request.user.is_superuser:
+        return qs
+    return qs.filter(owner_id__in=_rep_company_user_ids(request))
+
+def _rep_recipients(request):
+    qs = Recipient.objects.all()
+    if request.user.is_superuser:
+        return qs
+    return qs.filter(mailing_list__owner_id__in=_rep_company_user_ids(request))
+
 @login_required
 def reports_dashboard(request):
-    campaigns = Campaign.objects.all()
-    total_logs = EmailLog.objects.count()
-    total_sent = EmailLog.objects.filter(status='sent').count()
+    campaigns = _rep_campaigns(request)
+    _logs = _rep_logs(request)
+    total_logs = _logs.count()
+    total_sent = _logs.filter(status='sent').count()
     stats = {
         'total_campaigns': campaigns.count(),
         'completed': campaigns.filter(status='completed').count(),
         'running': campaigns.filter(status='running').count(),
         'total_sent': total_sent,
-        'total_failed': EmailLog.objects.filter(status='failed').count(),
-        'total_pending': EmailLog.objects.filter(status__in=['pending','sending']).count(),
-        'total_recipients': Recipient.objects.filter(is_active=True).count(),
-        'total_lists': MailingList.objects.count(),
+        'total_failed': _logs.filter(status='failed').count(),
+        'total_pending': _logs.filter(status__in=['pending','sending']).count(),
+        'total_recipients': _rep_recipients(request).filter(is_active=True).count(),
+        'total_lists': _rep_lists(request).count(),
         'overall_rate': round((total_sent/total_logs)*100,1) if total_logs>0 else 0,
     }
     campaign_stats = [{'campaign': c, 'total': c.total_recipients, 'sent': c.sent_count, 'failed': c.failed_count, 'pending': c.pending_count, 'rate': c.success_rate} for c in campaigns]
-    failed_logs = EmailLog.objects.filter(status='failed').select_related('campaign')[:50]
+    failed_logs = _logs.filter(status='failed').select_related('campaign')[:50]
     return render(request, 'reports/dashboard.html', {'stats': stats, 'campaign_stats': campaign_stats, 'failed_logs': failed_logs})
 
 @login_required
 def campaign_report(request, pk):
-    campaign = get_object_or_404(Campaign, pk=pk)
+    campaign = get_object_or_404(_rep_campaigns(request), pk=pk)
     logs = campaign.logs.order_by('-created_at')
     status_filter = request.GET.get('status','')
     if status_filter:
@@ -37,7 +75,7 @@ def campaign_report(request, pk):
 
 @login_required
 def export_campaign_csv(request, pk):
-    campaign = get_object_or_404(Campaign, pk=pk)
+    campaign = get_object_or_404(_rep_campaigns(request), pk=pk)
     response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
     response['Content-Disposition'] = f'attachment; filename="campaign_{pk}.csv"'
     writer = csv.writer(response)
@@ -48,7 +86,7 @@ def export_campaign_csv(request, pk):
 
 @login_required
 def export_campaign_excel(request, pk):
-    campaign = get_object_or_404(Campaign, pk=pk)
+    campaign = get_object_or_404(_rep_campaigns(request), pk=pk)
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output, {'in_memory': True})
     worksheet = workbook.add_worksheet('تقرير')
@@ -86,15 +124,16 @@ def analytics_api(request):
     for i in range(13, -1, -1):
         day = today - timedelta(days=i)
         days.append(day.strftime('%m/%d'))
-        qs = EmailLog.objects.filter(sent_at__date=day)
+        qs = _rep_logs(request).filter(sent_at__date=day)
         sent_data.append(qs.filter(status__in=['sent','opened','clicked']).count())
         opened_data.append(qs.filter(status__in=['opened','clicked']).count())
+    _base = _rep_logs(request)
     status_counts = {
-        'sent': EmailLog.objects.filter(status='sent').count(),
-        'opened': EmailLog.objects.filter(status='opened').count(),
-        'clicked': EmailLog.objects.filter(status='clicked').count(),
-        'failed': EmailLog.objects.filter(status='failed').count(),
-        'pending': EmailLog.objects.filter(status__in=['pending','sending']).count(),
+        'sent': _base.filter(status='sent').count(),
+        'opened': _base.filter(status='opened').count(),
+        'clicked': _base.filter(status='clicked').count(),
+        'failed': _base.filter(status='failed').count(),
+        'pending': _base.filter(status__in=['pending','sending']).count(),
     }
     return JsonResponse({'days': days, 'sent': sent_data, 'opened': opened_data, 'status': status_counts})
 
@@ -103,12 +142,12 @@ def heatmap_api(request):
     """Activity heatmap: opens by day-of-week x hour."""
     from apps.campaigns.models import EmailLog
     grid = [[0]*24 for _ in range(7)]
-    logs = EmailLog.objects.filter(opened_at__isnull=False).values_list('opened_at', flat=True)
+    logs = _rep_logs(request).filter(opened_at__isnull=False).values_list('opened_at', flat=True)
     for dt in logs:
         if dt:
             grid[dt.weekday()][dt.hour] += 1
     sent_grid = [[0]*24 for _ in range(7)]
-    sent = EmailLog.objects.filter(sent_at__isnull=False).values_list('sent_at', flat=True)
+    sent = _rep_logs(request).filter(sent_at__isnull=False).values_list('sent_at', flat=True)
     for dt in sent:
         if dt:
             sent_grid[dt.weekday()][dt.hour] += 1

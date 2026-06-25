@@ -4,9 +4,28 @@ from .models import Customer
 
 
 @login_required
+def _acc_tenant(request):
+    """شركة المستخدم الحالي للعزل (المدير العام = None يرى الكل)."""
+    if request.user.is_superuser:
+        return None
+    try:
+        from apps.payments.views import _finance_tenant_for_request
+        return _finance_tenant_for_request(request)
+    except Exception:
+        return None
+
+def _acc_customers(request):
+    qs = Customer.objects.all()
+    _t = _acc_tenant(request)
+    if _t is not None:
+        qs = qs.filter(tenant=_t)
+    elif not request.user.is_superuser:
+        qs = qs.none()
+    return qs
+
 def customers(request):
     q = (request.GET.get('q') or '').strip()
-    qs = Customer.objects.all()
+    qs = _acc_customers(request)
     if q:
         from django.db.models import Q
         qs = qs.filter(Q(name__icontains=q) | Q(email__icontains=q) | Q(phone__icontains=q) | Q(company__icontains=q))
@@ -17,6 +36,7 @@ def customers(request):
 def customer_create(request):
     if request.method == 'POST':
         Customer.objects.create(
+            tenant=_acc_tenant(request),
             name=request.POST.get('name', '').strip() or 'عميل',
             email=request.POST.get('email', '').strip(),
             phone=request.POST.get('phone', '').strip(),
@@ -31,7 +51,7 @@ def customer_create(request):
 
 @login_required
 def customer_edit(request, pk):
-    c = get_object_or_404(Customer, pk=pk)
+    c = get_object_or_404(_acc_customers(request), pk=pk)
     if request.method == 'POST':
         c.name = request.POST.get('name', '').strip() or c.name
         c.email = request.POST.get('email', '').strip()
@@ -48,7 +68,7 @@ def customer_edit(request, pk):
 
 @login_required
 def customer_detail(request, pk):
-    c = get_object_or_404(Customer, pk=pk)
+    c = get_object_or_404(_acc_customers(request), pk=pk)
     invoices = c._sales_invoices().prefetch_related('items')
     return render(request, 'accounting/customer_detail.html', {'customer': c, 'invoices': invoices})
 
@@ -63,6 +83,18 @@ def _report_data(request):
     end = request.GET.get('to', '')
     invoices = SalesInvoice.objects.all()
     expenses = Expense.objects.all()
+    # عزل حسب الشركة (المدير العام يرى الكل)
+    try:
+        from apps.payments.views import _finance_tenant_for_request
+        _ft = _finance_tenant_for_request(request)
+        if _ft is not None:
+            invoices = invoices.filter(tenant=_ft)
+            expenses = expenses.filter(tenant=_ft)
+        elif not request.user.is_superuser:
+            invoices = invoices.none()
+            expenses = expenses.none()
+    except Exception:
+        pass
     if start:
         invoices = invoices.filter(issue_date__gte=start)
         expenses = expenses.filter(spent_at__gte=start)

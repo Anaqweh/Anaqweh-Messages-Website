@@ -1,0 +1,69 @@
+{% extends "base/base.html" %}
+{% block title %}إعدادات نظام التسجيل{% endblock %}
+{% block page_title %}إعدادات نظام التسجيل{% endblock %}
+{% block content %}
+<div class="data-table p-4" dir="rtl">
+
+{% if messages %}{% for m in messages %}<div class="alert alert-success">{{ m }}</div>{% endfor %}{% endif %}
+
+<form method="post">{% csrf_token %}
+
+  <div class="card mb-4">
+    <div class="card-header" style="background:#0b4ea2;color:#fff;font-weight:900">
+      ⚙️ تفعيل نظام التسجيل
+    </div>
+    <div class="card-body">
+      <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" name="enable_registrations" id="enableReg"
+          {% if tenant.modules.registrations %}checked{% endif %}>
+        <label class="form-check-label fw-bold" for="enableReg">
+          تفعيل نموذج التسجيل الإلكتروني
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header" style="background:#0b4ea2;color:#fff;font-weight:900">
+      📧 إعدادات EmailJS (لإرسال بريد التأكيد)
+    </div>
+    <div class="card-body">
+      <div class="alert alert-info mb-3">
+        احصل على المفاتيح من <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> ← Account → API Keys
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Service ID</label>
+          <input type="text" name="emailjs_service_id" class="form-control"
+            value="{{ tenant.emailjs_service_id }}" placeholder="service_xxxxxxx">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Template ID</label>
+          <input type="text" name="emailjs_template_id" class="form-control"
+            value="{{ tenant.emailjs_template_id }}" placeholder="template_xxxxxxx">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Public Key</label>
+          <input type="text" name="emailjs_public_key" class="form-control"
+            value="{{ tenant.emailjs_public_key }}" placeholder="xxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">Private Key</label>
+          <input type="password" name="emailjs_private_key" class="form-control"
+            value="{{ tenant.emailjs_private_key }}" placeholder="xxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">إيميل المدير (للإشعارات)</label>
+          <input type="email" name="registration_admin_email" class="form-control"
+            value="{{ tenant.registration_admin_email }}" placeholder="admin@example.com">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-inexc px-5">💾 حفظ الإعدادات</button>
+  <a href="{% url 'workspace:members' %}" class="btn btn-light me-2">رجوع</a>
+
+</form>
+</div>
+{% endblock %}

@@ -6,8 +6,11 @@ app_name = "platform_core"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("settings/", views.platform_settings, name="platform_settings"),
+    path("finance/", views.platform_finance, name="platform_finance"),
     path("tenants/", views.tenant_list, name="tenant_list"),
     path("tenants/new/", views.tenant_create, name="tenant_create"),
+    path("tenants/wizard/", views.tenant_wizard, name="tenant_wizard"),
     path("tenants/<int:pk>/", views.tenant_detail, name="tenant_detail"),
     path("tenants/<int:pk>/members/", views.tenant_members, name="tenant_members"),
     path("tenants/<int:pk>/edit/", views.tenant_edit, name="tenant_edit"),
@@ -25,4 +28,5 @@ urlpatterns = [
     path("tenants/<int:pk>/roles/<int:role_pk>/delete/", views.tenant_role_delete, name="tenant_role_delete"),
     path("members/<int:membership_pk>/edit/", views.tenant_member_edit, name="tenant_member_edit"),
     path("members/<int:membership_pk>/reset-password/", views.tenant_member_reset_password, name="tenant_member_reset_password"),
+    path("members/<int:membership_pk>/set-new-password/", views.tenant_member_set_password, name="tenant_member_set_password"),
 ]

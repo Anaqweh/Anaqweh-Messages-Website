@@ -1,0 +1,73 @@
+{% extends "base/base.html" %}
+{% block title %}إعدادات الدفع{% endblock %}
+{% block page_title %}<i class="bi bi-credit-card me-2"></i>إعدادات الدفع — {{ tenant.name }}{% endblock %}
+{% block content %}
+
+{% if tenant.stripe_mode == 'platform' and not tenant.bank_iban %}
+<div class="alert alert-warning d-flex align-items-center mb-4" style="border-right:5px solid #f59e0b">
+  <i class="bi bi-exclamation-triangle-fill me-3" style="font-size:1.6rem;color:#f59e0b"></i>
+  <div>
+    <strong>تنبيه مهم:</strong> يجب تعبئة معلومات حسابك البنكي بالكامل (اسم البنك، IBAN، رقم الحساب...)
+    حتى نتمكن من تحويل أموالك المستحقة إليك. بدون هذه البيانات لن نستطيع تحويل أرباحك.
+  </div>
+</div>
+{% endif %}
+
+<div class="card border-0 shadow-sm"><div class="card-body">
+<form method="post">{% csrf_token %}
+
+  <h6 class="fw-bold mb-3">نوع خدمة الدفع</h6>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <label class="card border-2 p-3 d-block" style="cursor:pointer">
+        <input type="radio" name="stripe_mode" value="platform" {% if tenant.stripe_mode == 'platform' %}checked{% endif %} onchange="toggleMode()">
+        <strong class="ms-2">حساب المدير العام</strong>
+        <div class="small text-muted mt-1">تستخدم حساب Stripe الخاص بالمنصة. يُخصم {{ platform_settings.commission_platform_stripe }}% رسوم خدمة، ويُحوّل لك الباقي يدوياً على حسابك البنكي.</div>
+      </label>
+    </div>
+    <div class="col-md-6">
+      <label class="card border-2 p-3 d-block" style="cursor:pointer">
+        <input type="radio" name="stripe_mode" value="own" {% if tenant.stripe_mode == 'own' %}checked{% endif %} onchange="toggleMode()">
+        <strong class="ms-2">حساب الشركة الخاص</strong>
+        <div class="small text-muted mt-1">تستخدم حساب Stripe الخاص بك. يُخصم {{ platform_settings.commission_own_stripe }}% فقط رسوم المنصة.</div>
+      </label>
+    </div>
+  </div>
+
+  <!-- بيانات البنك (حساب المدير العام) -->
+  <div id="bankSection">
+    <h6 class="fw-bold mb-3">معلومات الحساب البنكي <small class="text-muted fw-normal">(لتحويل أموالك إليك)</small></h6>
+    <div class="row g-3 mb-4">
+      <div class="col-md-6"><label class="form-label">اسم البنك</label><input name="bank_name" class="form-control" value="{{ tenant.bank_name }}"></div>
+      <div class="col-md-6"><label class="form-label">الدولة</label><input name="bank_country" class="form-control" value="{{ tenant.bank_country }}"></div>
+      <div class="col-md-6"><label class="form-label">اسم صاحب الحساب</label><input name="bank_account_holder" class="form-control" value="{{ tenant.bank_account_holder }}"></div>
+      <div class="col-md-6"><label class="form-label">IBAN</label><input name="bank_iban" class="form-control" value="{{ tenant.bank_iban }}"></div>
+      <div class="col-md-6"><label class="form-label">رقم الحساب</label><input name="bank_account_number" class="form-control" value="{{ tenant.bank_account_number }}"></div>
+      <div class="col-md-6"><label class="form-label">SWIFT / BIC</label><input name="bank_swift" class="form-control" value="{{ tenant.bank_swift }}"></div>
+      <div class="col-md-6"><label class="form-label">العملة</label><input name="bank_currency" class="form-control" value="{{ tenant.bank_currency }}" placeholder="AED"></div>
+    </div>
+  </div>
+
+  <!-- مفاتيح Stripe (حساب الشركة) -->
+  <div id="ownSection">
+    <h6 class="fw-bold mb-3">مفاتيح Stripe الخاصة بك</h6>
+    <div class="row g-3 mb-4">
+      <div class="col-md-12"><label class="form-label">Secret Key</label><input name="stripe_secret_key" class="form-control" value="{{ tenant.stripe_secret_key }}" placeholder="sk_live_..."></div>
+      <div class="col-md-12"><label class="form-label">Publishable Key</label><input name="stripe_publishable_key" class="form-control" value="{{ tenant.stripe_publishable_key }}" placeholder="pk_live_..."></div>
+      <div class="col-md-12"><label class="form-label">Webhook Secret</label><input name="stripe_webhook_secret" class="form-control" value="{{ tenant.stripe_webhook_secret }}" placeholder="whsec_..."></div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary px-5">حفظ الإعدادات</button>
+</form>
+</div></div>
+
+<script>
+function toggleMode(){
+  var mode = document.querySelector('input[name="stripe_mode"]:checked').value;
+  document.getElementById('bankSection').style.display = (mode === 'platform') ? 'block' : 'none';
+  document.getElementById('ownSection').style.display = (mode === 'own') ? 'block' : 'none';
+}
+toggleMode();
+</script>
+{% endblock %}

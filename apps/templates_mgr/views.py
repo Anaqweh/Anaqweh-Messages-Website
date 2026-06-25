@@ -91,7 +91,24 @@ def builder(request):
     ctx = {}
     if edit_pk:
         try:
-            ctx['edit_template'] = EmailTemplate.objects.get(pk=edit_pk)
+            _tpl = EmailTemplate.objects.get(pk=edit_pk)
+            # عزل: المدير العام يرى الكل، غيره فقط قوالب شركته
+            _allowed = request.user.is_superuser
+            if not _allowed:
+                try:
+                    from apps.platform_core.navigation import active_membership_for
+                    from apps.platform_core.models import TenantMembership
+                    _m = active_membership_for(request.user)
+                    if _m:
+                        _ids = list(TenantMembership.objects.filter(tenant=_m.tenant).values_list("user_id", flat=True))
+                        _ids.append(request.user.id)
+                        _allowed = _tpl.owner_id in _ids
+                    else:
+                        _allowed = (_tpl.owner_id == request.user.id)
+                except Exception:
+                    _allowed = (_tpl.owner_id == request.user.id)
+            if _allowed:
+                ctx['edit_template'] = _tpl
         except EmailTemplate.DoesNotExist:
             pass
     return render(request, 'templates_mgr/builder.html', ctx)
@@ -146,6 +163,14 @@ def create_checkout(request):
             currency=getattr(settings, 'STRIPE_CURRENCY', 'aed'),
             status='pending',
         )
+        try:
+            from apps.payments.views import _finance_tenant_for_request as _pay_tenant
+            _pt = _pay_tenant(request)
+            if _pt is not None and hasattr(payment, 'tenant_id'):
+                payment.tenant = _pt
+                payment.save(update_fields=['tenant'])
+        except Exception:
+            pass
         session = stripe.checkout.Session.create(
             mode='payment',
             line_items=[{

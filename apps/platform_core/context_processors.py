@@ -34,6 +34,13 @@ def _permissions_from_modules(modules):
             'edit': True,
             'manage_users': True,
         },
+        'registrations': {
+            'view': modules.get('registrations', False),
+            'create': modules.get('registrations', False),
+            'edit': modules.get('registrations', False),
+            'delete': modules.get('registrations', False),
+            'settings': modules.get('registrations', False),
+        },
     }
 
 
@@ -52,29 +59,58 @@ def tenant_permissions(request):
                 tenant = Tenant.objects.get(pk=active_tenant_id)
                 # نقرأ صلاحيات الشركة الفعلية من modules
                 perms = _permissions_from_modules(tenant.modules or {})
+                reg_perms = perms.get('registrations', {})
                 return {
                     'tenant_membership': None,
                     'tenant_permissions': perms,
+                    'tenant_modules': tenant.modules or {},
                     'active_tenant_context': {
                         'id': active_tenant_id,
                         'name': active_tenant_name,
                         'modules': tenant.modules,
                     },
+                    'perms_registrations_view': reg_perms.get('view', False),
+                    'perms_registrations_create': reg_perms.get('create', False),
+                    'perms_registrations_edit': reg_perms.get('edit', False),
+                    'perms_registrations_delete': reg_perms.get('delete', False),
+                    'perms_registrations_settings': reg_perms.get('settings', False),
                 }
             except Exception:
                 request.session.pop('active_tenant_id', None)
                 request.session.pop('active_tenant_name', None)
-        # المدير العام بدون شركة مختارة
+        # المدير العام بدون شركة مختارة - نعطيه modules من أول شركة
+        try:
+            from .models import Tenant
+            first_tenant = Tenant.objects.first()
+            admin_modules = first_tenant.modules if first_tenant else {}
+        except Exception:
+            admin_modules = {}
+        admin_reg = admin_modules.get('registrations', False)
         return {
             'tenant_membership': None,
             'tenant_permissions': {},
+            'tenant_modules': admin_modules,
             'active_tenant_context': None,
+            'perms_registrations_view': admin_reg,
+            'perms_registrations_create': admin_reg,
+            'perms_registrations_edit': admin_reg,
+            'perms_registrations_delete': admin_reg,
+            'perms_registrations_settings': admin_reg,
         }
 
     # مستخدم عادي
     membership = active_membership_for(user)
+    perms2 = permissions_for_membership(membership) if membership else {}
+    reg_perms2 = perms2.get('registrations', {})
+    modules2 = membership.tenant.modules if membership else {}
     return {
         'tenant_membership': membership,
-        'tenant_permissions': permissions_for_membership(membership) if membership else {},
+        'tenant_permissions': perms2,
+        'tenant_modules': modules2,
         'active_tenant_context': None,
+        'perms_registrations_view': reg_perms2.get('view', False),
+        'perms_registrations_create': reg_perms2.get('create', False),
+        'perms_registrations_edit': reg_perms2.get('edit', False),
+        'perms_registrations_delete': reg_perms2.get('delete', False),
+        'perms_registrations_settings': reg_perms2.get('settings', False),
     }

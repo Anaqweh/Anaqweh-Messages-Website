@@ -21,6 +21,10 @@ class TenantPermissionMiddleware:
         "/payments/cancel/",
     )
 
+
+
+
+
     PLATFORM_ONLY_PREFIXES = (
         "/platform/",
         "/django-admin/",

@@ -190,6 +190,17 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
   </div>
   {% endif %}
+  <div class="nav-group">
+    <div class="nav-group-header" onclick="toggleGroup('grp-registrations')">
+      <span><i class="bi bi-file-earmark-text me-2"></i>النماذج والتسجيل</span>
+      <i class="bi bi-chevron-down nav-arrow" id="arr-grp-registrations"></i>
+    </div>
+    <div class="nav-group-items" id="grp-registrations">
+      <a href="/registrations/templates/3/spark-fill/" class="nav-link"><i class="bi bi-mortarboard"></i> نموذج معهد سبارك</a>
+      <a href="/registrations/" class="nav-link"><i class="bi bi-list-check"></i> لوحة التسجيلات</a>
+    </div>
+  </div>
+
 
   {% if user.is_staff or user.is_superuser %}
   <div class="nav-group">
@@ -199,9 +210,33 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
     <div class="nav-group-items" id="grp-admin">
       <a href="/platform/tenants/" class="nav-link"><i class="bi bi-buildings"></i> الشركات/النسخ</a>
+      <a href="/platform/tenants/wizard/" class="nav-link"><i class="bi bi-magic"></i> + شركة جديدة</a>
       <a href="/workspace/" class="nav-link"><i class="bi bi-person-workspace"></i> مساحة العمل</a>
       <a href="{% url 'accounts:user_list' %}" class="nav-link"><i class="bi bi-person-gear"></i> المستخدمون</a>
       <a href="{% url 'accounts:audit_log' %}" class="nav-link"><i class="bi bi-journal-text"></i> سجل النشاط</a>
+      <a href="/platform/finance/" class="nav-link"><i class="bi bi-cash-stack"></i> اللوحة المالية</a>
+      <a href="/platform/settings/" class="nav-link"><i class="bi bi-sliders"></i> إعدادات المنصة</a>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if tenant_membership.is_tenant_admin %}
+  <div class="nav-group">
+    <div class="nav-group-header" onclick="toggleGroup('grp-company')">
+      <span><i class="bi bi-building-gear me-2"></i>إدارة الشركة</span>
+      <i class="bi bi-chevron-down nav-arrow" id="arr-grp-company"></i>
+    </div>
+    <div class="nav-group-items" id="grp-company">
+      <a href="{% url 'workspace:members' %}" class="nav-link"><i class="bi bi-people"></i> فريق الشركة</a>
+      <a href="{% url 'workspace:member_add' %}" class="nav-link"><i class="bi bi-person-plus"></i> إضافة موظف</a>
+      <a href="{% url 'workspace:roles' %}" class="nav-link"><i class="bi bi-shield-check"></i> الأدوار والمسميات</a>
+      {% if tenant_modules.registrations %}
+      <a href="{% url 'workspace:registration_settings' %}" class="nav-link"><i class="bi bi-gear"></i> إعدادات التسجيل</a>
+      {% endif %}
+      {% if tenant_modules.stripe %}
+      <a href="{% url 'workspace:finance_board' %}" class="nav-link"><i class="bi bi-wallet2"></i> لوحتي المالية</a>
+      <a href="{% url 'workspace:stripe_settings' %}" class="nav-link"><i class="bi bi-credit-card"></i> إعدادات الدفع</a>
+      {% endif %}
     </div>
   </div>
   {% endif %}
@@ -251,6 +286,7 @@ document.addEventListener('DOMContentLoaded',function(){
     'grp-tasks':['/tasks/'],
     'grp-finance':['/payments/','/reports/','/accounting/'],
     'grp-admin':['/platform/','/workspace/','/accounts/'],
+    'grp-company':['/workspace/members','/workspace/roles','/workspace/registration-settings','/workspace/stripe-settings','/workspace/finance-board'],
     'grp-account':['/accounts/emailjs']
   };
   // فتح القسم النشط

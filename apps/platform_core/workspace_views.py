@@ -105,8 +105,13 @@ def workspace_member_add(request):
             return redirect('workspace:members')
     else:
         form = TenantManagerForm(tenant_modules=tenant.modules)
+    from .models import TenantRole
+    import json as _json
+    roles = TenantRole.objects.filter(tenant=tenant)
+    roles_json = _json.dumps({str(r.pk): r.permissions for r in roles})
     return render(request, 'workspace/member_add.html', {
         'tenant': tenant, 'form': form, 'membership': membership,
+        'roles': roles, 'roles_json': roles_json,
     })
 
 
@@ -195,4 +200,126 @@ def workspace_member_reset_password(request, membership_pk):
             return redirect('workspace:members')
     return render(request, 'workspace/reset_password.html', {
         'target': target, 'tenant': membership.tenant,
+    })
+
+
+@login_required
+def workspace_registration_settings(request):
+    from apps.platform_core.models import Tenant, TenantMembership
+    from apps.platform_core.navigation import active_membership_for, is_platform_admin
+    if is_platform_admin(request.user):
+        tenant = Tenant.objects.first()
+    else:
+        membership = TenantMembership.objects.filter(user=request.user).first()
+        if not membership:
+            from django.http import HttpResponseForbidden
+            return HttpResponseForbidden("غير مصرح")
+        tenant = membership.tenant
+    if request.method == "POST":
+        tenant.emailjs_service_id = request.POST.get("emailjs_service_id", "").strip()
+        tenant.emailjs_template_id = request.POST.get("emailjs_template_id", "").strip()
+        tenant.emailjs_public_key = request.POST.get("emailjs_public_key", "").strip()
+        tenant.emailjs_private_key = request.POST.get("emailjs_private_key", "").strip()
+        tenant.registration_admin_email = request.POST.get("registration_admin_email", "").strip()
+        # تفعيل/تعطيل نظام التسجيل
+        modules = tenant.modules or {}
+        modules["registrations"] = request.POST.get("enable_registrations") == "on"
+        tenant.modules = modules
+        tenant.save()
+        from django.contrib import messages
+        messages.success(request, "تم حفظ الإعدادات بنجاح")
+        return redirect("workspace:registration_settings")
+    return render(request, "workspace/registration_settings.html", {"tenant": tenant})
+
+
+@login_required
+def workspace_stripe_settings(request):
+    from apps.platform_core.models import Tenant, TenantMembership, PlatformSettings
+    from apps.platform_core.navigation import active_membership_for, is_platform_admin
+    if is_platform_admin(request.user):
+        tenant = Tenant.objects.first()
+    else:
+        membership = active_membership_for(request.user)
+        if not membership or not membership.is_tenant_admin:
+            return redirect("workspace:access_denied")
+        tenant = membership.tenant
+
+    modules = tenant.modules or {}
+    if not modules.get("stripe") and not is_platform_admin(request.user):
+        return redirect("workspace:access_denied")
+
+    ps = PlatformSettings.get_solo()
+
+    if request.method == "POST":
+        mode = request.POST.get("stripe_mode", "platform").strip()
+        if mode not in ("platform", "own"):
+            mode = "platform"
+        tenant.stripe_mode = mode
+        if mode == "own":
+            tenant.stripe_secret_key = request.POST.get("stripe_secret_key", "").strip()
+            tenant.stripe_publishable_key = request.POST.get("stripe_publishable_key", "").strip()
+            tenant.stripe_webhook_secret = request.POST.get("stripe_webhook_secret", "").strip()
+            tenant.commission_rate = ps.commission_own_stripe
+        else:
+            tenant.bank_name = request.POST.get("bank_name", "").strip()
+            tenant.bank_country = request.POST.get("bank_country", "").strip()
+            tenant.bank_account_holder = request.POST.get("bank_account_holder", "").strip()
+            tenant.bank_iban = request.POST.get("bank_iban", "").strip()
+            tenant.bank_account_number = request.POST.get("bank_account_number", "").strip()
+            tenant.bank_swift = request.POST.get("bank_swift", "").strip()
+            tenant.bank_currency = request.POST.get("bank_currency", "").strip()
+            tenant.commission_rate = ps.commission_platform_stripe
+        tenant.save()
+        from django.contrib import messages
+        messages.success(request, "تم حفظ إعدادات الدفع بنجاح")
+        return redirect("workspace:stripe_settings")
+
+    return render(request, "workspace/stripe_settings.html", {
+        "tenant": tenant,
+        "platform_settings": ps,
+    })
+
+
+@login_required
+def workspace_finance_board(request):
+    """لوحة مالية للشركة: دفعاتها وصافيها المستحق (شفافية)."""
+    from apps.platform_core.models import Tenant, PlatformSettings
+    from apps.platform_core.navigation import active_membership_for, is_platform_admin
+    from apps.payments.models import Payment
+    from decimal import Decimal
+    if is_platform_admin(request.user):
+        tenant = Tenant.objects.first()
+    else:
+        membership = active_membership_for(request.user)
+        if not membership or not membership.is_tenant_admin:
+            return redirect("workspace:access_denied")
+        tenant = membership.tenant
+
+    modules = tenant.modules or {}
+    if not modules.get("stripe") and not is_platform_admin(request.user):
+        return redirect("workspace:access_denied")
+
+    ps = PlatformSettings.get_solo()
+    pays = Payment.objects.filter(tenant=tenant, status='paid').order_by('-created_at')
+    total = Decimal(str(sum((pp.amount or Decimal('0')) for pp in pays)))
+
+    if tenant.commission_rate is not None:
+        rate = Decimal(str(tenant.commission_rate))
+    elif tenant.stripe_mode == 'own':
+        rate = Decimal(str(ps.commission_own_stripe))
+    else:
+        rate = Decimal(str(ps.commission_platform_stripe))
+
+    commission = (total * rate / Decimal('100')).quantize(Decimal('0.01'))
+    net = (total - commission).quantize(Decimal('0.01'))
+
+    return render(request, 'workspace/finance_board.html', {
+        'tenant': tenant,
+        'payments': pays[:50],
+        'total': total,
+        'rate': rate,
+        'commission': commission,
+        'net': net,
+        'mode': tenant.stripe_mode,
+        'bank_ok': bool(tenant.bank_iban or tenant.bank_account_number),
     })

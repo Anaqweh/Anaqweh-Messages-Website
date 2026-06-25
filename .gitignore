@@ -26,3 +26,7 @@ backups/
 token.txt*
 *.save
 .env.bak*
+
+config/*.save*
+protected_backups/
+*.bak_*

@@ -1,0 +1,835 @@
+{% extends "base/base.html" %}
+{% block content %}
+<style>
+.spark-wrap{direction:ltr;max-width:1040px;margin:24px auto;padding:0 14px;color:#222;font-family:Arial,Tahoma,sans-serif}
+.spark-paper{background:#fff;border-radius:10px;padding:28px;border:1px solid #d9e4d0;box-shadow:0 14px 34px rgba(0,0,0,.08)}
+.spark-top{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:start;gap:20px}
+.spark-logo{max-width:220px;max-height:110px;object-fit:contain}
+.spark-title{text-align:center;color:#a86532;font-size:28px;font-weight:900;margin-top:26px}
+.spark-title span{display:block;border-top:4px solid #a86532;padding-top:4px;font-size:24px}
+.spark-type{direction:rtl;color:#3e4f22;font-size:18px;font-weight:800}
+.check-row{display:flex;align-items:center;gap:8px;margin:7px 0}
+.box{width:28px;height:28px;border:2px solid #3e4f22;display:inline-block;background:#fff;vertical-align:middle}
+.box.small{width:18px;height:18px}
+.section-title{display:flex;justify-content:space-between;color:#3e4f22;font-size:24px;font-weight:900;margin:24px 0 12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px 26px}
+.field-line label{display:flex;justify-content:space-between;font-size:18px;font-weight:800;margin-bottom:8px}
+.field-line input{width:100%;border:0;border-bottom:2px dotted #333;padding:8px 4px;font-size:17px;outline:none}
+.inline-options{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+.course-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px 18px}
+.course-grid .check-row{font-size:14px;align-items:flex-start}
+.course-grid strong{display:block}
+.subhead{font-size:21px;font-weight:900;margin:16px 0 10px}
+.pay-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.pay-box input{height:46px;border:2px solid #333;width:100%;font-size:18px;padding:4px}
+.sign-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;text-align:center;margin-top:30px}
+.sign-line{border-top:2px dotted #333;padding-top:10px;font-size:18px;font-weight:900}
+.id-panel{direction:rtl;border:2px dashed #9fc5f8;background:#f7fbff;border-radius:12px;padding:16px;margin-bottom:22px}
+.id-panel h2{margin:0 0 8px;color:#0b4ea2}
+.id-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.btn{border:0;border-radius:8px;background:#0b4ea2;color:#fff;padding:10px 14px;font-weight:900;cursor:pointer;text-decoration:none}
+.btn.light{background:#eef6ff;color:#0b4ea2;border:1px solid #bdd7f7}
+.btn.danger{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+#cameraPreview,#idPreview{display:none;width:100%;max-height:320px;object-fit:contain;background:#eef3f9;border-radius:8px;margin-top:10px}
+.signature-box{width:100%;height:150px;border:1px solid #bbb;background:#fff;touch-action:none}
+@media(max-width:800px){.spark-top,.grid2,.pay-grid,.sign-grid{grid-template-columns:1fr}.course-grid{grid-template-columns:repeat(2,1fr)}.spark-title{text-align:left}}
+
+/* SPARK_CONTRACT_TERMS_CSS_START */
+.contract-terms{background:#fffdf8;border-color:#dfd4bd}
+.contract-terms h2{color:#3e4f22}
+.terms-note{color:#667085;margin-top:0}
+.terms-grid{display:grid;grid-template-columns:1fr;gap:10px}
+.terms-grid details{background:#fff;border:1px solid #e3d8c8;border-radius:10px;padding:12px}
+.terms-grid summary{cursor:pointer;color:#3e4f22;font-weight:900;font-size:17px}
+.terms-grid ul{margin:10px 0 0;padding-inline-start:22px;line-height:1.7}
+.terms-grid .en{direction:ltr;text-align:left;color:#344054}
+.terms-ack{margin-top:14px;background:#f7fbff;border:1px solid #bdd7f7;border-radius:10px;padding:12px;font-weight:900}
+/* SPARK_CONTRACT_TERMS_CSS_END */
+
+
+/* SPARK_TYPES_SIGNATURES_CSS_START */
+.spark-type{direction:rtl;display:grid;grid-template-columns:1fr;gap:10px}
+.type-card{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border:1px solid #d9e4d0;
+  border-radius:12px;
+  padding:10px 12px;
+  background:#fbfff7;
+  color:#3e4f22;
+  cursor:pointer;
+}
+.type-card input{position:absolute;opacity:0;pointer-events:none}
+.type-check{
+  width:28px;
+  height:28px;
+  border:2px solid #3e4f22;
+  background:#fff;
+  flex:0 0 28px;
+}
+.type-card input:checked + .type-check{
+  background:#3e4f22;
+  box-shadow:inset 0 0 0 5px #fff;
+}
+.type-card strong{display:block;font-size:17px}
+.type-card small{display:block;font-size:13px;color:#667085;margin-top:2px}
+.signature-tools{display:flex;justify-content:center;gap:8px;margin-top:8px}
+.signature-tools button{border:1px solid #bdd7f7;background:#eef6ff;color:#0b4ea2;border-radius:7px;padding:6px 10px;font-weight:800;cursor:pointer}
+@media(max-width:800px){.spark-type{grid-template-columns:1fr}}
+/* SPARK_TYPES_SIGNATURES_CSS_END */
+
+
+/* SPARK_REGISTRATION_TYPE_BAR_START */
+.spark-top{
+  display:grid;
+  grid-template-columns:240px 1fr;
+  align-items:start;
+  gap:18px 24px;
+}
+.spark-title{
+  text-align:center;
+  align-self:center;
+}
+.spark-type{
+  grid-column:1 / -1;
+  direction:rtl;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin:10px 0 6px;
+}
+.type-card{
+  min-height:58px;
+  border:1px solid #d9e4d0;
+  border-radius:12px;
+  background:#fbfff7;
+  padding:8px 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+.type-card input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.type-check{
+  width:24px;
+  height:24px;
+  border:2px solid #3e4f22;
+  background:#fff;
+  flex:0 0 24px;
+}
+.type-card input:checked + .type-check{
+  background:#3e4f22;
+  box-shadow:inset 0 0 0 5px #fff;
+}
+.type-card strong{
+  display:block;
+  color:#3e4f22;
+  font-size:15px;
+  font-weight:900;
+  line-height:1.1;
+  white-space:nowrap;
+}
+.type-card small{
+  display:block;
+  color:#667085;
+  font-size:10px;
+  font-weight:800;
+  margin-top:3px;
+  line-height:1.1;
+  white-space:nowrap;
+}
+@media(max-width:900px){
+  .spark-top{grid-template-columns:1fr}
+  .spark-type{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .type-card strong{font-size:14px}
+}
+@media(max-width:520px){
+  .spark-type{grid-template-columns:1fr}
+}
+/* SPARK_REGISTRATION_TYPE_BAR_END */
+
+
+/* SPARK_EXTRA_SIGNATURES_ACTIVE_CSS_START */
+.signature-tools{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-top:8px;
+}
+.signature-tools button{
+  border:1px solid #bdd7f7;
+  background:#eef6ff;
+  color:#0b4ea2;
+  border-radius:7px;
+  padding:6px 10px;
+  font-weight:800;
+  cursor:pointer;
+}
+.signature-box{
+  cursor:crosshair;
+  touch-action:none;
+}
+/* SPARK_EXTRA_SIGNATURES_ACTIVE_CSS_END */
+
+</style>
+
+<div class="spark-wrap">
+  <div class="spark-paper">
+    <div class="id-panel">
+      <h2>مسح الهوية</h2>
+      <p>يمكن تصوير الهوية أو رفع صورة، ثم الضغط على قراءة الهوية لتعبئة البيانات تلقائياً. هذه الخاصية محمية ولا يتم حذفها.</p>
+      <div class="id-actions">
+        <button type="button" class="btn" onclick="startCamera()">فتح الكاميرا</button>
+        <button type="button" class="btn light" onclick="capturePhoto()">التقاط الصورة</button>
+        <button type="button" class="btn light" onclick="runOCR()">قراءة الهوية</button>
+        <button type="button" class="btn danger" onclick="stopCamera()">إغلاق الكاميرا</button>
+        <label class="btn light">رفع صورة<input type="file" accept="image/*" style="display:none" onchange="loadImageFile(event)"></label>
+      </div>
+      <video id="cameraPreview" autoplay playsinline></video>
+      <img id="idPreview" alt="ID preview">
+      <input type="hidden" name="id_image_data" id="idImageData">
+      <div id="ocrStatus" style="color:#667085;margin-top:8px"></div>
+    </div>
+
+    <form method="post" id="sparkForm">
+      {% csrf_token %}
+
+      <div class="spark-top">
+        <div>
+          {% if template_obj.logo %}
+            <img class="spark-logo" src="{{ template_obj.logo.url }}" alt="Spark Logo">
+          {% else %}
+            <div style="font-size:46px;font-weight:900;color:#3e4f22;line-height:.9">SPARK<br>INSTITUTE</div>
+            <div style="color:#a86532;letter-spacing:4px">Light Your Way To Success</div>
+          {% endif %}
+        </div>
+        <div class="spark-title">استمارة تسجيل<span>Registration Form</span></div>
+        
+
+<div class="spark-type">
+  {% for opt in registration_types %}
+    <label class="type-card">
+      <input type="radio" name="registration_type" value="{{ opt.value }}" {% if forloop.first %}checked{% endif %}>
+      <span class="type-check"></span>
+      <span>
+        <strong>{{ opt.ar }}</strong>
+        <small>{{ opt.en }}</small>
+      </span>
+    </label>
+  {% endfor %}
+</div>
+</div>
+
+      <div class="section-title"><span>Personal Information</span><span>المعلومات الشخصية:</span></div>
+      <div class="grid2">
+        <div class="field-line"><label><span>Full name <small>(as passport / National ID)</small>:</span><span>الاسم كامل:</span></label><input id="full_name" name="full_name" required></div>
+        <div class="field-line"><label><span>Mobile Number:</span><span>رقم الموبايل:</span></label><input id="mobile" name="mobile" required></div>
+        <div class="field-line"><label><span>Company:</span><span>الشركة</span></label><input name="company"></div>
+        <div class="field-line"><label><span>Email:</span><span>البريد الإلكتروني:</span></label><input id="email" type="email" name="email" required></div>
+        <div class="field-line"><label><span>Address:</span><span>العنوان:</span></label><input name="address"></div>
+        <div class="field-line"><label><span>Nationality:</span><span>الجنسية:</span></label><input id="nationality" name="nationality"></div>
+        <div class="field-line"><label><span>Date of Birth:</span><span>تاريخ الميلاد:</span></label><input id="date_of_birth" type="date" name="date_of_birth"></div>
+        <div class="field-line"><label><span>Gender:</span><span>الجنس:</span></label><div class="inline-options"><label><input type="radio" name="gender" value="Male"> Male / ذكر</label><label><input type="radio" name="gender" value="Female"> Female / أنثى</label></div></div>
+        <div class="field-line"><label><span>Emirates ID:</span><span>رقم الهوية:</span></label><input id="emirates_id" name="emirates_id"></div>
+      </div>
+
+      <div class="section-title"><span>Educational Background</span><span>المؤهلات العلمية</span></div>
+      <div class="grid2">
+        <div class="field-line"><label><span>School / University:</span><span>المدرسة / الجامعة:</span></label><input name="school_university"></div>
+        <div class="field-line"><label><span>Major / Degree:</span><span>التخصص / الدرجة العلمية:</span></label><input name="major_degree"></div>
+      </div>
+
+      <div class="section-title"><span>Courses:</span><span>البرامج:</span></div>
+      <div class="subhead">General English</div>
+      <div class="course-grid">
+        <label class="check-row"><input type="checkbox" name="courses" value="Foundation"><span class="box"></span><span>Foundation<br>المستوى التأسيسي</span></label>
+        {% for i in "123456789" %}<label class="check-row"><input type="checkbox" name="courses" value="Level {{ i }}"><span class="box"></span><span>Level {{ i }}<br>المستوى {{ i }}</span></label>{% endfor %}
+        <label class="check-row"><input type="checkbox" name="courses" value="Level 10"><span class="box"></span><span>Level 10<br>المستوى 10</span></label>
+        <label class="check-row"><input type="checkbox" name="courses" value="Level 11"><span class="box"></span><span>Level 11<br>المستوى 11</span></label>
+      </div>
+
+      <div class="subhead">ESP</div>
+      <div class="course-grid">
+        <label class="check-row"><input type="checkbox" name="courses" value="Market Leader 1"><span class="box"></span>Market Leader 1</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="Market Leader 2"><span class="box"></span>Market Leader 2</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="Market Leader 3"><span class="box"></span>Market Leader 3</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="English for Marketing"><span class="box"></span>English for Marketing</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="English for Customer Care"><span class="box"></span>English for Customer Care</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="English for Business"><span class="box"></span>English for Business</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="English for Meeting"><span class="box"></span>English for Meeting</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="English for Presentations"><span class="box"></span>English for Presentations</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="Other Languages"><span class="box"></span>Other Languages</label>
+      </div>
+
+      <div class="subhead">Academic</div>
+      <div class="course-grid">
+        <label class="check-row"><input type="checkbox" name="courses" value="TOFEL"><span class="box"></span>TOFEL</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="IELTS"><span class="box"></span>IELTS</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="ALCPT"><span class="box"></span>ALCPT</label>
+        <label class="check-row"><input type="checkbox" name="courses" value="PTE"><span class="box"></span>PTE</label>
+      </div>
+
+      <div class="section-title"><span>Preferred Time and Schedule</span><span>أوقات الدورة</span></div>
+      <div class="course-grid">
+        <label class="check-row"><input type="checkbox" name="preferred_days" value="Sunday"><span class="box"></span>Sunday<br>الأحد</label>
+        <label class="check-row"><input type="checkbox" name="preferred_days" value="Monday"><span class="box"></span>Monday<br>الإثنين</label>
+        <label class="check-row"><input type="checkbox" name="preferred_days" value="Tuesday"><span class="box"></span>Tuesday<br>الثلاثاء</label>
+        <label class="check-row"><input type="checkbox" name="preferred_days" value="Wednesday"><span class="box"></span>Wednesday<br>الأربعاء</label>
+        <label class="check-row"><input type="checkbox" name="preferred_days" value="Thursday"><span class="box"></span>Thursday<br>الخميس</label>
+        <label class="check-row"><input type="checkbox" name="preferred_days" value="Saturday"><span class="box"></span>Saturday<br>السبت</label>
+      </div>
+      <div class="grid2">
+        <div class="field-line"><label><span>Course Time:</span><span>وقت الدورة:</span></label><input name="course_time"></div>
+        <div class="field-line"><label><span>Start Time:</span><span>تاريخ بدء الدورة:</span></label><input name="start_time"></div>
+      </div>
+
+      <div class="section-title"><span>Method of Payment</span><span>طريقة الدفع</span></div>
+      <div class="pay-grid">
+        <label class="check-row"><input type="radio" name="payment_method" value="Bank Transfer"><span class="box"></span>Bank Transfer</label>
+        <label class="check-row"><input type="radio" name="payment_method" value="Visa"><span class="box"></span>Visa</label>
+        <label class="check-row"><input type="radio" name="payment_method" value="Cheque"><span class="box"></span>Cheque</label>
+        <label class="check-row"><input type="radio" name="payment_method" value="Cash"><span class="box"></span>Cash</label>
+      </div>
+      <div class="pay-grid">
+        <div class="pay-box"><input name="course_fee"><div>Course Fee<br>رسوم الدورة</div></div>
+        <div class="pay-box"><input name="initial_payment"><div>Initial Payment<br>الدفعة الأولية</div></div>
+        <div class="pay-box"><input name="balance"><div>Balance<br>المتبقي</div></div>
+      </div>
+
+      <div class="section-title"><span>Duration to complete this program</span><span>المدة لإنهاء الدورة</span></div>
+      <div class="course-grid">
+        {% for m in "2468" %}<label class="check-row"><input type="radio" name="duration" value="{{ m }} Months"><span class="box"></span>{{ m }} Months<br>{{ m }} أشهر</label>{% endfor %}
+        <label class="check-row"><input type="radio" name="duration" value="10 Months"><span class="box"></span>10 Months<br>10 أشهر</label>
+        <label class="check-row"><input type="radio" name="duration" value="12 Months"><span class="box"></span>12 Months<br>12 شهر</label>
+      </div>
+
+      
+<!-- SPARK_CONTRACT_TERMS_START -->
+<div class="spark-section contract-terms">
+  <h2>بنود عقد التسجيل / Partnership Contract Terms</h2>
+  <p class="terms-note">هذه البنود مضافة داخل النموذج حتى يراجعها المتدرب قبل التوقيع، وستظهر في ملف PDF في الصفحات 3 و4 و5.</p>
+
+  <div class="terms-grid">
+    <details open>
+      <summary>1-3: تطوير الدورات، المجموعات، شروط الانتساب</summary>
+      <ul>
+        <li>يحتفظ المعهد بحق تطوير أو تعديل أو تغيير المناهج أو المدربين حسب ما يراه مناسباً.</li>
+        <li>عدد الساعات للمستوى الواحد ضمن المجموعات 30 ساعة حضورياً، و20 ساعة دراسة عن بعد.</li>
+        <li>عدد الساعات للبرامج الأكاديمية 30 ساعة حضورية، و24 ساعة عن بعد.</li>
+        <li>يعتبر التسجيل منتسباً للدراسة عند استكمال الدفعات المالية المستحقة.</li>
+        <li>التسجيل حق فردي للعضو المسجل ولا يجوز نقله إلا بطلب خطي وموافقة الإدارة.</li>
+      </ul>
+      <ul class="en">
+        <li>The institute may develop, amend or change courses, curricula or trainers as deemed necessary.</li>
+        <li>One level within groups is 30 hours in person and 20 study hours online.</li>
+        <li>Academic programs are 30 credit hours in person and 24 academic hours online.</li>
+        <li>Enrollment becomes valid after completing the required financial payment.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>4-6: سياسة التسجيل، الانضباط، وعدد المتدربين</summary>
+      <ul>
+        <li>عند التسجيل في باقة مستويات، وقت وأيام المستويات اللاحقة غير ملزمة بوقت المستوى الأول.</li>
+        <li>لإدارة المعهد الحق بتغيير المدرسين للمستويات اللاحقة دون إخطار الطالب إذا رأت ذلك مناسباً.</li>
+        <li>يمنع استخدام أجهزة الكمبيوتر أو مرافق التدريب لغير أغراض الدورة.</li>
+        <li>يمنع نسخ البرامج أو إساءة استخدام أجهزة وممتلكات المعهد.</li>
+        <li>للمعهد اتخاذ الإجراءات اللازمة عند مخالفة قواعد السلوك والانضباط.</li>
+        <li>تبدأ الدورة عند اكتمال عدد المتدربين المناسب لها.</li>
+      </ul>
+      <ul class="en">
+        <li>Package registration does not bind the institute to the same time and days for subsequent levels.</li>
+        <li>The institute may change teachers for later levels as deemed appropriate.</li>
+        <li>Training rooms and equipment must be used only for course purposes.</li>
+        <li>The course starts when the required number of trainees is completed.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>7-9: الدفع، الشهادات، الإلغاء والاسترداد</summary>
+      <ul>
+        <li>الرسوم المدفوعة لا تشمل ثمن الكتب الدراسية.</li>
+        <li>لا يحق للطالب إلغاء الدورة بعد التسجيل أو تأكيد الحجز أو بدء الدراسة إلا حسب سياسة المعهد.</li>
+        <li>لا يحق للطالب حضور الدورة إلا بعد دفع الرسوم المستحقة عليه كاملة أو حسب الاتفاق.</li>
+        <li>يحق للطالب الحصول على شهادة عند تحقيق نسبة الحضور والنجاح المطلوبة.</li>
+        <li>لا تصدر شهادة دراسية عند الإخلال ببنود العقد أو التعليمات.</li>
+        <li>في حال تغيير رأي الطالب لأي سبب وكان المعهد غير مخل بالشروط، لا يتم إرجاع المبلغ المدفوع.</li>
+        <li>قد يبقى المبلغ رصيداً للطالب يمكن استخدامه في دورات أخرى حسب السياسة المعتمدة.</li>
+      </ul>
+      <ul class="en">
+        <li>Paid fees do not include textbooks.</li>
+        <li>The student may not cancel after registration or course reservation except according to institute policy.</li>
+        <li>Certificates are issued only when attendance and exam requirements are met.</li>
+        <li>Refunds and credits are handled according to the institute cancellation and refund policy.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>إقرار نهائي</summary>
+      <p>أقر بأنني قرأت بنود العقد وأوافق عليها وأتعهد بالالتزام بها.</p>
+      <p class="en">I acknowledge that I read the clauses of this contract, and I agree and pledge to commit to them.</p>
+    </details>
+  </div>
+
+  <label class="terms-ack">
+    <input type="checkbox" name="contract_acknowledged" value="yes" required>
+    أوافق على بنود عقد التسجيل / I agree to the registration contract terms
+  </label>
+</div>
+<!-- SPARK_CONTRACT_TERMS_END -->
+
+
+
+
+<div class="sign-grid">
+  <div>
+    <canvas id="signatureCanvas" class="signature-box"></canvas>
+    <input type="hidden" name="signature_data" id="signatureData">
+    <div class="signature-tools">
+      <button type="button" onclick="clearSparkSignature('signatureCanvas','signatureData')">مسح التوقيع</button>
+    </div>
+    <div class="sign-line">توقيع مقدم الطلب<br>Applicant Signature & Date</div>
+  </div>
+
+  <div>
+    <canvas id="advisorSignatureCanvas" class="signature-box"></canvas>
+    <input type="hidden" name="advisor_signature_data" id="advisorSignatureData">
+    <div class="signature-tools">
+      <button type="button" onclick="clearSparkSignature('advisorSignatureCanvas','advisorSignatureData')">مسح التوقيع</button>
+    </div>
+    <div class="sign-line">المستشار التعليمي<br>Educational Advisor</div>
+  </div>
+
+  <div>
+    <canvas id="directorSignatureCanvas" class="signature-box"></canvas>
+    <input type="hidden" name="director_signature_data" id="directorSignatureData">
+    <div class="signature-tools">
+      <button type="button" onclick="clearSparkSignature('directorSignatureCanvas','directorSignatureData')">مسح التوقيع</button>
+    </div>
+    <div class="sign-line">مدير المعهد<br>Director's Signature</div>
+  </div>
+</div>
+
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:24px">
+        <a class="btn light" href="{% url 'registrations:dashboard' %}">رجوع</a>
+        <button class="btn" type="submit">حفظ التسجيل</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js">
+/* SPARK_EXTRA_SIGNATURES_START */
+function setupExtraSignaturePad(canvasId,inputId){
+  const c=document.getElementById(canvasId);
+  const input=document.getElementById(inputId);
+  if(!c || !input) return;
+  const x=c.getContext("2d");
+
+  function resize(){
+    const rect=c.getBoundingClientRect();
+    const old=input.value;
+    c.width=rect.width;
+    c.height=150;
+    x.lineWidth=2;
+    x.lineCap="round";
+    x.strokeStyle="#0b4ea2";
+    if(old){
+      const img=new Image();
+      img.onload=()=>x.drawImage(img,0,0,c.width,c.height);
+      img.src=old;
+    }
+  }
+
+  resize();
+  window.addEventListener("resize",resize);
+
+  let drawing=false,last=null;
+  function p(e){
+    const r=c.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return {x:t.clientX-r.left,y:t.clientY-r.top};
+  }
+  function start(e){drawing=true;last=p(e);e.preventDefault();}
+  function move(e){
+    if(!drawing)return;
+    const now=p(e);
+    x.beginPath();
+    x.moveTo(last.x,last.y);
+    x.lineTo(now.x,now.y);
+    x.stroke();
+    last=now;
+    input.value=c.toDataURL("image/png");
+    e.preventDefault();
+  }
+  function end(){
+    if(!drawing)return;
+    drawing=false;
+    input.value=c.toDataURL("image/png");
+  }
+
+  c.addEventListener("mousedown",start);
+  c.addEventListener("mousemove",move);
+  window.addEventListener("mouseup",end);
+  c.addEventListener("touchstart",start,{passive:false});
+  c.addEventListener("touchmove",move,{passive:false});
+  c.addEventListener("touchend",end);
+}
+function clearExtraSignature(canvasId,inputId){
+  const c=document.getElementById(canvasId);
+  const input=document.getElementById(inputId);
+  if(!c || !input)return;
+  c.getContext("2d").clearRect(0,0,c.width,c.height);
+  input.value="";
+}
+setupExtraSignaturePad("advisorSignatureCanvas","advisorSignatureData");
+setupExtraSignaturePad("directorSignatureCanvas","directorSignatureData");
+/* SPARK_EXTRA_SIGNATURES_END */
+
+</script>
+<script>
+let stream=null;
+let identityOcrBusy=false;
+let identityOcrAutoTimer=null;
+async function startCamera(){try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});let v=document.getElementById("cameraPreview");v.srcObject=stream;v.style.display="block";}catch(e){alert("تعذر فتح الكاميرا. استخدم رفع صورة إذا كان الموقع بدون HTTPS.");}}
+function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}}
+function capturePhoto(){let v=document.getElementById("cameraPreview");if(!v.videoWidth){alert("افتح الكاميرا أولاً");return;}let c=document.createElement("canvas");c.width=v.videoWidth;c.height=v.videoHeight;c.getContext("2d").drawImage(v,0,0);showImage(c.toDataURL("image/png"));}
+function loadImageFile(e){let f=e.target.files&&e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>showImage(r.result);r.readAsDataURL(f);}
+
+function scheduleAutoOCR(){
+  clearTimeout(identityOcrAutoTimer);
+  const st=document.getElementById("ocrStatus");
+  if(st) st.textContent="تم تحميل صورة الهوية. ستبدأ القراءة تلقائياً...";
+  identityOcrAutoTimer=setTimeout(()=>{
+    if(!identityOcrBusy){
+      runOCR();
+    }
+  },450);
+}
+
+function showImage(src){document.getElementById("idImageData").value=src;let img=document.getElementById("idPreview");img.src=src;img.style.display="block";scheduleAutoOCR();}
+function fillIfEmpty(id,v){let el=document.getElementById(id);if(el&&v&&!el.value)el.value=v.trim();}
+function normDate(s){let m=(s||"").match(/(\d{2})[\/\-.](\d{2})[\/\-.](\d{4})/);return m?`${m[3]}-${m[2]}-${m[1]}`:"";}
+
+function prepareOCRImage(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const maxW=1400;
+      const scale=Math.min(1,maxW/img.width);
+      const w=Math.round(img.width*scale),h=Math.round(img.height*scale);
+      const c=document.createElement("canvas");
+      c.width=w;c.height=h;
+      const x=c.getContext("2d");
+      x.filter="grayscale(1) contrast(1.55) brightness(1.05)";
+      x.drawImage(img,0,0,w,h);
+      resolve(c.toDataURL("image/jpeg",0.86));
+    };
+    img.onerror=reject;
+    img.src=src;
+  });
+}
+function parseIdentityText(text){
+  const clean=(text||"").replace(/\s+/g," ").trim();
+  const out={};
+  const id=clean.match(/784[-\s]?\d{4}[-\s]?\d{7}[-\s]?\d/);
+  if(id) out.emirates_id=id[0].replace(/\s/g,"");
+  const d=clean.match(/(\d{2}[\/\-.]\d{2}[\/\-.]\d{4})/);
+  if(d) out.date_of_birth=normDate(d[1]);
+  const nat=clean.match(/Nationality[:\s]+([A-Za-z ]{3,30})/i);
+  if(nat) out.nationality=nat[1];
+  const name=clean.match(/Name[:\s]+([A-Za-z][A-Za-z\s]{6,80})/i);
+  if(name) out.full_name=name[1].replace(/ Sex| Nationality| Date.*/i,"").trim();
+
+  const genderMale=/(Gender|Sex|الجنس)[:\s]*(M|Male|ذكر)|\bMale\b|ذكر/i.test(clean);
+  const genderFemale=/(Gender|Sex|الجنس)[:\s]*(F|Female|أنثى|انثى)|\bFemale\b|أنثى|انثى/i.test(clean);
+  if(genderMale && !genderFemale) out.gender="Male";
+  if(genderFemale) out.gender="Female";
+  return out;
+}
+function applyIdentityData(data){
+  let count=0;
+  for(const [id,value] of Object.entries(data)){
+    if(!value) continue;
+
+    if(id==="gender"){
+      const radios=document.querySelectorAll('input[name="gender"]');
+      let changed=false;
+      radios.forEach(r=>{
+        const rv=(r.value||"").toLowerCase();
+        const vv=(value||"").toLowerCase();
+        if(rv===vv || (vv==="male" && rv.includes("male")) || (vv==="female" && rv.includes("female"))){
+          if(!r.checked){r.checked=true;changed=true;}
+        }
+      });
+      const select=document.getElementById("gender");
+      if(select && !select.value){select.value=value;changed=true;}
+      if(changed) count++;
+      continue;
+    }
+
+    const el=document.getElementById(id);
+    if(el && value && !el.value){el.value=value;count++;}
+  }
+  return count;
+}
+async function runOCR(){
+  const src=document.getElementById("idImageData").value;
+  const st=document.getElementById("ocrStatus");
+  if(!src){alert("ارفع صورة أو التقط صورة أولاً");return;} if(identityOcrBusy){return;} identityOcrBusy=true;
+  if(!window.Tesseract){identityOcrBusy=false;st.textContent="تعذر تحميل محرك OCR. تأكد من اتصال الإنترنت.";return;}
+  st.textContent="تحسين الصورة ثم قراءة الهوية...";
+  try{
+    const fastImage=await prepareOCRImage(src);
+    let result=await Tesseract.recognize(fastImage,"eng",{
+      logger:m=>{
+        if(m.status==="recognizing text" && m.progress){
+          st.textContent="جاري قراءة الهوية: "+Math.round(m.progress*100)+"%";
+        }
+      }
+    });
+    let parsed=parseIdentityText(result.data.text||"");
+    let filled=applyIdentityData(parsed);
+
+    if(filled===0){
+      st.textContent="محاولة قراءة أعمق للعربية والإنجليزية...";
+      result=await Tesseract.recognize(fastImage,"eng+ara");
+      parsed=parseIdentityText(result.data.text||"");
+      filled=applyIdentityData(parsed);
+    }
+
+    st.textContent=filled>0 ? "تمت قراءة الهوية وتعبئة بعض الحقول. راجع البيانات قبل الحفظ." : "لم يتم التعرف على بيانات واضحة. يمكن تعبئة الحقول يدوياً.";
+  }catch(e){
+    st.textContent="لم تنجح قراءة الهوية. يمكن تعبئة البيانات يدوياً.";
+  }
+}
+
+const canvas=document.getElementById("signatureCanvas"),ctx=canvas.getContext("2d");function resizeSig(){let r=canvas.getBoundingClientRect();canvas.width=r.width;canvas.height=150;ctx.lineWidth=2;ctx.lineCap="round";}resizeSig();let drawing=false,last=null;function pos(e){let r=canvas.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}function start(e){drawing=true;last=pos(e);e.preventDefault();}function move(e){if(!drawing)return;let p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;e.preventDefault();}function end(){drawing=false;document.getElementById("signatureData").value=canvas.toDataURL("image/png");}canvas.addEventListener("mousedown",start);canvas.addEventListener("mousemove",move);window.addEventListener("mouseup",end);canvas.addEventListener("touchstart",start);canvas.addEventListener("touchmove",move);canvas.addEventListener("touchend",end);document.getElementById("sparkForm").addEventListener("submit",()=>{document.getElementById("signatureData").value=canvas.toDataURL("image/png");});
+
+/* SPARK_SAFE_IDENTITY_ADDON_START */
+function sparkSafeNormalizeText(text){
+  return (text||"")
+    .replace(/[ًٌٍَُِّْ]/g,"")
+    .replace(/[أإآ]/g,"ا")
+    .replace(/ى/g,"ي")
+    .replace(/ة/g,"ه")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function sparkSafeDetectGender(text){
+  const raw=(text||"").replace(/\s+/g," ").trim();
+  const ar=sparkSafeNormalizeText(raw);
+
+  const nearEn=raw.match(/\b(?:Sex|Gender)\s*[:\-]?\s*(Male|Female|M|F)\b/i);
+  if(nearEn){
+    const v=nearEn[1].toUpperCase();
+    return (v==="F" || v==="FEMALE") ? "Female" : "Male";
+  }
+
+  const nearAr=ar.match(/(?:الجنس|النوع)\s*[:\-]?\s*(ذكر|انثي|انثى|رجل|امراه|امرأه)/i);
+  if(nearAr){
+    const v=nearAr[1];
+    if(/انثي|انثى|امراه|امرأه/i.test(v)) return "Female";
+    if(/ذكر|رجل/i.test(v)) return "Male";
+  }
+
+  if(/انثي|انثى|female/i.test(ar) || /\bfemale\b/i.test(raw)) return "Female";
+  if(/ذكر|male/i.test(ar) || /\bmale\b/i.test(raw)) return "Male";
+  return "";
+}
+function sparkSafeSetGender(value){
+  if(!value) return 0;
+  let changed=0;
+  const wanted=String(value).toLowerCase();
+  document.querySelectorAll('input[name="gender"]').forEach(r=>{
+    const rv=(r.value||"").toLowerCase();
+    const label=(r.closest("label") ? r.closest("label").textContent : "").toLowerCase();
+    const isMale=wanted==="male" && (rv==="male" || label.includes("male") || label.includes("ذكر"));
+    const isFemale=wanted==="female" && (rv==="female" || label.includes("female") || label.includes("أنثى") || label.includes("انثى"));
+    if(isMale || isFemale){
+      r.checked=true;
+      r.dispatchEvent(new Event("change",{bubbles:true}));
+      changed=1;
+    }
+  });
+  return changed;
+}
+function sparkSafeDetectNationality(text){
+  const raw=sparkSafeNormalizeText(text).toLowerCase();
+  const countries=[
+    ["Jordan",["jordan","jordanian","الاردن","اردني","اردنيه"]],
+    ["United Arab Emirates",["united arab emirates","uae","emirati","الامارات","اماراتي","اماراتيه"]],
+    ["Palestine",["palestine","palestinian","فلسطين","فلسطيني"]],
+    ["Syria",["syria","syrian","سوريا","سوري"]],
+    ["Egypt",["egypt","egyptian","مصر","مصري"]],
+    ["Saudi Arabia",["saudi","saudi arabia","السعوديه","السعودية","سعودي"]],
+    ["India",["india","indian","الهند","هندي"]],
+    ["Pakistan",["pakistan","pakistani","باكستان","باكستاني"]],
+    ["Philippines",["philippines","filipino","filipina","الفلبين","فلبيني"]],
+    ["Bangladesh",["bangladesh","bangladeshi","بنغلاديش"]],
+    ["Nepal",["nepal","nepali","نيبال"]],
+    ["Sri Lanka",["sri lanka","srilanka","sri lankan","سريلانكا"]],
+    ["Lebanon",["lebanon","lebanese","لبنان","لبناني"]],
+    ["Iraq",["iraq","iraqi","العراق","عراقي"]],
+    ["Turkey",["turkey","turkish","تركيا","تركي"]],
+    ["Iran",["iran","iranian","ايران","ايراني"]],
+    ["Morocco",["morocco","moroccan","المغرب","مغربي"]],
+    ["Sudan",["sudan","sudanese","السودان","سوداني"]]
+  ];
+
+  const natWindow=(raw.match(/nationality\s*[:\-]?\s*([a-z ]{2,45})/i)||raw.match(/الجنسيه\s*[:\-]?\s*([ء-يa-z ]{2,45})/i)||[])[1] || raw;
+
+  for(const [value,aliases] of countries){
+    for(const a of aliases){
+      if(natWindow.includes(a.toLowerCase())) return value;
+    }
+  }
+  return "";
+}
+(function(){
+  const oldApply=window.applyIdentityData;
+  window.applyIdentityData=function(data){
+    data=data||{};
+    if(data.gender){
+      sparkSafeSetGender(data.gender);
+    }
+    if(data.nationality){
+      const el=document.getElementById("nationality");
+      if(el && !el.value) el.value=data.nationality;
+    }
+    return oldApply ? oldApply(data) : 0;
+  };
+
+  const oldParse=window.parseIdentityText;
+  window.parseIdentityText=function(text){
+    const data=oldParse ? (oldParse(text)||{}) : {};
+    const gender=sparkSafeDetectGender(text);
+    if(gender) data.gender=gender;
+    const nationality=sparkSafeDetectNationality(text);
+    if(nationality) data.nationality=nationality;
+    return data;
+  };
+})();
+/* SPARK_SAFE_IDENTITY_ADDON_END */
+
+
+/* SPARK_EXTRA_SIGNATURES_ACTIVE_JS_START */
+function setupSparkSignaturePad(canvasId,inputId){
+  const canvas=document.getElementById(canvasId);
+  const input=document.getElementById(inputId);
+  if(!canvas || !input || canvas.dataset.signatureReady==="1") return;
+
+  canvas.dataset.signatureReady="1";
+  const ctx=canvas.getContext("2d");
+  let drawing=false;
+  let last=null;
+  let hasInk=false;
+
+  function resize(){
+    const old=input.value;
+    const rect=canvas.getBoundingClientRect();
+    const width=Math.max(260, Math.round(rect.width || canvas.parentElement.clientWidth || 320));
+    canvas.width=width;
+    canvas.height=150;
+    ctx.lineWidth=2.2;
+    ctx.lineCap="round";
+    ctx.lineJoin="round";
+    ctx.strokeStyle="#0b4ea2";
+
+    if(old){
+      const img=new Image();
+      img.onload=function(){ctx.drawImage(img,0,0,canvas.width,canvas.height);};
+      img.src=old;
+    }
+  }
+
+  function point(e){
+    const rect=canvas.getBoundingClientRect();
+    const t=e.touches ? e.touches[0] : e;
+    return {x:t.clientX-rect.left,y:t.clientY-rect.top};
+  }
+
+  function start(e){
+    drawing=true;
+    hasInk=true;
+    last=point(e);
+    e.preventDefault();
+  }
+
+  function move(e){
+    if(!drawing) return;
+    const now=point(e);
+    ctx.beginPath();
+    ctx.moveTo(last.x,last.y);
+    ctx.lineTo(now.x,now.y);
+    ctx.stroke();
+    last=now;
+    input.value=canvas.toDataURL("image/png");
+    e.preventDefault();
+  }
+
+  function end(){
+    if(!drawing) return;
+    drawing=false;
+    if(hasInk){
+      input.value=canvas.toDataURL("image/png");
+    }
+  }
+
+  resize();
+  window.addEventListener("resize",resize);
+
+  canvas.addEventListener("mousedown",start);
+  canvas.addEventListener("mousemove",move);
+  window.addEventListener("mouseup",end);
+
+  canvas.addEventListener("touchstart",start,{passive:false});
+  canvas.addEventListener("touchmove",move,{passive:false});
+  canvas.addEventListener("touchend",end);
+}
+
+function clearSparkSignature(canvasId,inputId){
+  const canvas=document.getElementById(canvasId);
+  const input=document.getElementById(inputId);
+  if(!canvas || !input) return;
+  const ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  input.value="";
+}
+
+function initSparkAllSignatures(){
+  setupSparkSignaturePad("signatureCanvas","signatureData");
+  setupSparkSignaturePad("advisorSignatureCanvas","advisorSignatureData");
+  setupSparkSignaturePad("directorSignatureCanvas","directorSignatureData");
+}
+
+if(document.readyState==="loading"){
+  document.addEventListener("DOMContentLoaded",initSparkAllSignatures);
+}else{
+  initSparkAllSignatures();
+}
+
+const sparkFormForSignatures=document.getElementById("sparkForm");
+if(sparkFormForSignatures && !sparkFormForSignatures.dataset.signatureSubmitReady){
+  sparkFormForSignatures.dataset.signatureSubmitReady="1";
+  sparkFormForSignatures.addEventListener("submit",function(){
+    [["signatureCanvas","signatureData"],["advisorSignatureCanvas","advisorSignatureData"],["directorSignatureCanvas","directorSignatureData"]].forEach(function(pair){
+      const canvas=document.getElementById(pair[0]);
+      const input=document.getElementById(pair[1]);
+      if(canvas && input && !input.value){
+        input.value=canvas.toDataURL("image/png");
+      }
+    });
+  });
+}
+/* SPARK_EXTRA_SIGNATURES_ACTIVE_JS_END */
+
+</script>
+{% endblock %}

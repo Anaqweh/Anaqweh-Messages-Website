@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
+    path('registrations/', include('apps.registrations.urls', namespace='registrations')),
     path('crm/', include('apps.crm.urls', namespace='crm')),
     path('tasks/', include('apps.tasks.urls', namespace='tasks')),
     path('workspace/', include('apps.platform_core.workspace_urls', namespace='workspace')),

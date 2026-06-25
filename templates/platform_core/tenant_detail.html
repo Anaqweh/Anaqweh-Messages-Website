@@ -24,6 +24,12 @@
 .form-control{width:100%;box-sizing:border-box;border:1px solid #d0d5dd;border-radius:8px;padding:10px}
 .pc-check{display:block;margin:8px 0}
 .pc-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pc-btn-sm{border:1px solid #cfe0f8;border-radius:6px;padding:4px 10px;background:#eef5ff;color:#0b4ea2;text-decoration:none;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
+.pc-btn-sm:hover{background:#dbeafe}
+.pc-btn-sm.danger{background:#fef2f2;color:#dc2626;border-color:#fecaca}
+.pc-btn-sm.danger:hover{background:#fee2e2}
+.pc-member-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pc-member-actions form{margin:0;display:inline}
 @media(max-width:900px){.pc-layout{grid-template-columns:1fr}.pc-info{grid-template-columns:1fr}.pc-table{min-width:720px}.pc-table-wrap{overflow-x:auto}}
 </style>
 
@@ -90,19 +96,20 @@
               {% for membership in memberships %}
               <tr>
                 <td>{{ membership.user }}<br><small>{{ membership.user.email }}</small></td>
-                <td>{{ membership.role_name|default:membership.role.name|default:"-" }}</td>
+                <td>{% if membership.role_name %}{{ membership.role_name }}{% elif membership.role %}{{ membership.role.name }}{% else %}-{% endif %}</td>
                 <td>{% if membership.is_active %}مفعل{% else %}موقوف{% endif %}</td>
                 <td>
-                  <div class="pc-row-actions">
-                    <a class="pc-btn light" href="{% url 'platform_core:tenant_member_edit' membership.pk %}">تعديل</a>
-                    <a class="pc-btn light" href="{% url 'platform_core:tenant_member_permissions' membership.pk %}">الصلاحيات</a>
+                  <div class="pc-member-actions">
+                    <a class="pc-btn-sm" href="{% url 'platform_core:tenant_member_edit' membership.pk %}">تعديل</a>
+                    <a class="pc-btn-sm" href="{% url 'platform_core:tenant_member_permissions' membership.pk %}">الصلاحيات</a>
+                    <a class="pc-btn-sm" href="{% url 'platform_core:tenant_member_set_password' membership.pk %}">كلمة المرور</a>
                     <form method="post" action="{% url 'platform_core:tenant_member_toggle' membership.pk %}">
                       {% csrf_token %}
-                      <button class="pc-btn light" type="submit">تبديل الحالة</button>
+                      <button class="pc-btn-sm" type="submit">تبديل الحالة</button>
                     </form>
                     <form method="post" action="{% url 'platform_core:tenant_member_delete' membership.pk %}" onsubmit="return confirm('حذف العضو من الشركة؟');">
                       {% csrf_token %}
-                      <button class="pc-btn light" type="submit">حذف</button>
+                      <button class="pc-btn-sm danger" type="submit">حذف</button>
                     </form>
                   </div>
                 </td>

@@ -9,6 +9,9 @@ MODULE_CHOICES = [
     ("crm", "CRM"),
     ("accounting", "المحاسبة"),
     ("reports", "التقارير"),
+    ("tasks", "المهام"),
+    ("registrations", "النماذج والتسجيل"),
+    ("stripe", "خدمة الدفع (Stripe)"),
 ]
 
 LIMIT_FIELDS = [

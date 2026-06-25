@@ -1,5 +1,4 @@
 {% extends "base/base.html" %}
-
 {% block content %}
 <style>
 .pc-wrap{direction:rtl;max-width:1180px;margin:24px auto;padding:0 14px;color:#102033}
@@ -7,77 +6,97 @@
 .pc-title h1{font-size:26px;margin:0 0 6px;font-weight:800;color:#0b4ea2}
 .pc-title p{margin:0;color:#667085}
 .pc-actions{display:flex;gap:10px;flex-wrap:wrap}
-.pc-btn{border:0;border-radius:8px;padding:10px 15px;background:#0b4ea2;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}
+.pc-btn{border:0;border-radius:8px;padding:10px 15px;background:#0b4ea2;color:#fff;text-decoration:none;font-weight:700;cursor:pointer;font-size:13px}
 .pc-btn.light{background:#eef5ff;color:#0b4ea2;border:1px solid #cfe0f8}
-.pc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
-.pc-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:16px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
-.pc-card .label{color:#667085;font-size:13px}
-.pc-card .value{font-size:28px;font-weight:800;color:#0b4ea2;margin-top:6px}
-.pc-table-wrap{background:#fff;border:1px solid #d9e4f2;border-radius:10px;overflow:hidden}
-.pc-table{width:100%;border-collapse:collapse}
-.pc-table th,.pc-table td{padding:13px;border-bottom:1px solid #edf2f7;text-align:right;vertical-align:middle}
-.pc-table th{background:#f5f8fc;color:#344054;font-size:13px}
-.pc-tag{display:inline-flex;border-radius:999px;padding:5px 10px;background:#eef5ff;color:#0b4ea2;font-size:12px;font-weight:700}
-.pc-row-actions{display:flex;gap:8px;flex-wrap:wrap}
-.pc-empty{text-align:center;padding:38px;color:#667085}
-@media(max-width:760px){.pc-grid{grid-template-columns:1fr}.pc-table{min-width:760px}.pc-table-wrap{overflow-x:auto}.pc-head{align-items:flex-start}}
+.pc-btn.sm{padding:7px 12px;font-size:12px}
+.pc-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.pc-stat{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:16px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
+.pc-stat .label{color:#667085;font-size:13px}
+.pc-stat .value{font-size:28px;font-weight:800;color:#0b4ea2;margin-top:6px}
+.pc-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pc-company{background:#fff;border:1px solid #d9e4f2;border-radius:12px;padding:18px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
+.pc-company-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.pc-company-name{font-size:18px;font-weight:800;color:#0b4ea2;margin:0}
+.pc-company-name small{display:block;font-size:12px;color:#94a3b8;font-weight:400;margin-top:2px}
+.pc-status{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:4px 11px;font-size:12px;font-weight:700}
+.pc-status.active{background:#dcfce7;color:#16a34a}
+.pc-status.inactive{background:#fee2e2;color:#dc2626}
+.pc-info{display:flex;flex-direction:column;gap:9px;margin-bottom:14px;font-size:14px}
+.pc-info-row{display:flex;align-items:center;gap:8px;color:#475569}
+.pc-info-row i{color:#0b4ea2;width:18px}
+.pc-info-row .none{color:#cbd5e1}
+.pc-mods{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.pc-mod{background:#eef5ff;color:#0b4ea2;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600}
+.pc-mod.empty{background:#f8fafc;color:#cbd5e1}
+.pc-company-actions{display:flex;gap:7px;flex-wrap:wrap;padding-top:13px;border-top:1px solid #f1f5f9}
+.pc-empty{text-align:center;padding:48px;color:#667085;grid-column:1/-1;background:#fff;border:1px dashed #d9e4f2;border-radius:12px}
+@media(max-width:760px){.pc-stats{grid-template-columns:1fr}.pc-cards{grid-template-columns:1fr}}
 </style>
-
 <div class="pc-wrap">
   <div class="pc-head">
     <div class="pc-title">
-      <h1>إدارة الشركات والنسخ</h1>
-      <p>لوحة المدير العام لإدارة الشركات، الوحدات، والمدراء.</p>
+      <h1>إدارة الشركات</h1>
+      <p>لوحة المدير العام — كل شركة بنظرة واحدة.</p>
     </div>
     <div class="pc-actions">
-      <button type="button" class="pc-btn light" onclick="history.back()">رجوع</button>
-      <a class="pc-btn" href="{% url 'platform_core:tenant_create' %}">+ شركة جديدة</a>
+      <a class="pc-btn" href="{% url 'platform_core:tenant_wizard' %}"><i class="bi bi-magic"></i> + شركة جديدة</a>
     </div>
   </div>
 
-  <div class="pc-grid">
-    <div class="pc-card"><div class="label">إجمالي الشركات</div><div class="value">{{ total_tenants }}</div></div>
-    <div class="pc-card"><div class="label">الشركات النشطة</div><div class="value">{{ active_tenants }}</div></div>
-    <div class="pc-card"><div class="label">الأعضاء المرتبطون</div><div class="value">{{ membership_count }}</div></div>
+  <div class="pc-stats">
+    <div class="pc-stat"><div class="label">إجمالي الشركات</div><div class="value">{{ total_tenants }}</div></div>
+    <div class="pc-stat"><div class="label">الشركات النشطة</div><div class="value">{{ active_tenants }}</div></div>
+    <div class="pc-stat"><div class="label">الأعضاء المرتبطون</div><div class="value">{{ membership_count }}</div></div>
   </div>
 
-  <div class="pc-table-wrap">
-    <table class="pc-table">
-      <thead>
-        <tr>
-          <th>الشركة</th>
-          <th>المالك</th>
-          <th>الخطة</th>
-          <th>الحالة</th>
-          <th>الدومين</th>
-          <th>إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for tenant in tenants %}
-        <tr>
-          <td><strong>{{ tenant.name }}</strong><br><small>{{ tenant.slug }}</small></td>
-          <td>{{ tenant.owner_name|default:"-" }}<br><small>{{ tenant.owner_email|default:"" }}</small></td>
-          <td>{{ tenant.plan_name|default:"-" }}</td>
-          <td><span class="pc-tag">{{ tenant.get_status_display|default:tenant.status }}</span></td>
-          <td>{{ tenant.domain|default:"-" }}</td>
-          <td>
-            <div class="pc-row-actions">
-              <a class="pc-btn light" href="{% url 'platform_core:tenant_detail' tenant.pk %}">تفاصيل</a>
-              <a class="pc-btn light" href="{% url 'platform_core:tenant_edit' tenant.pk %}">تعديل</a>
-              <a class="pc-btn" href="{% url 'platform_core:switch_tenant' tenant.pk %}" style="background:#059669">⇄ ادخل كـ</a>
-              <form method="post" action="{% url 'platform_core:tenant_delete' tenant.pk %}" onsubmit="return confirm('حذف هذه الشركة؟');">
-                {% csrf_token %}
-                <button class="pc-btn light" type="submit">حذف</button>
-              </form>
+  <div class="pc-cards">
+    {% for c in cards %}
+    <div class="pc-company">
+      <div class="pc-company-head">
+        <div>
+          <h3 class="pc-company-name">{{ c.tenant.name }}<small>{{ c.tenant.slug }}</small></h3>
+        </div>
+        <span class="pc-status {% if c.tenant.status == 'active' %}active{% else %}inactive{% endif %}">
+          <i class="bi bi-circle-fill" style="font-size:7px"></i>{{ c.tenant.get_status_display|default:c.tenant.status }}
+        </span>
+      </div>
+
+      <div class="pc-info">
+        <div class="pc-info-row">
+          <i class="bi bi-person-badge"></i>
+          {% if c.admin_username %}المدير: <strong>{{ c.admin_username }}</strong>{% else %}<span class="none">لا يوجد مدير بعد</span>{% endif %}
+        </div>
+        <div class="pc-info-row">
+          <i class="bi bi-people"></i>
+          الموظفون: <strong>{{ c.members_count }}</strong>
+        </div>
+        <div class="pc-info-row" style="align-items:flex-start">
+          <i class="bi bi-grid"></i>
+          <div>الوحدات:
+            <div class="pc-mods">
+              {% for m in c.active_modules %}<span class="pc-mod">{{ m }}</span>{% empty %}<span class="pc-mod empty">لا توجد وحدات مفعّلة</span>{% endfor %}
             </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="6" class="pc-empty">لا توجد شركات بعد.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="pc-company-actions">
+        <a class="pc-btn sm" href="{% url 'platform_core:switch_tenant' c.tenant.pk %}" style="background:#059669">⇄ ادخل كـ</a>
+        <a class="pc-btn light sm" href="{% url 'platform_core:tenant_detail' c.tenant.pk %}">الفريق والتفاصيل</a>
+        <a class="pc-btn light sm" href="{% url 'platform_core:tenant_edit' c.tenant.pk %}">تعديل</a>
+        <form method="post" action="{% url 'platform_core:tenant_delete' c.tenant.pk %}" onsubmit="return confirm('حذف شركة {{ c.tenant.name }}؟');" style="display:inline">
+          {% csrf_token %}
+          <button class="pc-btn light sm" type="submit" style="color:#dc2626">حذف</button>
+        </form>
+      </div>
+    </div>
+    {% empty %}
+    <div class="pc-empty">
+      <i class="bi bi-building" style="font-size:38px;color:#cbd5e1"></i>
+      <p style="margin-top:10px">لا توجد شركات بعد.</p>
+      <a class="pc-btn" href="{% url 'platform_core:tenant_wizard' %}">+ أنشئ أول شركة</a>
+    </div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}

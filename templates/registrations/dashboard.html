@@ -1,0 +1,130 @@
+{% extends "base/base.html" %}
+{% block title %}لوحة التسجيلات{% endblock %}
+{% block page_title %}لوحة التسجيلات{% endblock %}
+{% block content %}
+<style>
+.reg-dash{direction:rtl;padding:8px}
+.reg-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.reg-stat{background:#fff;border:1px solid #e4edf8;border-radius:12px;padding:18px;text-align:center;box-shadow:0 4px 12px rgba(11,78,162,.06)}
+.reg-stat .num{font-size:30px;font-weight:900;color:#0b4ea2}
+.reg-stat .lbl{font-size:13px;color:#667085;margin-top:4px;font-weight:700}
+.reg-stat.green .num{color:#059669}
+.reg-stat.amber .num{color:#d97706}
+.reg-stat.red .num{color:#dc2626}
+.reg-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.reg-toolbar input,.reg-toolbar select{border:1.5px solid #cbd8e7;border-radius:9px;padding:9px 12px;font-size:14px}
+.reg-toolbar input{flex:1;min-width:200px}
+.reg-newbtn{background:#0b4ea2;color:#fff;text-decoration:none;padding:10px 20px;border-radius:9px;font-weight:800;display:inline-flex;align-items:center;gap:6px}
+.reg-table{width:100%;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.05);border-collapse:collapse}
+.reg-table thead{background:#0b4ea2;color:#fff}
+.reg-table th,.reg-table td{padding:13px 14px;text-align:right;font-size:14px;border-bottom:1px solid #eef2f7}
+.reg-table tbody tr:hover{background:#f7fbff}
+.reg-badge{padding:4px 12px;border-radius:99px;font-size:12px;font-weight:800}
+.reg-badge.submitted{background:#dbeafe;color:#1e40af}
+.reg-badge.reviewed{background:#fef3c7;color:#92400e}
+.reg-badge.accepted{background:#d1fae5;color:#065f46}
+.reg-badge.rejected{background:#fee2e2;color:#991b1b}
+.reg-actions{display:flex;gap:6px;flex-wrap:wrap}
+.reg-btn{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;border:0;cursor:pointer}
+.reg-btn.view{background:#eef6ff;color:#0b4ea2}
+.reg-btn.pdf{background:#fef2f2;color:#dc2626}
+.reg-btn.edit{background:#f0fdf4;color:#059669}
+.reg-empty{text-align:center;padding:50px;color:#9ca3af}
+@media(max-width:768px){.reg-stats{grid-template-columns:repeat(2,1fr)}.reg-table{font-size:12px}.reg-table th,.reg-table td{padding:9px}}
+</style>
+
+<div class="reg-dash">
+
+  {% if messages %}{% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+  <!-- Stats -->
+  <div class="reg-stats">
+    <div class="reg-stat"><div class="num">{{ submissions|length }}</div><div class="lbl">إجمالي التسجيلات</div></div>
+    <div class="reg-stat green"><div class="num" id="cnt-accepted">0</div><div class="lbl">مقبول</div></div>
+    <div class="reg-stat amber"><div class="num" id="cnt-submitted">0</div><div class="lbl">جديد</div></div>
+    <div class="reg-stat red"><div class="num" id="cnt-rejected">0</div><div class="lbl">مرفوض</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="reg-toolbar">
+    <input type="text" id="searchBox" placeholder="🔍 بحث بالاسم أو البريد..." onkeyup="filterTable()">
+    <select id="statusFilter" onchange="filterTable()">
+      <option value="">كل الحالات</option>
+      <option value="submitted">جديد</option>
+      <option value="reviewed">قيد المراجعة</option>
+      <option value="accepted">مقبول</option>
+      <option value="rejected">مرفوض</option>
+    </select>
+    <a href="/registrations/templates/3/spark-fill/" class="reg-newbtn">➕ تسجيل جديد</a>
+  </div>
+
+  <!-- Table -->
+  {% if submissions %}
+  <table class="reg-table" id="regTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>الاسم</th>
+        <th>البريد</th>
+        <th>الحالة</th>
+        <th>التاريخ</th>
+        <th>إجراءات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in submissions %}
+      <tr data-status="{{ s.status }}" data-name="{{ s.student_name|lower }}" data-email="{{ s.student_email|lower }}">
+        <td>#{{ s.pk }}</td>
+        <td><b>{{ s.data.full_name|default:s.student_name|default:"-" }}</b></td>
+        <td>{{ s.data.email|default:s.student_email|default:"-" }}</td>
+        <td><span class="reg-badge {{ s.status }}">{{ s.get_status_display }}</span></td>
+        <td>{{ s.created_at|date:"Y-m-d H:i" }}</td>
+        <td class="reg-actions">
+          <a href="/registrations/submissions/{{ s.pk }}/" class="reg-btn view">عرض</a>
+          <a href="/registrations/submissions/{{ s.pk }}/spark-pdf/" class="reg-btn pdf">PDF</a>
+          <a href="/registrations/submissions/{{ s.pk }}/edit/" class="reg-btn edit">تعديل</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="reg-empty">
+    <div style="font-size:48px">📋</div>
+    <p>لا توجد تسجيلات بعد</p>
+    <a href="/registrations/templates/3/spark-fill/" class="reg-newbtn">➕ إنشاء أول تسجيل</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function filterTable() {
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  const rows = document.querySelectorAll('#regTable tbody tr');
+  rows.forEach(row => {
+    const name = row.dataset.name || '';
+    const email = row.dataset.email || '';
+    const rowStatus = row.dataset.status || '';
+    const matchSearch = name.includes(search) || email.includes(search);
+    const matchStatus = !status || rowStatus === status;
+    row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+  });
+}
+// عد الحالات
+window.addEventListener('DOMContentLoaded', () => {
+  const rows = document.querySelectorAll('#regTable tbody tr');
+  let accepted=0, submitted=0, rejected=0;
+  rows.forEach(r => {
+    const st = r.dataset.status;
+    if(st==='accepted') accepted++;
+    else if(st==='submitted') submitted++;
+    else if(st==='rejected') rejected++;
+  });
+  document.getElementById('cnt-accepted').textContent = accepted;
+  document.getElementById('cnt-submitted').textContent = submitted;
+  document.getElementById('cnt-rejected').textContent = rejected;
+});
+</script>
+{% endblock %}
