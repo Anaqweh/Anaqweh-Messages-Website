@@ -15,5 +15,6 @@ urlpatterns = [
     path("roles/", workspace_views.workspace_roles, name="roles"),
     path("stripe-settings/", workspace_views.workspace_stripe_settings, name="stripe_settings"),
     path("finance-board/", workspace_views.workspace_finance_board, name="finance_board"),
+    path("payout-request/", workspace_views.workspace_payout_request, name="payout_request"),
     path("members/<int:membership_pk>/reset-password/", workspace_views.workspace_member_reset_password, name="member_reset_password"),
 ]

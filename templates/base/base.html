@@ -215,6 +215,7 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="{% url 'accounts:user_list' %}" class="nav-link"><i class="bi bi-person-gear"></i> المستخدمون</a>
       <a href="{% url 'accounts:audit_log' %}" class="nav-link"><i class="bi bi-journal-text"></i> سجل النشاط</a>
       <a href="/platform/finance/" class="nav-link"><i class="bi bi-cash-stack"></i> اللوحة المالية</a>
+      <a href="/platform/payouts/" class="nav-link"><i class="bi bi-cash-coin"></i> طلبات السحب</a>
       <a href="/platform/settings/" class="nav-link"><i class="bi bi-sliders"></i> إعدادات المنصة</a>
     </div>
   </div>
@@ -235,6 +236,7 @@ body{background:#f0f4f8;min-height:100vh}
       {% endif %}
       {% if tenant_modules.stripe %}
       <a href="{% url 'workspace:finance_board' %}" class="nav-link"><i class="bi bi-wallet2"></i> لوحتي المالية</a>
+      <a href="{% url 'workspace:payout_request' %}" class="nav-link"><i class="bi bi-cash-coin"></i> طلب سحب الأموال</a>
       <a href="{% url 'workspace:stripe_settings' %}" class="nav-link"><i class="bi bi-credit-card"></i> إعدادات الدفع</a>
       {% endif %}
     </div>
@@ -286,7 +288,7 @@ document.addEventListener('DOMContentLoaded',function(){
     'grp-tasks':['/tasks/'],
     'grp-finance':['/payments/','/reports/','/accounting/'],
     'grp-admin':['/platform/','/workspace/','/accounts/'],
-    'grp-company':['/workspace/members','/workspace/roles','/workspace/registration-settings','/workspace/stripe-settings','/workspace/finance-board'],
+    'grp-company':['/workspace/members','/workspace/roles','/workspace/registration-settings','/workspace/stripe-settings','/workspace/finance-board','/workspace/payout-request'],
     'grp-account':['/accounts/emailjs']
   };
   // فتح القسم النشط

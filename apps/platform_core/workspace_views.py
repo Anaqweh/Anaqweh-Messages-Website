@@ -1,3 +1,4 @@
+from django.db import models
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
@@ -322,4 +323,104 @@ def workspace_finance_board(request):
         'net': net,
         'mode': tenant.stripe_mode,
         'bank_ok': bool(tenant.bank_iban or tenant.bank_account_number),
+    })
+
+
+def _payout_available(tenant, ps, express=False):
+    """يحسب المبلغ القابل للسحب. عادي: دفعات مرّ عليها hold_days. سريع: الكل."""
+    from apps.payments.models import Payment
+    from django.utils import timezone
+    from datetime import timedelta
+    from decimal import Decimal
+
+    pays = Payment.objects.filter(tenant=tenant, status='paid')
+    if not express:
+        cutoff = timezone.now() - timedelta(days=ps.payout_hold_days)
+        pays = pays.filter(created_at__lte=cutoff)
+
+    # نستبعد المبالغ المسحوبة/المطلوبة سابقاً (المعلّقة أو المدفوعة)
+    from apps.platform_core.models import PayoutRequest
+    already = PayoutRequest.objects.filter(
+        tenant=tenant, status__in=['pending', 'paid']
+    ).aggregate(s=models.Sum('gross_amount'))['s'] or Decimal('0')
+
+    gross = Decimal(str(sum((pp.amount or Decimal('0')) for pp in pays)))
+    gross_available = gross - Decimal(str(already))
+    if gross_available < 0:
+        gross_available = Decimal('0')
+    return gross_available
+
+
+@login_required
+def workspace_payout_request(request):
+    """طلب سحب أموال من الشركة."""
+    from apps.platform_core.models import Tenant, PlatformSettings, PayoutRequest
+    from apps.platform_core.navigation import active_membership_for, is_platform_admin
+    from decimal import Decimal
+    from django.utils import timezone
+
+    if is_platform_admin(request.user):
+        tenant = Tenant.objects.first()
+    else:
+        membership = active_membership_for(request.user)
+        if not membership or not membership.is_tenant_admin:
+            return redirect("workspace:access_denied")
+        tenant = membership.tenant
+
+    modules = tenant.modules or {}
+    if not modules.get("stripe") and not is_platform_admin(request.user):
+        return redirect("workspace:access_denied")
+
+    ps = PlatformSettings.get_solo()
+
+    # النسبة العادية حسب نوع الحساب
+    if tenant.stripe_mode == 'own':
+        normal_rate = Decimal(str(ps.commission_own_stripe))
+    else:
+        normal_rate = Decimal(str(ps.commission_platform_stripe))
+    express_rate = Decimal(str(ps.express_payout_rate))
+
+    normal_available = _payout_available(tenant, ps, express=False)
+    express_available = _payout_available(tenant, ps, express=True)
+
+    if request.method == "POST":
+        ptype = request.POST.get("payout_type", "normal")
+        from django.contrib import messages
+        if ptype == "express":
+            gross = express_available
+            rate = express_rate
+        else:
+            gross = normal_available
+            rate = normal_rate
+
+        if gross <= 0:
+            messages.error(request, "لا يوجد رصيد قابل للسحب حالياً")
+            return redirect("workspace:payout_request")
+
+        commission = (gross * rate / Decimal('100')).quantize(Decimal('0.01'))
+        net = (gross - commission).quantize(Decimal('0.01'))
+
+        PayoutRequest.objects.create(
+            tenant=tenant,
+            requested_by=request.user,
+            payout_type=ptype,
+            gross_amount=gross,
+            commission_rate=rate,
+            commission_amount=commission,
+            net_amount=net,
+            status='pending',
+        )
+        messages.success(request, "تم إرسال طلب السحب بنجاح. سيُراجَع من قبل الإدارة.")
+        return redirect("workspace:payout_request")
+
+    requests_list = PayoutRequest.objects.filter(tenant=tenant)
+    return render(request, "workspace/payout_request.html", {
+        "tenant": tenant,
+        "ps": ps,
+        "normal_rate": normal_rate,
+        "express_rate": express_rate,
+        "normal_available": normal_available,
+        "express_available": express_available,
+        "requests_list": requests_list,
+        "bank_ok": bool(tenant.bank_iban or tenant.bank_account_number),
     })

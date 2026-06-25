@@ -184,6 +184,8 @@ class PlatformSettings(models.Model):
     """إعدادات المنصة العامة (يديرها المدير العام)."""
     commission_platform_stripe = models.DecimalField(max_digits=5, decimal_places=2, default=7)
     commission_own_stripe = models.DecimalField(max_digits=5, decimal_places=2, default=2)
+    payout_hold_days = models.IntegerField(default=12)
+    express_payout_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -198,3 +200,38 @@ class PlatformSettings(models.Model):
         if not obj:
             obj = cls.objects.create()
         return obj
+
+
+class PayoutRequest(models.Model):
+    """طلب سحب أموال من الشركة إلى المدير العام."""
+    TYPE_NORMAL = "normal"
+    TYPE_EXPRESS = "express"
+    TYPE_CHOICES = [
+        (TYPE_NORMAL, "عادي"),
+        (TYPE_EXPRESS, "سريع (24-48 ساعة)"),
+    ]
+    STATUS_PENDING = "pending"
+    STATUS_PAID = "paid"
+    STATUS_REJECTED = "rejected"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "قيد المراجعة"),
+        (STATUS_PAID, "تم التحويل"),
+        (STATUS_REJECTED, "مرفوض"),
+    ]
+    tenant = models.ForeignKey("platform_core.Tenant", on_delete=models.CASCADE, related_name="payout_requests")
+    requested_by = models.ForeignKey("auth.User", null=True, blank=True, on_delete=models.SET_NULL)
+    payout_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_NORMAL)
+    gross_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    net_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    admin_note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.tenant.name} - {self.net_amount} ({self.get_status_display()})"

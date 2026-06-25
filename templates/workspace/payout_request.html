@@ -1,0 +1,76 @@
+{% extends "base/base.html" %}
+{% block title %}طلب سحب الأموال{% endblock %}
+{% block page_title %}<i class="bi bi-cash-coin me-2"></i>طلب سحب الأموال — {{ tenant.name }}{% endblock %}
+{% block content %}
+
+{% if not bank_ok %}
+<div class="alert alert-warning d-flex align-items-center mb-4" style="border-right:5px solid #f59e0b">
+  <i class="bi bi-exclamation-triangle-fill me-3" style="font-size:1.5rem;color:#f59e0b"></i>
+  <div>أكمل بيانات حسابك البنكي في <strong>إعدادات الدفع</strong> أولاً، حتى نتمكن من تحويل أموالك.</div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <!-- سحب عادي -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <h5 class="fw-bold text-primary"><i class="bi bi-clock-history me-1"></i>سحب عادي</h5>
+        <p class="small text-muted">للدفعات التي مرّ عليها {{ ps.payout_hold_days }} يوم. الرسوم {{ normal_rate }}%.</p>
+        <div class="bg-light p-3 rounded mb-3">
+          <div class="d-flex justify-content-between"><span>الرصيد المتاح:</span><strong>{{ normal_available }}</strong></div>
+        </div>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="payout_type" value="normal">
+          <button class="btn btn-primary w-100" {% if normal_available <= 0 or not bank_ok %}disabled{% endif %}>طلب سحب عادي</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- سحب سريع -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100" style="border:2px solid #f59e0b !important">
+      <div class="card-body">
+        <h5 class="fw-bold" style="color:#f59e0b"><i class="bi bi-lightning-charge-fill me-1"></i>سحب سريع</h5>
+        <p class="small text-muted">خلال 24-48 ساعة. الرسوم {{ express_rate }}% (أعلى مقابل السرعة).</p>
+        <div class="bg-light p-3 rounded mb-3">
+          <div class="d-flex justify-content-between"><span>الرصيد المتاح:</span><strong>{{ express_available }}</strong></div>
+        </div>
+        <form method="post">{% csrf_token %}
+          <input type="hidden" name="payout_type" value="express">
+          <button class="btn w-100 text-white" style="background:#f59e0b" {% if express_available <= 0 or not bank_ok %}disabled{% endif %}>طلب سحب سريع</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm"><div class="card-body">
+<h6 class="fw-bold mb-3">سجل طلبات السحب</h6>
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead class="table-light">
+    <tr><th>التاريخ</th><th>النوع</th><th>الإجمالي</th><th>الرسوم</th><th>الصافي</th><th>الحالة</th></tr>
+  </thead>
+  <tbody>
+    {% for r in requests_list %}
+    <tr>
+      <td class="small">{{ r.created_at|date:"Y-m-d H:i" }}</td>
+      <td>{% if r.payout_type == 'express' %}<span class="badge" style="background:#f59e0b">سريع</span>{% else %}<span class="badge bg-secondary">عادي</span>{% endif %}</td>
+      <td>{{ r.gross_amount }}</td>
+      <td class="text-danger">{{ r.commission_amount }} ({{ r.commission_rate }}%)</td>
+      <td class="fw-bold text-success">{{ r.net_amount }}</td>
+      <td>
+        {% if r.status == 'paid' %}<span class="badge bg-success">تم التحويل</span>
+        {% elif r.status == 'rejected' %}<span class="badge bg-danger">مرفوض</span>
+        {% else %}<span class="badge bg-warning text-dark">قيد المراجعة</span>{% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" class="text-center text-muted py-4">لا توجد طلبات سحب بعد</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+</div></div>
+{% endblock %}

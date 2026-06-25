@@ -24,7 +24,22 @@
     <div class="form-text">تُخصم من الشركات التي تستخدم حساب Stripe الخاص بها. (مثال: 2%)</div>
   </div>
 
-  <button class="btn btn-primary px-5">حفظ النسب</button>
+  <hr class="my-4">
+  <h6 class="fw-bold mb-3">إعدادات السحب</h6>
+
+  <div class="mb-4">
+    <label class="form-label fw-bold">فترة الانتظار للسحب العادي (أيام)</label>
+    <input type="number" step="1" min="0" name="payout_hold_days" class="form-control" value="{{ ps.payout_hold_days }}" style="max-width:200px">
+    <div class="form-text">عدد الأيام التي يجب أن تمر على الدفعة قبل أن تصبح قابلة للسحب العادي. (مثال: 12)</div>
+  </div>
+
+  <div class="mb-4">
+    <label class="form-label fw-bold">نسبة السحب السريع (%)</label>
+    <input type="number" step="0.01" min="0" max="100" name="express_payout_rate" class="form-control" value="{{ ps.express_payout_rate }}" style="max-width:200px">
+    <div class="form-text">الرسوم على السحب السريع (24-48 ساعة)، بدلاً من النسبة العادية. (مثال: 10%)</div>
+  </div>
+
+  <button class="btn btn-primary px-5">حفظ الإعدادات</button>
 </form>
 </div></div>
 {% endblock %}

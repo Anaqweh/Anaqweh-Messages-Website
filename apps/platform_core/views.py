@@ -543,8 +543,10 @@ def platform_settings(request):
         try:
             ps.commission_platform_stripe = float(request.POST.get('commission_platform_stripe', 7) or 7)
             ps.commission_own_stripe = float(request.POST.get('commission_own_stripe', 2) or 2)
+            ps.payout_hold_days = int(request.POST.get('payout_hold_days', 12) or 12)
+            ps.express_payout_rate = float(request.POST.get('express_payout_rate', 10) or 10)
             ps.save()
-            messages.success(request, 'تم حفظ النسب بنجاح')
+            messages.success(request, 'تم حفظ الإعدادات بنجاح')
         except (ValueError, TypeError):
             messages.error(request, 'قيمة غير صالحة')
         return redirect('platform_core:platform_settings')
@@ -680,4 +682,45 @@ def tenant_wizard(request):
 
     return render(request, "platform_core/tenant_wizard.html", {
         "module_choices": MODULE_CHOICES,
+    })
+
+
+@login_required
+@platform_required
+def platform_payouts(request):
+    """إدارة طلبات السحب للمدير العام."""
+    from .models import PayoutRequest
+    from django.utils import timezone
+
+    if request.method == "POST":
+        req_id = request.POST.get("request_id")
+        action = request.POST.get("action")
+        note = request.POST.get("admin_note", "").strip()
+        try:
+            pr = PayoutRequest.objects.get(pk=req_id)
+            if action == "paid":
+                pr.status = "paid"
+                pr.processed_at = timezone.now()
+                messages.success(request, f"تم تأكيد تحويل {pr.net_amount} لـ {pr.tenant.name}")
+            elif action == "rejected":
+                pr.status = "rejected"
+                pr.processed_at = timezone.now()
+                messages.success(request, f"تم رفض طلب {pr.tenant.name}")
+            if note:
+                pr.admin_note = note
+            pr.save()
+        except PayoutRequest.DoesNotExist:
+            messages.error(request, "الطلب غير موجود")
+        return redirect("platform_core:platform_payouts")
+
+    status_filter = request.GET.get("status", "pending")
+    qs = PayoutRequest.objects.select_related("tenant")
+    if status_filter and status_filter != "all":
+        qs = qs.filter(status=status_filter)
+
+    pending_count = PayoutRequest.objects.filter(status="pending").count()
+    return render(request, "platform_core/platform_payouts.html", {
+        "requests": qs,
+        "status_filter": status_filter,
+        "pending_count": pending_count,
     })

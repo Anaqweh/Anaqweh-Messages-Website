@@ -1,0 +1,61 @@
+{% extends "base/base.html" %}
+{% block title %}طلبات السحب{% endblock %}
+{% block page_title %}<i class="bi bi-cash-coin me-2"></i>طلبات السحب{% if pending_count %} <span class="badge bg-danger">{{ pending_count }}</span>{% endif %}{% endblock %}
+{% block content %}
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+  <a href="?status=pending" class="btn btn-sm {% if status_filter == 'pending' %}btn-primary{% else %}btn-outline-primary{% endif %}">قيد المراجعة</a>
+  <a href="?status=paid" class="btn btn-sm {% if status_filter == 'paid' %}btn-primary{% else %}btn-outline-primary{% endif %}">تم التحويل</a>
+  <a href="?status=rejected" class="btn btn-sm {% if status_filter == 'rejected' %}btn-primary{% else %}btn-outline-primary{% endif %}">مرفوض</a>
+  <a href="?status=all" class="btn btn-sm {% if status_filter == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">الكل</a>
+</div>
+
+<div class="card border-0 shadow-sm"><div class="card-body">
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead class="table-light">
+    <tr><th>الشركة</th><th>النوع</th><th>الإجمالي</th><th>الرسوم</th><th>الصافي</th><th>البنك</th><th>الحالة</th><th>إجراء</th></tr>
+  </thead>
+  <tbody>
+    {% for r in requests %}
+    <tr>
+      <td class="fw-bold">{{ r.tenant.name }}<br><small class="text-muted">{{ r.created_at|date:"Y-m-d H:i" }}</small></td>
+      <td>{% if r.payout_type == 'express' %}<span class="badge" style="background:#f59e0b">سريع 24-48س</span>{% else %}<span class="badge bg-secondary">عادي</span>{% endif %}</td>
+      <td>{{ r.gross_amount }}</td>
+      <td class="text-danger">{{ r.commission_amount }}<br><small>({{ r.commission_rate }}%)</small></td>
+      <td class="fw-bold text-success">{{ r.net_amount }}</td>
+      <td style="max-width:200px">
+        <small>
+          {% if r.tenant.bank_name %}{{ r.tenant.bank_name }}<br>{% endif %}
+          {% if r.tenant.bank_iban %}IBAN: {{ r.tenant.bank_iban }}<br>{% endif %}
+          {% if r.tenant.bank_account_holder %}{{ r.tenant.bank_account_holder }}{% endif %}
+          {% if not r.tenant.bank_iban and not r.tenant.bank_account_number %}<span class="badge bg-warning text-dark">بنك ناقص</span>{% endif %}
+        </small>
+      </td>
+      <td>
+        {% if r.status == 'paid' %}<span class="badge bg-success">تم التحويل</span>
+        {% elif r.status == 'rejected' %}<span class="badge bg-danger">مرفوض</span>
+        {% else %}<span class="badge bg-warning text-dark">قيد المراجعة</span>{% endif %}
+      </td>
+      <td>
+        {% if r.status == 'pending' %}
+        <form method="post" style="display:inline">{% csrf_token %}
+          <input type="hidden" name="request_id" value="{{ r.pk }}">
+          <button name="action" value="paid" class="btn btn-success btn-sm" onclick="return confirm('تأكيد أنك حوّلت {{ r.net_amount }} لـ {{ r.tenant.name }}؟')">تم التحويل</button>
+          <button name="action" value="rejected" class="btn btn-outline-danger btn-sm" onclick="return confirm('رفض الطلب؟')">رفض</button>
+        </form>
+        {% else %}<span class="text-muted">—</span>{% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="8" class="text-center text-muted py-4">لا توجد طلبات</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="alert alert-info small mt-2 mb-0">
+  <i class="bi bi-info-circle me-1"></i>
+  حوّل المبلغ <strong>الصافي</strong> يدوياً لحساب الشركة البنكي، ثم اضغط "تم التحويل" لتأكيد العملية.
+</div>
+</div></div>
+{% endblock %}
