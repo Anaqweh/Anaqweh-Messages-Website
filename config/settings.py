@@ -37,12 +37,15 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'apps.platform_core.registration_access_override.RegistrationAccessOverrideMiddleware',
+    'apps.platform_core.accounting_access_override.AccountingAccessOverrideMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.registrations.form_permissions.RegistrationModelPermissionMiddleware',
     'apps.platform_core.permission_middleware.TenantPermissionMiddleware',
     'apps.platform_core.tenant_context.TenantContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',

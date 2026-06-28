@@ -79,6 +79,7 @@ def user_create(request):
                 u.first_name = names[0]
                 u.last_name  = names[1] if len(names) > 1 else ''
                 u.is_staff = True
+                # superuser فقط للمدير العام — لا يُمنح لمستخدمي الشركات
                 u.is_superuser = (role == 'admin')
                 u.save()
                 # حفظ إعدادات EmailJS إذا وُجدت
@@ -175,7 +176,13 @@ def user_edit(request, pk):
         u.email      = request.POST.get('email', '').strip()
         u.first_name = request.POST.get('first_name', '').strip()
         u.last_name  = request.POST.get('last_name', '').strip()
-        u.is_superuser = request.POST.get('role') == 'admin'
+        # منع رفع مدير شركة لـ superuser (ثغرة أمنية)
+        from apps.platform_core.models import TenantMembership
+        user_has_tenant = TenantMembership.objects.filter(user=u).exists()
+        if not user_has_tenant:
+            u.is_superuser = request.POST.get('role') == 'admin'
+        else:
+            u.is_superuser = False  # مدير الشركة لا يصبح superuser أبداً
         u.is_active  = request.POST.get('is_active') == '1'
         note         = request.POST.get('note', '').strip()
         max_sends    = request.POST.get('max_sends', '').strip()
@@ -202,7 +209,9 @@ def user_edit(request, pk):
         return redirect('accounts:user_list')
 
     profile, _ = UserProfile.objects.get_or_create(user=u)
-    return render(request, 'accounts/user_edit.html', {'u': u, 'cfg': cfg, 'profile': profile})
+    from apps.platform_core.models import TenantMembership
+    user_has_tenant = TenantMembership.objects.filter(user=u).exists()
+    return render(request, 'accounts/user_edit.html', {'u': u, 'cfg': cfg, 'profile': profile, 'user_has_tenant': user_has_tenant})
 
 
 @user_passes_test(is_superuser)

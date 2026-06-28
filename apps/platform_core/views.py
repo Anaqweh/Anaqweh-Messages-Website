@@ -301,6 +301,13 @@ def tenant_member_permissions(request, membership_pk):
         if form.is_valid():
             permissions = form.permissions_payload()
             if _has_field(TenantMembership, "permissions"):
+                # INEXC_SPARK_FORM_PERMISSION
+                if "registrations" in permissions:
+                    reg = permissions.get("registrations") or {}
+                    forms = reg.get("forms") if isinstance(reg.get("forms"), dict) else {}
+                    forms["spark"] = bool(request.POST.get("registrations__forms__spark") or request.POST.get("spark_registration_form"))
+                    reg["forms"] = forms
+                    permissions["registrations"] = reg
                 membership.permissions = permissions
                 membership.save(update_fields=["permissions"])
                 messages.success(request, "تم تحديث صلاحيات العضو.")
@@ -402,6 +409,14 @@ def tenant_role_create(request, pk):
             enabled = request.POST.get(f'perm_{section}') == 'on'
             for action in perms[section]:
                 perms[section][action] = enabled
+        # صلاحية نموذج سبارك (تُحفظ داخل registrations.forms.spark)
+        spark_on = request.POST.get('spark_registration_form') == 'on'
+        perms.setdefault('registrations', {})
+        reg_forms = perms['registrations'].get('forms')
+        if not isinstance(reg_forms, dict):
+            reg_forms = {}
+        reg_forms['spark'] = spark_on
+        perms['registrations']['forms'] = reg_forms
         TenantRole.objects.create(
             tenant=tenant, name=name, description=description, permissions=perms
         )
@@ -426,6 +441,14 @@ def tenant_role_edit(request, pk, role_pk):
             enabled = request.POST.get(f'perm_{section}') == 'on'
             for action in perms[section]:
                 perms[section][action] = enabled
+        # صلاحية نموذج سبارك (تُحفظ داخل registrations.forms.spark)
+        spark_on = request.POST.get('spark_registration_form') == 'on'
+        perms.setdefault('registrations', {})
+        reg_forms = perms['registrations'].get('forms')
+        if not isinstance(reg_forms, dict):
+            reg_forms = {}
+        reg_forms['spark'] = spark_on
+        perms['registrations']['forms'] = reg_forms
         role.permissions = perms
         role.save()
         messages.success(request, f'تم تحديث الدور: {role.name}')
@@ -478,6 +501,14 @@ def tenant_member_edit(request, membership_pk):
             enabled = request.POST.get(f'perm_{section}') == 'on'
             for action in perms[section]:
                 perms[section][action] = enabled
+        # صلاحية نموذج سبارك (تُحفظ داخل registrations.forms.spark)
+        spark_on = request.POST.get('spark_registration_form') == 'on'
+        perms.setdefault('registrations', {})
+        reg_forms = perms['registrations'].get('forms')
+        if not isinstance(reg_forms, dict):
+            reg_forms = {}
+        reg_forms['spark'] = spark_on
+        perms['registrations']['forms'] = reg_forms
         membership.permissions = perms
         membership.save()
         messages.success(request, f'تم تحديث بيانات {user.username}')

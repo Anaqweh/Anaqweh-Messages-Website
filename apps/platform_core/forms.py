@@ -193,6 +193,8 @@ class MembershipPermissionsForm(BootstrapMixin, forms.Form):
         for section, actions in permissions.items():
             group_fields = []
             for action, enabled in actions.items():
+                if isinstance(enabled, dict):
+                    continue
                 field_name = f"perm__{section}__{action}"
                 self.fields[field_name] = forms.BooleanField(
                     label=ACTION_LABELS.get(action, action),
@@ -200,6 +202,15 @@ class MembershipPermissionsForm(BootstrapMixin, forms.Form):
                     initial=bool(enabled),
                 )
                 group_fields.append(field_name)
+
+            if section == "registrations":
+                reg_forms = actions.get("forms") if isinstance(actions.get("forms"), dict) else {}
+                self.fields["spark_registration_form"] = forms.BooleanField(
+                    label="نموذج تسجيل معهد سبارك",
+                    required=False,
+                    initial=bool(reg_forms.get("spark")),
+                )
+                group_fields.append("spark_registration_form")
 
             self.permission_groups.append({
                 "code": section,
@@ -219,5 +230,13 @@ class MembershipPermissionsForm(BootstrapMixin, forms.Form):
             _, section, action = field_name.split("__", 2)
             permissions.setdefault(section, {})
             permissions[section][action] = bool(value)
+
+        spark_on = bool(self.cleaned_data.get("spark_registration_form"))
+        permissions.setdefault("registrations", {})
+        reg_forms = permissions["registrations"].get("forms")
+        if not isinstance(reg_forms, dict):
+            reg_forms = {}
+        reg_forms["spark"] = spark_on
+        permissions["registrations"]["forms"] = reg_forms
 
         return permissions

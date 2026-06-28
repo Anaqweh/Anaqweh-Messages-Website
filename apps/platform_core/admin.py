@@ -52,3 +52,27 @@ class PlatformAuditLogAdmin(admin.ModelAdmin):
     list_filter = ("action", "tenant")
     search_fields = ("action", "target_model", "target_id", "actor__username", "tenant__name")
     readonly_fields = ("created_at",)
+
+
+# تعريب أسماء النماذج (عرض فقط)
+from .models import ModuleCatalog, Tenant, TenantRole, TenantMembership, PlatformAuditLog
+for _m, (_s, _p) in {
+    ModuleCatalog: ("وحدة", "كتالوج الوحدات"),
+    Tenant: ("شركة", "الشركات"),
+    TenantRole: ("دور", "أدوار الشركات"),
+    TenantMembership: ("عضوية", "عضويات الشركات"),
+    PlatformAuditLog: ("سجل تدقيق", "سجلات التدقيق"),
+}.items():
+    _m._meta.verbose_name = _s
+    _m._meta.verbose_name_plural = _p
+
+
+# تصحيح تعريب (عرض فقط)
+try:
+    from .models import PlatformSettings, PayoutRequest
+    PlatformSettings._meta.verbose_name = "إعدادات المنصة"
+    PlatformSettings._meta.verbose_name_plural = "إعدادات المنصة"
+    PayoutRequest._meta.verbose_name = "طلب سحب"
+    PayoutRequest._meta.verbose_name_plural = "طلبات السحب"
+except Exception:
+    pass

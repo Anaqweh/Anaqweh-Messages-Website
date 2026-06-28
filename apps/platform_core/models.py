@@ -29,10 +29,12 @@ def default_permissions():
     return {
         "email": {"view": True, "create": False, "edit": False, "delete": False, "send": False},
         "finance": {"view": False, "create": False, "edit": False, "delete": False, "export": False},
+        "accounting": {"view": False, "create": False, "edit": False, "delete": False, "export": False, "payroll": False},
         "crm": {"view": False, "create": False, "edit": False, "delete": False, "export": False},
         "reports": {"view": False, "export": False},
         "settings": {"view": False, "edit": False, "manage_users": False},
-        "registrations": {"view": False, "create": False, "edit": False, "delete": False, "settings": False},
+        "registrations": {
+            "forms": {"spark": False},"view": False, "create": False, "edit": False, "delete": False, "settings": False},
         "stripe": {"view": False, "settings": False, "payouts": False},
     }
 

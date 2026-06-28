@@ -44,11 +44,34 @@ def _owned_logs(qs, request):
         return qs
     return qs.filter(campaign__owner_id__in=_company_user_ids(request))
 
+
+def _email_permission_ok(request):
+    """صلاحية قسم الحملات/الإرسال الذكي. المدير العام دائماً مسموح."""
+    if request.user.is_superuser:
+        return True
+    try:
+        from apps.platform_core.navigation import active_membership_for, permissions_for_membership
+        m = active_membership_for(request.user)
+        if not m:
+            return False
+        perms = permissions_for_membership(m) or {}
+        return bool(perms.get("email", {}).get("view"))
+    except Exception:
+        return False
+
+
+def _email_denied_response():
+    from django.http import HttpResponseForbidden
+    return HttpResponseForbidden("هذه الميزة غير مفعّلة لحسابك. يرجى التواصل مع مدير المنصة.")
+
 @login_required
 def dashboard(request):
-    campaigns = _owned(Campaign.objects.all(), request)[:10]
+    # استعلام واحد فقط بدلاً من مرتين — تحسين الأداء
     _camp = _owned(Campaign.objects.all(), request)
     _logs = _owned_logs(EmailLog.objects.all(), request)
+    campaigns = _camp.select_related('mailing_list').order_by('-created_at')[:10]
+    from django.db.models import Count
+    from django.db.models import Q as _Q
     stats = {
         'total_campaigns': _camp.count(),
         'running': _camp.filter(status='running').count(),
@@ -57,7 +80,8 @@ def dashboard(request):
         'total_failed': _logs.filter(status='failed').count(),
         'total_pending': _logs.filter(status__in=['pending','sending']).count(),
     }
-    recent_logs = EmailLog.objects.select_related('campaign').order_by('-created_at')[:20]
+    # عزل recent_logs حسب الشركة أيضاً
+    recent_logs = _logs.select_related('campaign').order_by('-created_at')[:20]
     return render(request, 'campaigns/dashboard.html', {'campaigns': campaigns, 'stats': stats, 'recent_logs': recent_logs})
 
 @login_required
@@ -216,6 +240,8 @@ from django.views.decorators.http import require_POST
 @login_required
 def smart_send(request):
     """صفحة الإرسال الذكي — إدخال يدوي أو رفع إكسيل"""
+    if not _email_permission_ok(request):
+        return _email_denied_response()
     from apps.templates_mgr.models import EmailTemplate
     templates = _owned(EmailTemplate.objects.all(), request)
     # التحقق من إعدادات EmailJS
@@ -239,6 +265,8 @@ def smart_send(request):
 @login_required
 def parse_excel(request):
     """تحليل ملف إكسيل واستخراج الإيميلات والأسماء"""
+    if not _email_permission_ok(request):
+        return _email_denied_response()
     if request.method != 'POST':
         return JsonResponse({'error': 'POST only'}, status=405)
     
@@ -333,6 +361,8 @@ def parse_excel(request):
 @login_required  
 def do_smart_send(request):
     """تنفيذ الإرسال الذكي"""
+    if not _email_permission_ok(request):
+        return _email_denied_response()
     if request.method != 'POST':
         return JsonResponse({'error': 'POST only'}, status=405)
     

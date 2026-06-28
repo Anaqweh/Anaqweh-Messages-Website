@@ -2,6 +2,40 @@ from django.shortcuts import redirect
 from django.urls import reverse
 
 
+
+# INEXC_ALLOW_ACCOUNTING_ACCESS_PATCH
+def _inexc_user_can_access_accounting(request):
+    user = getattr(request, "user", None)
+
+    if not user or not user.is_authenticated:
+        return False
+
+    if getattr(user, "is_superuser", False):
+        return True
+
+    try:
+        from apps.platform_core.navigation import active_membership_for, permissions_for_membership
+        membership = active_membership_for(user)
+        if not membership:
+            return False
+
+        modules = getattr(membership.tenant, "modules", None) or {}
+        perms = permissions_for_membership(membership) or {}
+
+        accounting = perms.get("accounting", {})
+        finance = perms.get("finance", {})
+
+        return bool(
+            modules.get("accounting")
+            or accounting.get("view")
+            or accounting.get("payroll")
+            or finance.get("view")
+            or getattr(membership, "is_tenant_admin", False)
+        )
+    except Exception:
+        return False
+
+
 class FinanceAccessIsolationMiddleware:
     PUBLIC_PAYMENT_PREFIXES = (
         "/payments/invoice/",
@@ -20,6 +54,9 @@ class FinanceAccessIsolationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if request.path.startswith("/accounting/") and _inexc_user_can_access_accounting(request):
+            return self.get_response(request)
+
         path = request.path_info or request.path
         if not path.startswith("/payments/"):
             return self.get_response(request)

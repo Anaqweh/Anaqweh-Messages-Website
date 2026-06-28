@@ -2,141 +2,543 @@
 {% block title %}حملة جديدة – INEXC{% endblock %}
 {% block page_title %}<i class="bi bi-plus-circle me-2"></i>إنشاء حملة جديدة{% endblock %}
 {% block content %}
-<div class="row g-3">
-  <div class="col-lg-8"><div class="form-card">
-    <form method="post">{% csrf_token %}
-      <div class="mb-3"><label class="form-label fw-bold">اسم الحملة *</label><input type="text" name="name" class="form-control" required></div>
-      <div class="row g-3 mb-3">
-        <div class="col-md-6"><label class="form-label fw-bold">القائمة *</label><select name="mailing_list" class="form-select" required><option value="">-- اختر --</option>{% for ml in lists %}<option value="{{ ml.pk }}">{{ ml.name }} ({{ ml.active_count }})</option>{% endfor %}</select></div>
-        <div class="col-md-6"><label class="form-label fw-bold">من قالب</label><select id="ts" class="form-select"><option value="">-- اختياري --</option>{% for t in templates %}<option value="{{ t.pk }}" data-s="{{ t.subject }}" data-h="{{ t.body_html|escapejs }}">{{ t.name }}</option>{% endfor %}</select></div>
+
+<style>
+:root { --teal: #0f766e; --teal-light: #ccfbf1; --teal-dark: #134e4a; }
+
+.campaign-section {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.section-icon {
+  width: 36px; height: 36px;
+  background: var(--teal-light);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--teal);
+  font-size: 16px;
+}
+
+.section-header h6 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.form-control, .form-select {
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  padding: 10px 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(15,118,110,.1);
+}
+
+.var-badge {
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  transition: all .15s;
+  user-select: none;
+}
+.var-badge:hover { background: var(--teal); color: white; border-color: var(--teal); }
+
+.step-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  transition: box-shadow .2s;
+  position: relative;
+}
+.step-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+
+.step-num {
+  width: 30px; height: 30px;
+  background: var(--teal);
+  color: white;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.btn-inexc-primary {
+  background: var(--teal);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background .2s, transform .1s;
+}
+.btn-inexc-primary:hover { background: var(--teal-dark); color: white; transform: translateY(-1px); }
+
+.btn-inexc-outline {
+  background: white;
+  color: var(--teal);
+  border: 1.5px solid var(--teal);
+  border-radius: 10px;
+  padding: 11px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all .2s;
+}
+.btn-inexc-outline:hover { background: var(--teal-light); }
+
+.preview-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.preview-toolbar {
+  background: #f1f5f9;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.preview-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+
+.preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: #94a3b8;
+  gap: 10px;
+}
+
+.quick-tpl-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  width: 100%;
+  text-align: right;
+}
+.quick-tpl-btn:hover { background: var(--teal-light); border-color: var(--teal); color: var(--teal); }
+
+.test-email-wrap input {
+  border-radius: 10px 0 0 10px;
+}
+.test-email-wrap button {
+  border-radius: 0 10px 10px 0;
+  background: var(--teal);
+  color: white;
+  border: none;
+  padding: 0 16px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.test-email-wrap button:hover { background: var(--teal-dark); }
+
+.required-star { color: #ef4444; }
+
+#bodyHtml {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  min-height: 220px;
+  resize: vertical;
+}
+
+.add-step-btn {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  color: #64748b;
+  cursor: pointer;
+  transition: all .2s;
+  font-size: 13px;
+  background: transparent;
+  width: 100%;
+}
+.add-step-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-light); }
+</style>
+
+<div class="row g-4">
+
+  <!-- العمود الرئيسي -->
+  <div class="col-lg-7">
+
+    <!-- معلومات الحملة -->
+    <div class="campaign-section">
+      <div class="section-header">
+        <div class="section-icon"><i class="bi bi-info-circle"></i></div>
+        <h6>معلومات الحملة</h6>
       </div>
-      <div class="mb-3"><label class="form-label fw-bold">العنوان *</label><input type="text" name="subject" id="si" class="form-control" required></div>
-      <div class="mb-2"><label class="form-label fw-bold">محتوى HTML *</label>
-        <div class="d-flex gap-1 flex-wrap mb-2">{% for v in supported_vars %}<span class="badge bg-light text-dark border" style="cursor:pointer" onclick="ins('{{ v }}')">{{ v }}</span>{% endfor %}</div>
-        <textarea name="body_html" id="bh" class="form-control" rows="10" required></textarea>
-      </div>
-      <div class="mb-3"><label class="form-label fw-bold">محتوى نصي</label><textarea name="body_text" class="form-control" rows="3"></textarea></div>
-      <div class="mb-3"><label class="form-label fw-bold">جدولة (اختياري)</label><input type="datetime-local" name="scheduled_at" class="form-control"></div>
-      
-        <div class="mb-3 p-3 border rounded bg-light" id="ba-steps-box">
-          <h6 class="fw-bold text-primary mb-2">رسائل الحملة التلقائية</h6>
-          <p class="small text-muted mb-3">أضف حتى 3 رسائل، وحدد وقت إرسال كل رسالة. اترك الرسالة فارغة لتجاهلها.</p>
+      <form method="post" id="campaignForm">
+        {% csrf_token %}
+        <input type="hidden" name="send_now" id="sendNowInput" value="0">
 
-          <div class="border rounded p-2 mb-2 bg-white">
-            <label class="form-label fw-bold">الرسالة الأولى</label>
-            <input type="text" name="step_title[]" class="form-control mb-2" value="الرسالة الأولى">
-            <input type="text" name="step_subject[]" class="form-control mb-2" placeholder="عنوان الرسالة الأولى">
-            <textarea name="step_body_html[]" class="form-control mb-2" rows="4" placeholder="محتوى الرسالة الأولى"></textarea>
-            <input type="datetime-local" name="step_send_at[]" class="form-control">
+        <div class="mb-3">
+          <label class="form-label">اسم الحملة <span class="required-star">*</span></label>
+          <input type="text" name="name" class="form-control" placeholder="مثال: حملة رمضان 2025" required>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">القائمة البريدية <span class="required-star">*</span></label>
+            <select name="mailing_list" class="form-select" required>
+              <option value="">-- اختر قائمة --</option>
+              {% for ml in lists %}
+              <option value="{{ ml.pk }}">{{ ml.name }} ({{ ml.active_count }})</option>
+              {% endfor %}
+            </select>
           </div>
-
-          <div class="border rounded p-2 mb-2 bg-white">
-            <label class="form-label fw-bold">الرسالة الثانية</label>
-            <input type="text" name="step_title[]" class="form-control mb-2" value="الرسالة الثانية">
-            <input type="text" name="step_subject[]" class="form-control mb-2" placeholder="عنوان الرسالة الثانية">
-            <textarea name="step_body_html[]" class="form-control mb-2" rows="4" placeholder="محتوى الرسالة الثانية"></textarea>
-            <input type="datetime-local" name="step_send_at[]" class="form-control">
-          </div>
-
-          <div class="border rounded p-2 mb-2 bg-white">
-            <label class="form-label fw-bold">الرسالة الثالثة</label>
-            <input type="text" name="step_title[]" class="form-control mb-2" value="الرسالة الثالثة">
-            <input type="text" name="step_subject[]" class="form-control mb-2" placeholder="عنوان الرسالة الثالثة">
-            <textarea name="step_body_html[]" class="form-control mb-2" rows="4" placeholder="محتوى الرسالة الثالثة"></textarea>
-            <input type="datetime-local" name="step_send_at[]" class="form-control">
+          <div class="col-md-6">
+            <label class="form-label">تحميل من قالب</label>
+            <select id="templateSelect" class="form-select">
+              <option value="">-- اختياري --</option>
+              {% for t in templates %}
+              <option value="{{ t.pk }}" data-s="{{ t.subject }}" data-h="{{ t.body_html|escapejs }}">{{ t.name }}</option>
+              {% endfor %}
+            </select>
           </div>
         </div>
 
-        <div class="d-flex gap-2">
-        <button type="submit" name="send_now" value="0" class="btn btn-outline-secondary flex-fill">حفظ كمسودة</button>
-        <button type="submit" name="send_now" value="1" class="btn btn-inexc flex-fill" onclick="return confirm('إرسال الآن؟')">إرسال الآن</button>
+        <div class="mb-3">
+          <label class="form-label">عنوان الرسالة <span class="required-star">*</span></label>
+          <input type="text" name="subject" id="subjectInput" class="form-control" placeholder="مثال: عرض خاص لك 🎁" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">جدولة الإرسال <span class="text-muted fw-normal">(اتركه فارغاً للإرسال الفوري)</span></label>
+          <input type="datetime-local" name="scheduled_at" class="form-control">
+        </div>
+
+      </form>
+    </div>
+
+    <!-- محتوى الرسالة -->
+    <div class="campaign-section">
+      <div class="section-header">
+        <div class="section-icon"><i class="bi bi-code-slash"></i></div>
+        <h6>محتوى الرسالة</h6>
       </div>
-    </form>
-  </div></div>
-  <div class="col-lg-4">
-    <div class="form-card mb-3"><h6 class="fw-bold text-primary mb-3">رسالة اختبارية</h6><input type="email" id="te" class="form-control mb-2" placeholder="your@email.com"><button class="btn btn-outline-primary btn-sm w-100" onclick="st()">إرسال اختبار</button><div id="tr" class="mt-2 small"></div></div>
-    <div class="form-card"><h6 class="fw-bold text-primary mb-3">معاينة</h6><button type="button" class="btn btn-outline-success btn-sm" onclick="loadJobTemplateSimple()">قالب طلب وظيفة</button>
-<button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="pv()">تحديث</button><iframe id="pf" style="width:100%;min-height:250px;border:1px solid #e2e8f0;border-radius:8px"></iframe></div>
+
+      <div class="mb-2">
+        <label class="form-label">متغيرات التخصيص</label>
+        <div class="d-flex gap-1 flex-wrap">
+          {% for v in supported_vars %}
+          <span class="var-badge" onclick="insertVar('{{ v }}')">{{ v }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-3 mt-3">
+        <label class="form-label">محتوى HTML <span class="required-star">*</span></label>
+        <textarea name="body_html" id="bodyHtml" class="form-control" rows="12" form="campaignForm" required placeholder="اكتب محتوى HTML هنا أو اختر قالباً سريعاً من اليمين..."></textarea>
+      </div>
+
+      <div class="mb-0">
+        <label class="form-label">محتوى نصي <span class="text-muted fw-normal">(للمتصفحات التي لا تدعم HTML)</span></label>
+        <textarea name="body_text" class="form-control" rows="2" form="campaignForm" placeholder="نسخة مبسطة..."></textarea>
+      </div>
+    </div>
+
+    <!-- الرسائل التلقائية -->
+    <div class="campaign-section">
+      <div class="section-header">
+        <div class="section-icon"><i class="bi bi-collection"></i></div>
+        <h6>رسائل الحملة التلقائية <span class="text-muted fw-normal small">(اختياري)</span></h6>
+      </div>
+      <p class="text-muted small mb-3">أضف رسائل متعددة بأوقات إرسال مختلفة. الرسائل الفارغة تُتجاهل تلقائياً.</p>
+
+      <div id="stepsContainer"></div>
+
+      <button type="button" class="add-step-btn" onclick="addStep()">
+        <i class="bi bi-plus-circle me-2"></i>إضافة رسالة جديدة
+      </button>
+    </div>
+
+    <!-- أزرار الحفظ -->
+    <div class="d-flex gap-3">
+      <button type="button" class="btn-inexc-outline flex-fill" onclick="submitForm(0)">
+        <i class="bi bi-save me-2"></i>حفظ كمسودة
+      </button>
+      <button type="button" class="btn-inexc-primary flex-fill" onclick="submitForm(1)">
+        <i class="bi bi-send me-2"></i>إرسال الآن
+      </button>
+    </div>
+
+  </div>
+
+  <!-- الشريط الجانبي -->
+  <div class="col-lg-5">
+
+    <!-- المعاينة المباشرة -->
+    <div class="campaign-section mb-4" style="position:sticky;top:20px">
+      <div class="section-header">
+        <div class="section-icon"><i class="bi bi-eye"></i></div>
+        <h6>معاينة مباشرة</h6>
+      </div>
+
+      <div class="preview-container">
+        <div class="preview-toolbar">
+          <div class="preview-dot" style="background:#ef4444"></div>
+          <div class="preview-dot" style="background:#f59e0b"></div>
+          <div class="preview-dot" style="background:#22c55e"></div>
+          <span style="font-size:11px;color:#94a3b8;margin-right:auto">معاينة الرسالة</span>
+        </div>
+        <div id="previewEmpty" class="preview-empty">
+          <i class="bi bi-envelope-open" style="font-size:32px;color:#cbd5e1"></i>
+          <span style="font-size:13px">ابدأ الكتابة لترى المعاينة</span>
+        </div>
+        <iframe id="previewFrame" style="width:100%;height:420px;border:none;display:none"></iframe>
+      </div>
+      <p class="text-muted small mt-2 mb-0 text-center">
+        <i class="bi bi-lightning-charge me-1"></i>تتحدث تلقائياً أثناء الكتابة
+      </p>
+
+      <!-- رسالة اختبارية -->
+      <div class="mt-4 pt-3 border-top">
+        <label class="form-label">إرسال رسالة اختبارية</label>
+        <div class="d-flex test-email-wrap">
+          <input type="email" id="testEmail" class="form-control" placeholder="your@email.com">
+          <button onclick="sendTest()"><i class="bi bi-send me-1"></i>إرسال</button>
+        </div>
+        <div id="testResult" class="mt-2 small"></div>
+      </div>
+
+      <!-- قوالب سريعة -->
+      <div class="mt-4 pt-3 border-top">
+        <label class="form-label"><i class="bi bi-lightning me-1"></i>قوالب سريعة</label>
+        <div class="d-flex flex-column gap-2">
+          <button class="quick-tpl-btn" onclick="loadQuickTemplate('promo')">
+            <i class="bi bi-tag" style="color:#f59e0b"></i>عرض ترويجي
+          </button>
+          <button class="quick-tpl-btn" onclick="loadQuickTemplate('newsletter')">
+            <i class="bi bi-newspaper" style="color:#3b82f6"></i>نشرة إخبارية
+          </button>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
-<script>
-const bh=document.getElementById('bh');
-function ins(v){const s=bh.selectionStart;bh.value=bh.value.substring(0,s)+v+bh.value.substring(bh.selectionEnd);bh.focus()}
 
-function pv(){
-  const iframe=document.getElementById('pf');
-  const html=bh.value.replace(/\{\{name\}\}/g,'أحمد').replace(/\{\{اسم\}\}/g,'أحمد').replace(/\{\{course_name\}\}/g,'دورة Python').replace(/\{\{email\}\}/g,'test@example.com').replace(/\{\{phone\}\}/g,'0501234567').replace(/\{\{custom_message\}\}/g,'رسالة تجريبية');
-  if(!html.trim()){
-    iframe.style.display='none';
-    iframe.srcdoc='';
+<script>
+const bodyHtml = document.getElementById('bodyHtml');
+const previewFrame = document.getElementById('previewFrame');
+const previewEmpty = document.getElementById('previewEmpty');
+let stepCount = 0;
+
+// ======= إدراج متغير =======
+function insertVar(v) {
+  const s = bodyHtml.selectionStart;
+  bodyHtml.value = bodyHtml.value.substring(0, s) + v + bodyHtml.value.substring(bodyHtml.selectionEnd);
+  bodyHtml.focus();
+  updatePreview();
+}
+
+// ======= المعاينة =======
+function updatePreview() {
+  const html = bodyHtml.value
+    .replace(/\{\{name\}\}/g, 'أحمد')
+    .replace(/\{\{الاسم\}\}/g, 'أحمد')
+    .replace(/\{\{course_name\}\}/g, 'دورة Python')
+    .replace(/\{\{email\}\}/g, 'test@example.com')
+    .replace(/\{\{phone\}\}/g, '0501234567')
+    .replace(/\{\{custom_message\}\}/g, 'رسالة تجريبية')
+    .replace(/\{\{company_name\}\}/g, 'INEXC')
+    .replace(/\{\{job_title\}\}/g, 'مطور برمجيات');
+
+  if (!html.trim()) {
+    previewFrame.style.display = 'none';
+    previewEmpty.style.display = 'flex';
     return;
   }
-  iframe.style.display='block';
-  iframe.srcdoc=html;
+  previewEmpty.style.display = 'none';
+  previewFrame.style.display = 'block';
+  previewFrame.srcdoc = html;
 }
-let pvTimer;
-bh.addEventListener('input',function(){clearTimeout(pvTimer);pvTimer=setTimeout(pv,800);});
-document.getElementById('ts').addEventListener('change',function(){const o=this.options[this.selectedIndex];if(o.value){document.getElementById('si').value=o.dataset.s||'';bh.value=o.dataset.h||''}});
-function pv(){document.getElementById('pf').srcdoc=bh.value.replace(/{{name}}/g,'أحمد').replace(/{{course_name}}/g,'دورة Python').replace(/{{email}}/g,'a@b.com').replace(/{{phone}}/g,'0501234567').replace(/{{custom_message}}/g,'رسالة')}
-function st(){
-  const e=document.getElementById('te').value.trim();
-  const r=document.getElementById('tr');
-  if(!e){r.innerHTML='<span class="text-danger">⚠️ أدخل بريدك الإلكتروني أولاً</span>';return;}
-  if(!bh.value.trim()){r.innerHTML='<span class="text-danger">⚠️ محتوى الرسالة فارغ</span>';return;}
-  r.innerHTML='<span class="text-muted">⏳ جاري الإرسال...</span>';
-  fetch('{% url "campaigns:send_test" %}',{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token }}'},body:JSON.stringify({email:e,subject:document.getElementById('si').value,body_html:bh.value})}).then(r=>r.json()).then(d=>{r.innerHTML=d.success?'<span class="text-success">تم الإرسال!</span>':'<span class="text-danger">'+d.error+'</span>'})}
 
-// ========= EmailJS Integration =========
-const EMAILJS_SERVICE = 'service_3vvjm5h';
-const EMAILJS_TEMPLATE = 'template_jpwua8o';
-const EMAILJS_PUBLIC_KEY = 'JGASb27vGgYt6doJh';
+let previewTimer;
+bodyHtml.addEventListener('input', function() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(updatePreview, 500);
+});
 
-// إرسال عبر EmailJS
-function sendViaEmailJS(toEmail, subject, bodyHtml) {
-  const r = document.getElementById('tr');
-  r.innerHTML = '<span class="text-muted">⏳ جاري الإرسال عبر EmailJS...</span>';
+// ======= تحميل القالب =======
+document.getElementById('templateSelect').addEventListener('change', function() {
+  const o = this.options[this.selectedIndex];
+  if (o.value) {
+    document.getElementById('subjectInput').value = o.dataset.s || '';
+    bodyHtml.value = o.dataset.h || '';
+    updatePreview();
+  }
+});
 
-  emailjs.init(EMAILJS_PUBLIC_KEY);
+// ======= رسائل ديناميكية =======
+function addStep() {
+  stepCount++;
+  const n = stepCount;
+  const div = document.createElement('div');
+  div.className = 'step-card';
+  div.id = 'step_' + n;
+  div.innerHTML = `
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div class="step-num">${n}</div>
+      <input type="text" name="step_title[]" class="form-control form-control-sm" value="الرسالة ${n}" placeholder="عنوان الخطوة" form="campaignForm">
+      <button type="button" class="btn btn-sm ms-auto" style="color:#ef4444;border:1px solid #fecaca;border-radius:8px;background:#fff5f5;padding:4px 10px" onclick="removeStep(${n})">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
+    <div class="row g-2">
+      <div class="col-12">
+        <input type="text" name="step_subject[]" class="form-control form-control-sm" placeholder="عنوان الرسالة" form="campaignForm">
+      </div>
+      <div class="col-12">
+        <textarea name="step_body_html[]" class="form-control form-control-sm" rows="3" placeholder="محتوى HTML" form="campaignForm"></textarea>
+      </div>
+      <div class="col-12">
+        <label style="font-size:12px;color:#64748b;margin-bottom:4px">وقت الإرسال</label>
+        <input type="datetime-local" name="step_send_at[]" class="form-control form-control-sm" form="campaignForm">
+      </div>
+    </div>`;
+  document.getElementById('stepsContainer').appendChild(div);
+}
 
-  emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
-    to_email: toEmail,
-    subject: subject,
-    message: bodyHtml,
-    reply_to: toEmail
-  }).then(function(response) {
-    r.innerHTML = '<span class="text-success">✅ تم الإرسال بنجاح عبر EmailJS!</span>';
-  }).catch(function(error) {
-    r.innerHTML = '<span class="text-danger">❌ خطأ: ' + JSON.stringify(error) + '</span>';
+function removeStep(n) {
+  const el = document.getElementById('step_' + n);
+  if (el) { el.style.opacity = '0'; el.style.transform = 'scale(.97)'; el.style.transition = 'all .2s'; setTimeout(() => el.remove(), 200); }
+}
+
+// ======= إرسال النموذج =======
+function submitForm(sendNow) {
+  document.getElementById('sendNowInput').value = sendNow;
+  if (sendNow == 1 && !confirm('هل تريد إرسال الحملة الآن لجميع المستلمين؟')) return;
+  document.getElementById('campaignForm').submit();
+}
+
+// ======= رسالة اختبارية =======
+function sendTest() {
+  const e = document.getElementById('testEmail').value.trim();
+  const r = document.getElementById('testResult');
+  if (!e) { r.innerHTML = '<span class="text-danger">⚠️ أدخل بريدك الإلكتروني</span>'; return; }
+  if (!bodyHtml.value.trim()) { r.innerHTML = '<span class="text-danger">⚠️ محتوى الرسالة فارغ</span>'; return; }
+  r.innerHTML = '<span class="text-muted">⏳ جاري الإرسال...</span>';
+  fetch('{% url "campaigns:send_test" %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ email: e, subject: document.getElementById('subjectInput').value, body_html: bodyHtml.value })
+  }).then(r => r.json()).then(d => {
+    document.getElementById('testResult').innerHTML = d.success
+      ? '<span class="text-success">✅ تم الإرسال بنجاح!</span>'
+      : '<span class="text-danger">❌ ' + (d.error || 'خطأ') + '</span>';
+  }).catch(() => {
+    document.getElementById('testResult').innerHTML = '<span class="text-danger">❌ خطأ في الاتصال</span>';
   });
 }
 
-// تعديل دالة st() لتستخدم EmailJS
-function st() {
-  const e = document.getElementById('te').value.trim();
-  const r = document.getElementById('tr');
+// ======= قوالب سريعة =======
+const quickTemplates = {
+  promo: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:640px;margin:auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0">
+  <div style="background:linear-gradient(135deg,#f59e0b,#ef4444);padding:36px;text-align:center">
+    <p style="color:rgba(255,255,255,.8);margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:2px">عرض حصري</p>
+    <h1 style="color:white;margin:0;font-size:32px">🎁 خصم 50%</h1>
+    <p style="color:rgba(255,255,255,.9);margin:10px 0 0;font-size:16px">لفترة محدودة جداً</p>
+  </div>
+  <div style="padding:32px">
+    <p style="color:#374151;font-size:15px">عزيزي {{name}}،</p>
+    <p style="color:#374151">لديك فرصة ذهبية للاستفادة من عرضنا الحصري. لا تفوّت هذه الفرصة!</p>
+    <div style="background:#fef3c7;border:2px dashed #f59e0b;border-radius:12px;padding:20px;text-align:center;margin:24px 0">
+      <p style="margin:0;font-size:13px;color:#92400e;font-weight:600">كود الخصم الخاص بك</p>
+      <p style="margin:10px 0 0;font-size:36px;font-weight:900;color:#b45309;letter-spacing:6px">INEXC50</p>
+    </div>
+    <div style="text-align:center">
+      <a href="#" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;padding:16px 36px;border-radius:50px;text-decoration:none;font-weight:700;font-size:16px">تسوّق الآن</a>
+    </div>
+  </div>
+  <div style="background:#f8fafc;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+    العرض ساري لفترة محدودة | <a href="#" style="color:#94a3b8">إلغاء الاشتراك</a>
+  </div>
+</div>`,
+  newsletter: `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:640px;margin:auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0">
+  <div style="background:#1e40af;padding:28px;text-align:center">
+    <p style="color:#bfdbfe;margin:0 0 6px;font-size:12px;letter-spacing:2px;text-transform:uppercase">النشرة الشهرية</p>
+    <h1 style="color:white;margin:0;font-size:22px">📰 أبرز الأخبار</h1>
+  </div>
+  <div style="padding:32px">
+    <p style="color:#374151">عزيزي {{name}}،</p>
+    <p style="color:#374151">إليك أبرز ما حدث هذا الشهر:</p>
+    <div style="border-right:4px solid #1e40af;padding-right:16px;margin:20px 0">
+      <h3 style="color:#1e40af;margin:0 0 8px;font-size:16px">📌 عنوان الخبر الأول</h3>
+      <p style="color:#374151;margin:0;font-size:14px">تفاصيل الخبر الأول هنا. يمكنك تعديل هذا المحتوى.</p>
+    </div>
+    <div style="border-right:4px solid #059669;padding-right:16px;margin:20px 0">
+      <h3 style="color:#059669;margin:0 0 8px;font-size:16px">📌 عنوان الخبر الثاني</h3>
+      <p style="color:#374151;margin:0;font-size:14px">تفاصيل الخبر الثاني هنا.</p>
+    </div>
+    <div style="text-align:center;margin-top:24px">
+      <a href="#" style="background:#1e40af;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:600">قراءة المزيد</a>
+    </div>
+  </div>
+  <div style="background:#f8fafc;padding:16px;text-align:center;color:#94a3b8;font-size:12px">
+    {{company_name}} | <a href="#" style="color:#94a3b8">إلغاء الاشتراك</a>
+  </div>
+</div>`
+};
 
-  if (!e) {
-    r.innerHTML = '<span class="text-danger">⚠️ أدخل بريدك الإلكتروني أولاً</span>';
-    return;
-  }
-  if (!bh.value.trim()) {
-    r.innerHTML = '<span class="text-danger">⚠️ محتوى الرسالة فارغ</span>';
-    return;
-  }
-
-  const subject = document.getElementById('si').value || 'رسالة اختبار';
-  sendViaEmailJS(e, subject, bh.value);
+function loadQuickTemplate(type) {
+  if (!quickTemplates[type]) return;
+  if (bodyHtml.value.trim() && !confirm('سيتم استبدال المحتوى الحالي. هل تريد المتابعة؟')) return;
+  bodyHtml.value = quickTemplates[type];
+  updatePreview();
 }
 
-<script>
-function loadJobTemplateSimple(){
-  const html = '<div dir="rtl" style="font-family:Arial;padding:20px;background:#f6f8fb"><div style="max-width:700px;margin:auto;background:white;border-radius:14px;padding:24px;border:1px solid #ddd"><h1 style="color:#0f766e;text-align:center">نموذج طلب وظيفة</h1><h2>الوظيفة: {{job_title}}</h2><p>مرحباً، تعلن {{company_name}} عن فرصة عمل مميزة. يمكن تعديل هذا المحتوى بالكامل من المحرر.</p><h3>المهام</h3><ul><li>تنفيذ المهام اليومية.</li><li>التواصل مع الفريق والعملاء.</li><li>متابعة جودة العمل.</li></ul><h3>المتطلبات</h3><ul><li>خبرة مناسبة.</li><li>مهارات تواصل وتنظيم.</li><li>الالتزام والقدرة على التعلم.</li></ul><div style="background:#ecfdf5;border:1px solid #99f6e4;border-radius:10px;padding:14px;margin:15px 0"><b>السيرة الذاتية:</b><br>أضف عنصر مستند/ملف من المحرر لرفع السيرة الذاتية بأي صيغة.</div><p style="text-align:center"><a href="{{apply_link}}" style="background:#0f766e;color:white;padding:12px 22px;border-radius:8px;text-decoration:none">تقديم الطلب الآن</a></p></div></div>';
-  document.getElementById('bh').value = html;
-  if (typeof pv === 'function') pv();
-}
+updatePreview();
 </script>
 
-</script>
-<!-- EmailJS SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 {% endblock %}

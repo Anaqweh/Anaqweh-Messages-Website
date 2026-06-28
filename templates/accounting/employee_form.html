@@ -1,0 +1,115 @@
+{% extends "base/base.html" %}
+{% block title %}{% if employee %}تعديل موظف{% else %}موظف جديد{% endif %}{% endblock %}
+{% block page_title %}<i class="bi bi-person-plus me-2"></i>{% if employee %}تعديل: {{ employee.full_name }}{% else %}إضافة موظف جديد{% endif %}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'accounting:employees' %}" class="btn btn-outline-secondary btn-sm">← رجوع</a>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- البيانات الأساسية -->
+      <div class="form-card mb-3">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-person me-1"></i>البيانات الأساسية</h6>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">الاسم الكامل <span class="text-danger">*</span></label>
+            <input type="text" name="full_name" value="{{ employee.full_name|default:'' }}" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">المسمى الوظيفي</label>
+            <input type="text" name="job_title" value="{{ employee.job_title|default:'' }}" class="form-control" placeholder="مثال: محاسب">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">رقم الهوية / الإقامة</label>
+            <input type="text" name="national_id" value="{{ employee.national_id|default:'' }}" class="form-control font-monospace">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">تاريخ انتهاء الهوية</label>
+            <input type="date" name="id_expiry" value="{{ employee.id_expiry|date:'Y-m-d'|default:'' }}" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">تاريخ التعيين</label>
+            <input type="date" name="hire_date" value="{{ employee.hire_date|date:'Y-m-d'|default:'' }}" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">الحالة</label>
+            <select name="status" class="form-select">
+              <option value="active" {% if employee.status == 'active' or not employee %}selected{% endif %}>على رأس العمل</option>
+              <option value="terminated" {% if employee.status == 'terminated' %}selected{% endif %}>منتهي الخدمة</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- الراتب -->
+      <div class="form-card mb-3">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-cash-stack me-1"></i>الراتب والبدلات</h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">الراتب الأساسي (AED)</label>
+            <input type="number" step="0.01" name="base_salary" value="{{ employee.base_salary|default:'0' }}" class="form-control" oninput="calcNet()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">البدلات (AED)</label>
+            <input type="number" step="0.01" name="allowances" value="{{ employee.allowances|default:'0' }}" class="form-control" oninput="calcNet()">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">الخصومات الثابتة (AED)</label>
+            <input type="number" step="0.01" name="deductions" value="{{ employee.deductions|default:'0' }}" class="form-control" oninput="calcNet()">
+          </div>
+          <div class="col-12">
+            <div class="p-3 rounded-3 d-flex justify-content-between align-items-center" style="background:#f0fdf4">
+              <span class="fw-semibold text-muted">صافي الراتب الشهري</span>
+              <span class="fs-4 fw-bold text-success"><span id="netDisplay">0</span> AED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- بيانات التواصل والبنك -->
+      <div class="form-card mb-3">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-bank me-1"></i>التواصل والبنك</h6>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">رقم الآيبان (IBAN)</label>
+            <input type="text" name="iban" value="{{ employee.iban|default:'' }}" class="form-control font-monospace" placeholder="AE...">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">الجوال</label>
+            <input type="text" name="phone" value="{{ employee.phone|default:'' }}" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">البريد</label>
+            <input type="email" name="email" value="{{ employee.email|default:'' }}" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold">ملاحظات</label>
+            <textarea name="notes" class="form-control" rows="2">{{ employee.notes|default:'' }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-1"></i>حفظ</button>
+        <a href="{% url 'accounting:employees' %}" class="btn btn-outline-secondary px-4">إلغاء</a>
+        {% if employee %}
+        <button type="submit" formaction="{% url 'accounting:employee_delete' employee.pk %}" formmethod="post" class="btn btn-outline-danger ms-auto" onclick="return confirm('حذف الموظف نهائياً؟')"><i class="bi bi-trash me-1"></i>حذف</button>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function calcNet(){
+  const b = parseFloat(document.querySelector('[name=base_salary]').value) || 0;
+  const a = parseFloat(document.querySelector('[name=allowances]').value) || 0;
+  const d = parseFloat(document.querySelector('[name=deductions]').value) || 0;
+  document.getElementById('netDisplay').textContent = (b + a - d).toFixed(2);
+}
+calcNet();
+</script>
+{% endblock %}

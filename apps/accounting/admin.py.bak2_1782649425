@@ -53,15 +53,3 @@ class PayslipAdmin(admin.ModelAdmin):
     search_fields = ('employee__full_name',)
     list_filter = ('payroll_run__status', 'payroll_run__year')
     readonly_fields = ('net',)
-
-
-# تعريب أسماء النماذج (عرض فقط)
-from .models import Customer as _Cust
-_Cust._meta.verbose_name = "عميل"
-_Cust._meta.verbose_name_plural = "العملاء"
-Employee._meta.verbose_name = "موظف"
-Employee._meta.verbose_name_plural = "الموظفون"
-PayrollRun._meta.verbose_name = "مسير رواتب"
-PayrollRun._meta.verbose_name_plural = "مسيرات الرواتب"
-Payslip._meta.verbose_name = "قسيمة راتب"
-Payslip._meta.verbose_name_plural = "قسائم الرواتب"

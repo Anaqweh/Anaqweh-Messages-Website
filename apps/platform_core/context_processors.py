@@ -18,6 +18,14 @@ def _permissions_from_modules(modules):
             'delete': modules.get('finance', False),
             'export': modules.get('finance', False),
         },
+        'accounting': {
+            'view': modules.get('accounting', modules.get('finance', False)),
+            'create': modules.get('accounting', modules.get('finance', False)),
+            'edit': modules.get('accounting', modules.get('finance', False)),
+            'delete': modules.get('accounting', modules.get('finance', False)),
+            'export': modules.get('accounting', modules.get('finance', False)),
+            'payroll': modules.get('accounting', modules.get('finance', False)),
+        },
         'crm': {
             'view': modules.get('crm', False),
             'create': modules.get('crm', False),
@@ -101,8 +109,22 @@ def tenant_permissions(request):
     # مستخدم عادي
     membership = active_membership_for(user)
     perms2 = permissions_for_membership(membership) if membership else {}
-    reg_perms2 = perms2.get('registrations', {})
     modules2 = membership.tenant.modules if membership else {}
+
+    # إذا كانت الشركة مفعّل لها accounting ولم توجد صلاحية accounting صريحة،
+    # نربطها بصلاحية المالية حتى تظهر للمدير الذي لديه finance.
+    if membership and (modules2 or {}).get('accounting', False) and 'accounting' not in (membership.permissions or {}):
+        finance_perms = perms2.get('finance', {})
+        perms2['accounting'] = {
+            'view': finance_perms.get('view', False),
+            'create': finance_perms.get('create', False),
+            'edit': finance_perms.get('edit', False),
+            'delete': finance_perms.get('delete', False),
+            'export': finance_perms.get('export', False),
+            'payroll': finance_perms.get('view', False),
+        }
+
+    reg_perms2 = perms2.get('registrations', {})
     return {
         'tenant_membership': membership,
         'tenant_permissions': perms2,

@@ -202,3 +202,208 @@ def reports_export_xlsx(request):
     resp = HttpResponse(buf.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     resp['Content-Disposition'] = 'attachment; filename="financial_report.xlsx"'
     return resp
+
+
+# ============================================================
+# نظام رواتب الموظفين (HR + Payroll)
+# ============================================================
+from .models import Employee, PayrollRun, Payslip
+from decimal import Decimal
+
+
+def _acc_employees(request):
+    """عزل الموظفين بالشركة - نفس آلية العملاء."""
+    qs = Employee.objects.all()
+    _t = _acc_tenant(request)
+    if _t is not None:
+        qs = qs.filter(tenant=_t)
+    elif not request.user.is_superuser:
+        qs = qs.none()
+    return qs
+
+
+def _acc_payrolls(request):
+    qs = PayrollRun.objects.all()
+    _t = _acc_tenant(request)
+    if _t is not None:
+        qs = qs.filter(tenant=_t)
+    elif not request.user.is_superuser:
+        qs = qs.none()
+    return qs
+
+
+@login_required
+def employees(request):
+    """قائمة الموظفين مع تنبيهات الهويات."""
+    q = (request.GET.get('q') or '').strip()
+    status = (request.GET.get('status') or '').strip()
+    qs = _acc_employees(request)
+    if status:
+        qs = qs.filter(status=status)
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(Q(full_name__icontains=q) | Q(national_id__icontains=q) | Q(job_title__icontains=q) | Q(phone__icontains=q))
+
+    # تنبيهات الهويات
+    expired_count = sum(1 for e in qs if e.id_status == 'expired')
+    soon_count = sum(1 for e in qs if e.id_status == 'soon')
+    active_count = qs.filter(status='active').count()
+    total_payroll = sum((e.net_salary for e in qs if e.status == 'active'), Decimal('0'))
+
+    return render(request, 'accounting/employees.html', {
+        'employees': qs,
+        'q': q,
+        'status': status,
+        'expired_count': expired_count,
+        'soon_count': soon_count,
+        'active_count': active_count,
+        'total_payroll': total_payroll,
+    })
+
+
+@login_required
+def employee_create(request):
+    if request.method == 'POST':
+        Employee.objects.create(
+            tenant=_acc_tenant(request),
+            full_name=request.POST.get('full_name', '').strip() or 'موظف',
+            national_id=request.POST.get('national_id', '').strip(),
+            id_expiry=request.POST.get('id_expiry') or None,
+            job_title=request.POST.get('job_title', '').strip(),
+            hire_date=request.POST.get('hire_date') or None,
+            base_salary=request.POST.get('base_salary') or 0,
+            allowances=request.POST.get('allowances') or 0,
+            deductions=request.POST.get('deductions') or 0,
+            iban=request.POST.get('iban', '').strip(),
+            phone=request.POST.get('phone', '').strip(),
+            email=request.POST.get('email', '').strip(),
+            status=request.POST.get('status', 'active'),
+            notes=request.POST.get('notes', '').strip(),
+        )
+        from django.contrib import messages
+        messages.success(request, 'تم إضافة الموظف بنجاح')
+        return redirect('accounting:employees')
+    return render(request, 'accounting/employee_form.html', {'employee': None})
+
+
+@login_required
+def employee_edit(request, pk):
+    e = get_object_or_404(_acc_employees(request), pk=pk)
+    if request.method == 'POST':
+        e.full_name = request.POST.get('full_name', '').strip() or e.full_name
+        e.national_id = request.POST.get('national_id', '').strip()
+        e.id_expiry = request.POST.get('id_expiry') or None
+        e.job_title = request.POST.get('job_title', '').strip()
+        e.hire_date = request.POST.get('hire_date') or None
+        e.base_salary = request.POST.get('base_salary') or 0
+        e.allowances = request.POST.get('allowances') or 0
+        e.deductions = request.POST.get('deductions') or 0
+        e.iban = request.POST.get('iban', '').strip()
+        e.phone = request.POST.get('phone', '').strip()
+        e.email = request.POST.get('email', '').strip()
+        e.status = request.POST.get('status', 'active')
+        e.notes = request.POST.get('notes', '').strip()
+        e.save()
+        from django.contrib import messages
+        messages.success(request, 'تم تحديث بيانات الموظف')
+        return redirect('accounting:employees')
+    return render(request, 'accounting/employee_form.html', {'employee': e})
+
+
+@login_required
+def employee_delete(request, pk):
+    e = get_object_or_404(_acc_employees(request), pk=pk)
+    if request.method == 'POST':
+        e.delete()
+        from django.contrib import messages
+        messages.success(request, 'تم حذف الموظف')
+    return redirect('accounting:employees')
+
+
+@login_required
+def payrolls(request):
+    """قائمة مسيرات الرواتب."""
+    qs = _acc_payrolls(request)
+    return render(request, 'accounting/payrolls.html', {'payrolls': qs})
+
+
+@login_required
+def payroll_create(request):
+    """توليد مسير رواتب لشهر معين تلقائياً لكل الموظفين النشطين."""
+    from django.contrib import messages
+    if request.method == 'POST':
+        try:
+            year = int(request.POST.get('year'))
+            month = int(request.POST.get('month'))
+        except (ValueError, TypeError):
+            messages.error(request, 'الشهر والسنة مطلوبان')
+            return redirect('accounting:payrolls')
+
+        _t = _acc_tenant(request)
+        # منع التكرار لنفس الشهر
+        existing = _acc_payrolls(request).filter(year=year, month=month).first()
+        if existing:
+            messages.warning(request, 'يوجد مسير لهذا الشهر بالفعل')
+            return redirect('accounting:payroll_detail', pk=existing.pk)
+
+        run = PayrollRun.objects.create(tenant=_t, year=year, month=month, status='draft')
+        # توليد قسيمة لكل موظف نشط
+        active_emps = _acc_employees(request).filter(status='active')
+        for emp in active_emps:
+            Payslip.objects.create(
+                payroll_run=run,
+                employee=emp,
+                base_salary=emp.base_salary or 0,
+                allowances=emp.allowances or 0,
+                deductions=emp.deductions or 0,
+            )
+        run.recalculate_total()
+        messages.success(request, f'تم توليد مسير {run.month_name} {year} لـ {active_emps.count()} موظف')
+        return redirect('accounting:payroll_detail', pk=run.pk)
+    return redirect('accounting:payrolls')
+
+
+@login_required
+def payroll_detail(request, pk):
+    run = get_object_or_404(_acc_payrolls(request), pk=pk)
+    payslips = run.payslips.select_related('employee')
+    return render(request, 'accounting/payroll_detail.html', {'run': run, 'payslips': payslips})
+
+
+@login_required
+def payroll_approve(request, pk):
+    """اعتماد المسير + تسجيله كمصروف في المحاسبة."""
+    from django.contrib import messages
+    run = get_object_or_404(_acc_payrolls(request), pk=pk)
+    if request.method == 'POST' and run.status == 'draft':
+        run.recalculate_total()
+        run.status = 'approved'
+        # تسجيل مصروف تلقائي في المحاسبة
+        try:
+            from apps.payments.models import Expense
+            import datetime
+            # آخر يوم آمن في الشهر (28 يصلح لكل الشهور)
+            exp = Expense.objects.create(
+                tenant=run.tenant,
+                title=f'رواتب الموظفين - {run.month_name} {run.year}',
+                amount=run.total_amount,
+                category='other',
+                spent_at=datetime.date(run.year, run.month, 28),
+                notes=f'مسير رواتب تلقائي ({run.payslips.count()} موظف)',
+            )
+            run.expense_id = exp.id
+        except Exception as ex:
+            messages.warning(request, f'تم الاعتماد لكن تعذّر ربط المصروف: {ex}')
+        run.save()
+        messages.success(request, f'تم اعتماد مسير {run.month_name} {run.year}')
+    return redirect('accounting:payroll_detail', pk=pk)
+
+
+@login_required
+def payroll_delete(request, pk):
+    from django.contrib import messages
+    run = get_object_or_404(_acc_payrolls(request), pk=pk)
+    if request.method == 'POST':
+        run.delete()
+        messages.success(request, 'تم حذف المسير')
+    return redirect('accounting:payrolls')

@@ -29,3 +29,25 @@ class CRMTaskAdmin(admin.ModelAdmin):
     list_display = ("title", "status", "priority", "task_type", "due_at", "assigned_to", "tenant")
     list_filter = ("status", "priority", "task_type", "tenant")
     search_fields = ("title", "notes")
+
+
+# تعريب أسماء النماذج في لوحة الإدارة (عرض فقط)
+from .models import CRMCompany, CRMContact, CRMDeal, CRMTask
+_ar = {
+    CRMCompany: ("شركة", "الشركات"),
+    CRMContact: ("جهة اتصال", "جهات الاتصال"),
+    CRMDeal: ("صفقة", "الصفقات"),
+    CRMTask: ("مهمة", "المهام"),
+}
+for _m, (_s, _p) in _ar.items():
+    _m._meta.verbose_name = _s
+    _m._meta.verbose_name_plural = _p
+
+
+# تعريب إضافي (عرض فقط)
+try:
+    from .models import CRMQuoteItem
+    CRMQuoteItem._meta.verbose_name = "بند عرض سعر"
+    CRMQuoteItem._meta.verbose_name_plural = "بنود عروض الأسعار"
+except Exception:
+    pass

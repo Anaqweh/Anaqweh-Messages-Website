@@ -55,7 +55,9 @@
       <option value="accepted">مقبول</option>
       <option value="rejected">مرفوض</option>
     </select>
+    {% if not tenant_permissions or tenant_permissions.registrations.forms.spark %}
     <a href="/registrations/templates/3/spark-fill/" class="reg-newbtn">➕ تسجيل جديد</a>
+    {% endif %}
   </div>
 
   <!-- Table -->
@@ -92,7 +94,9 @@
   <div class="reg-empty">
     <div style="font-size:48px">📋</div>
     <p>لا توجد تسجيلات بعد</p>
+    {% if not tenant_permissions or tenant_permissions.registrations.forms.spark %}
     <a href="/registrations/templates/3/spark-fill/" class="reg-newbtn">➕ إنشاء أول تسجيل</a>
+    {% endif %}
   </div>
   {% endif %}
 

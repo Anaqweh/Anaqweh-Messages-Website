@@ -10,6 +10,7 @@ urlpatterns = [
     path('<int:pk>/delete/', views.template_delete, name='template_delete'),
     path('builder/', views.builder, name='builder'),
     path('builder/upload-image/', views.upload_image, name='upload_image'),
+    path('countdown.png', views.countdown_image, name='countdown_image'),
     path('builder/upload-document/', views.upload_document, name='upload_document'),
     path('pay/checkout/', views.create_checkout, name='create_checkout'),
     path('pay/start/', views.pay_start, name='pay_start'),

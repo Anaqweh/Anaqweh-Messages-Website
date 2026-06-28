@@ -131,6 +131,7 @@ body{background:#f0f4f8;min-height:100vh}
 
   <a href="{% url 'campaigns:dashboard' %}" class="nav-link mt-2"><i class="bi bi-grid-fill"></i> لوحة التحكم</a>
 
+  {% if user.is_superuser or tenant_permissions.email.view %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-campaigns')">
       <span><i class="bi bi-megaphone-fill me-2"></i>الحملات والتسويق</span>
@@ -146,8 +147,9 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="{% url 'recipients:unsubscribe_list' %}" class="nav-link"><i class="bi bi-slash-circle"></i> إلغاء الاشتراك</a>
     </div>
   </div>
+  {% endif %}
 
-  {% if tenant_permissions.crm.view or not tenant_permissions %}
+  {% if user.is_superuser or tenant_permissions.crm.view %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-crm')">
       <span><i class="bi bi-diagram-3 me-2"></i>إدارة العملاء</span>
@@ -177,7 +179,7 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
   </div>
 
-  {% if tenant_permissions.finance.view or not tenant_permissions %}
+  {% if user.is_superuser or tenant_permissions.finance.view %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-finance')">
       <span><i class="bi bi-cash-coin me-2"></i>المالية والتقارير</span>
@@ -187,6 +189,7 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="{% url 'payments:dashboard' %}" class="nav-link"><i class="bi bi-cash-coin"></i> المالية</a>
       <a href="{% url 'reports:dashboard' %}" class="nav-link"><i class="bi bi-bar-chart-fill"></i> التقارير</a>
       <a href="{% url 'accounting:reports' %}" class="nav-link"><i class="bi bi-calculator"></i> المحاسبة</a>
+      <a href="{% url 'accounting:employees' %}" class="nav-link"><i class="bi bi-people-fill"></i> الموظفون والرواتب</a>
     </div>
   </div>
   {% endif %}
@@ -196,7 +199,9 @@ body{background:#f0f4f8;min-height:100vh}
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-registrations"></i>
     </div>
     <div class="nav-group-items" id="grp-registrations">
+      {% if not tenant_permissions or tenant_permissions.registrations.forms.spark %}
       <a href="/registrations/templates/3/spark-fill/" class="nav-link"><i class="bi bi-mortarboard"></i> نموذج معهد سبارك</a>
+      {% endif %}
       <a href="/registrations/" class="nav-link"><i class="bi bi-list-check"></i> لوحة التسجيلات</a>
     </div>
   </div>

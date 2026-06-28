@@ -1,0 +1,61 @@
+{% extends "base/base.html" %}
+{% block title %}مسيرات الرواتب{% endblock %}
+{% block page_title %}<i class="bi bi-cash-coin me-2"></i>مسيرات الرواتب{% endblock %}
+{% block top_actions %}
+<a href="{% url 'accounting:employees' %}" class="btn btn-outline-secondary btn-sm">← الموظفون</a>
+{% endblock %}
+{% block content %}
+
+{% if messages %}{% for msg in messages %}<div class="alert alert-{{ msg.tags }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
+
+<!-- توليد مسير جديد -->
+<div class="form-card mb-4">
+  <h6 class="fw-bold text-primary mb-3"><i class="bi bi-plus-circle me-1"></i>توليد مسير رواتب لشهر</h6>
+  <p class="small text-muted mb-3">يُنشئ قسيمة راتب لكل موظف على رأس العمل تلقائياً بالراتب الأساسي + البدلات − الخصومات.</p>
+  <form method="post" action="{% url 'accounting:payroll_create' %}" class="row g-2 align-items-end">
+    {% csrf_token %}
+    <div class="col-auto">
+      <label class="form-label fw-semibold small">الشهر</label>
+      <select name="month" class="form-select" required>
+        <option value="1">يناير</option><option value="2">فبراير</option><option value="3">مارس</option>
+        <option value="4">أبريل</option><option value="5">مايو</option><option value="6">يونيو</option>
+        <option value="7">يوليو</option><option value="8">أغسطس</option><option value="9">سبتمبر</option>
+        <option value="10">أكتوبر</option><option value="11">نوفمبر</option><option value="12">ديسمبر</option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label fw-semibold small">السنة</label>
+      <input type="number" name="year" class="form-control" value="2026" min="2020" max="2099" required style="width:110px">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary"><i class="bi bi-gear me-1"></i>توليد المسير</button>
+    </div>
+  </form>
+</div>
+
+<!-- قائمة المسيرات -->
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr><th>الشهر</th><th>عدد القسائم</th><th>الإجمالي</th><th>الحالة</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for r in payrolls %}
+      <tr>
+        <td class="fw-bold">{{ r.month_name }} {{ r.year }}</td>
+        <td>{{ r.payslips.count }}</td>
+        <td class="fw-bold text-primary">{{ r.total_amount }} AED</td>
+        <td>
+          {% if r.status == 'draft' %}<span class="badge bg-secondary">مسودة</span>
+          {% elif r.status == 'approved' %}<span class="badge bg-success">معتمد</span>
+          {% else %}<span class="badge bg-info text-dark">مدفوع</span>{% endif %}
+        </td>
+        <td><a href="{% url 'accounting:payroll_detail' r.pk %}" class="btn btn-sm btn-outline-primary">عرض</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center text-muted py-4">لا توجد مسيرات بعد</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

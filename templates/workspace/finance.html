@@ -6,12 +6,14 @@
 .ws-head{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
 .ws-head h1{margin:0 0 8px;color:#0b4ea2;font-size:28px}
 .ws-head p{margin:0;color:#667085}
-.ws-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.ws-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:18px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
-.ws-card h3{margin:0 0 8px;color:#0b4ea2}
-.ws-card p{margin:0;color:#667085}
+.ws-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.ws-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:18px;box-shadow:0 8px 24px rgba(11,78,162,.08);text-decoration:none;display:block;color:inherit}
+.ws-card:hover{border-color:#0b4ea2;transform:translateY(-2px)}
+.ws-card h3{margin:0 0 8px;color:#0b4ea2;font-size:24px}
+.ws-card p{margin:0;color:#667085;line-height:1.7}
 .ws-note{background:#fff8e6;border:1px solid #ffd98a;color:#7a4b00;border-radius:10px;padding:14px;margin-bottom:16px}
-@media(max-width:850px){.ws-grid{grid-template-columns:1fr}}
+@media(max-width:1000px){.ws-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.ws-grid{grid-template-columns:1fr}.ws-head h1{font-size:23px}.ws-card h3{font-size:21px}}
 </style>
 
 <div class="ws-wrap">
@@ -27,22 +29,28 @@
 
   <div class="ws-note">
     تم عزل مالية المنصة. هذه الصفحة لا تعرض فواتير أو مصروفات صاحب المنصة.
-    في الخطوة التالية سنبني فواتير ومصروفات وتقارير خاصة بكل شركة.
   </div>
 
   <div class="ws-grid">
-    <div class="ws-card">
+    <a class="ws-card" href="{% url 'payments:invoices' %}">
       <h3>فواتير الشركة</h3>
-      <p>ستعرض فواتير هذه الشركة فقط.</p>
-    </div>
-    <div class="ws-card">
+      <p>تعرض فواتير هذه الشركة فقط.</p>
+    </a>
+
+    <a class="ws-card" href="{% url 'payments:expenses' %}">
       <h3>مصروفات الشركة</h3>
-      <p>ستعرض مصروفات هذه الشركة فقط.</p>
-    </div>
-    <div class="ws-card">
+      <p>تعرض مصروفات هذه الشركة فقط.</p>
+    </a>
+
+    <a class="ws-card" href="{% url 'accounting:reports' %}">
       <h3>تقارير الشركة</h3>
       <p>إيرادات ومصروفات وصافي ربح الشركة.</p>
-    </div>
+    </a>
+
+    <a class="ws-card" href="/accounting/employees/">
+      <h3>الموظفون والرواتب</h3>
+      <p>إدارة الموظفين، الهويات، ومسيرات الرواتب الشهرية.</p><span style="display:inline-block;margin-top:12px;background:#0b4ea2;color:#fff;padding:8px 14px;border-radius:8px;font-weight:700">دخول الموظفين والرواتب</span>
+    </a>
   </div>
 </div>
 {% endblock %}

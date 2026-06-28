@@ -41,3 +41,30 @@ class CompanySettingsAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# ============================================================
+# تعريب أسماء النماذج في لوحة الإدارة (عرض فقط - لا يمس المنطق)
+# ============================================================
+from .models import Payment, Invoice, Expense, StripePayout, StripeWebhookEvent, CompanySettings
+
+_ar_names = {
+    Payment: ("مدفوعة", "المدفوعات"),
+    Invoice: ("فاتورة", "الفواتير"),
+    Expense: ("مصروف", "المصروفات"),
+    StripePayout: ("تحويل Stripe", "تحويلات Stripe"),
+    StripeWebhookEvent: ("حدث Stripe", "أحداث Stripe"),
+    CompanySettings: ("إعدادات الشركة", "إعدادات الشركة"),
+}
+for _model, (_singular, _plural) in _ar_names.items():
+    _model._meta.verbose_name = _singular
+    _model._meta.verbose_name_plural = _plural
+
+
+# تعريب إضافي (عرض فقط)
+try:
+    from .models import SalesInvoiceItem
+    SalesInvoiceItem._meta.verbose_name = "بند فاتورة"
+    SalesInvoiceItem._meta.verbose_name_plural = "بنود الفواتير"
+except Exception:
+    pass

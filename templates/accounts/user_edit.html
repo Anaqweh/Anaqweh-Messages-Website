@@ -33,10 +33,17 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold">الصلاحية</label>
+                {% if user_has_tenant %}
+                <input type="hidden" name="role" value="staff">
+                <div class="form-control bg-light text-muted" style="cursor:not-allowed">
+                  <i class="fas fa-building me-1"></i>مدير شركة (لا يمكن رفعه لمدير عام)
+                </div>
+                {% else %}
                 <select name="role" class="form-select">
                   <option value="staff" {% if not u.is_superuser %}selected{% endif %}>موظف</option>
-                  <option value="admin" {% if u.is_superuser %}selected{% endif %}>مدير</option>
+                  <option value="admin" {% if u.is_superuser %}selected{% endif %}>مدير عام</option>
                 </select>
+                {% endif %}
               </div>
               <div class="col-md-4">
                 <label class="form-label fw-semibold">الحالة</label>

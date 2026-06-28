@@ -4,10 +4,28 @@ from django.contrib import messages
 from .models import EmailTemplate
 
 
+def _company_user_ids(request):
+    """يجلب معرّفات كل المستخدمين في نفس شركة المستخدم الحالي."""
+    try:
+        from apps.platform_core.navigation import active_membership_for
+        from apps.platform_core.models import TenantMembership
+        m = active_membership_for(request.user)
+        if m and m.tenant_id:
+            ids = list(TenantMembership.objects.filter(
+                tenant_id=m.tenant_id
+            ).values_list('user_id', flat=True))
+            if request.user.id not in ids:
+                ids.append(request.user.id)
+            return ids
+    except Exception:
+        pass
+    return [request.user.id]
+
 def _owned(qs, request):
+    """عزل بالشركة: موظفو الشركة يرون قوالب بعضهم، المدير العام يرى الكل."""
     if request.user.is_superuser:
         return qs
-    return qs.filter(owner=request.user)
+    return qs.filter(owner_id__in=_company_user_ids(request))
 
 @login_required
 def template_list(request):
@@ -30,12 +48,12 @@ def template_create(request):
 
 @login_required
 def template_detail(request, pk):
-    t = get_object_or_404(EmailTemplate, pk=pk)
+    t = get_object_or_404(_owned(EmailTemplate.objects.all(), request), pk=pk)
     return render(request, 'templates_mgr/template_detail.html', {'t': t, 'supported_vars': EmailTemplate.SUPPORTED_VARS})
 
 @login_required
 def template_edit(request, pk):
-    t = get_object_or_404(EmailTemplate, pk=pk)
+    t = get_object_or_404(_owned(EmailTemplate.objects.all(), request), pk=pk)
     if request.method == 'POST':
         t.name = request.POST.get('name','').strip()
         t.subject = request.POST.get('subject','').strip()
@@ -48,7 +66,7 @@ def template_edit(request, pk):
 
 @login_required
 def template_delete(request, pk):
-    t = get_object_or_404(EmailTemplate, pk=pk)
+    t = get_object_or_404(_owned(EmailTemplate.objects.all(), request), pk=pk)
     t.delete()
     messages.success(request, 'تم الحذف.')
     return redirect('templates_mgr:template_list')
@@ -91,7 +109,7 @@ def builder(request):
     ctx = {}
     if edit_pk:
         try:
-            _tpl = EmailTemplate.objects.get(pk=edit_pk)
+            _tpl = _owned(EmailTemplate.objects.all(), request).get(pk=edit_pk)
             # عزل: المدير العام يرى الكل، غيره فقط قوالب شركته
             _allowed = request.user.is_superuser
             if not _allowed:
@@ -439,3 +457,81 @@ def pay_success(request):
     except Exception as e:
         return HttpResponse('<div dir="rtl" style="font-family:Tahoma;text-align:center;padding:60px"><h1 style="color:#ef4444">تم الدفع لكن تعذر إرسال الفاتورة فوراً</h1><p>سيتم إرسالها تلقائياً بعد المزامنة.</p><p style="color:#777">' + str(e) + '</p></div>', status=200)
 
+
+def countdown_image(request):
+    """يولّد GIF متحرك للعدّاد التنازلي - يتحرك عند فتح الإيميل (الثواني تنقص بصرياً)."""
+    from django.http import HttpResponse
+    from datetime import datetime
+    from PIL import Image, ImageDraw, ImageFont
+    import io
+
+    date_str = request.GET.get('date', '')
+    color = request.GET.get('color', 'e4405f')
+    if not color.startswith('#'):
+        color = '#' + color
+
+    def hex2rgb(h):
+        h = h.lstrip('#')
+        try:
+            return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+        except Exception:
+            return (228, 64, 95)
+    box_color = hex2rgb(color)
+
+    try:
+        font_num = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 40)
+        font_lbl = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 16)
+    except Exception:
+        font_num = ImageFont.load_default()
+        font_lbl = ImageFont.load_default()
+
+    box_w, box_h, gap, pad = 90, 90, 12, 20
+    label_h = 28
+    total_w = box_w * 4 + gap * 3 + pad * 2
+    total_h = box_h + label_h + pad * 2
+
+    # الوقت المتبقي الأساسي
+    try:
+        target = datetime.fromisoformat(date_str.replace('Z', ''))
+        base_diff = (target - datetime.now()).total_seconds()
+    except Exception:
+        base_diff = 0
+    if base_diff < 0:
+        base_diff = 0
+
+    FRAMES = 60  # 60 إطار = دقيقة من الحركة
+    frames = []
+    for fr in range(FRAMES):
+        diff = base_diff - fr
+        if diff < 0:
+            diff = 0
+        days = int(diff // 86400)
+        hours = int((diff % 86400) // 3600)
+        mins = int((diff % 3600) // 60)
+        secs = int(diff % 60)
+        units = [(days, 'Days'), (hours, 'Hours'), (mins, 'Min'), (secs, 'Sec')]
+
+        img = Image.new('RGB', (total_w, total_h), '#ffffff')
+        d = ImageDraw.Draw(img)
+        x = pad
+        for val, lbl in units:
+            d.rounded_rectangle([x, pad, x + box_w, pad + box_h], radius=12, fill=box_color)
+            txt = f'{val:02d}'
+            bb = d.textbbox((0, 0), txt, font=font_num)
+            tw, th = bb[2]-bb[0], bb[3]-bb[1]
+            d.text((x + (box_w-tw)/2, pad + (box_h-th)/2 - bb[1]), txt, fill='#ffffff', font=font_num)
+            bb2 = d.textbbox((0, 0), lbl, font=font_lbl)
+            lw = bb2[2]-bb2[0]
+            d.text((x + (box_w-lw)/2, pad + box_h + 4), lbl, fill='#666666', font=font_lbl)
+            x += box_w + gap
+        frames.append(img)
+
+    buf = io.BytesIO()
+    frames[0].save(buf, format='GIF', save_all=True, append_images=frames[1:],
+                   duration=1000, loop=1, optimize=True)
+    buf.seek(0)
+    resp = HttpResponse(buf.getvalue(), content_type='image/gif')
+    resp['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp['Pragma'] = 'no-cache'
+    resp['Expires'] = '0'
+    return resp

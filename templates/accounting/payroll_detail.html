@@ -1,0 +1,81 @@
+{% extends "base/base.html" %}
+{% block title %}مسير {{ run.month_name }} {{ run.year }}{% endblock %}
+{% block page_title %}<i class="bi bi-file-earmark-text me-2"></i>مسير {{ run.month_name }} {{ run.year }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'accounting:payrolls' %}" class="btn btn-outline-secondary btn-sm">← المسيرات</a>
+{% endblock %}
+{% block content %}
+
+{% if messages %}{% for msg in messages %}<div class="alert alert-{{ msg.tags }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
+
+<!-- ملخص المسير -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="p-3 rounded-3 border" style="background:#eff6ff">
+      <div class="small text-muted">إجمالي المسير</div>
+      <div class="fs-3 fw-bold text-primary">{{ run.total_amount }} <span class="fs-6">AED</span></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-3 rounded-3 border" style="background:#f8fafc">
+      <div class="small text-muted">عدد الموظفين</div>
+      <div class="fs-3 fw-bold">{{ payslips.count }}</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-3 rounded-3 border d-flex flex-column justify-content-center" style="background:#f0fdf4">
+      <div class="small text-muted mb-1">الحالة</div>
+      <div>
+        {% if run.status == 'draft' %}<span class="badge bg-secondary fs-6">مسودة</span>
+        {% elif run.status == 'approved' %}<span class="badge bg-success fs-6">معتمد ✓</span>
+        {% else %}<span class="badge bg-info text-dark fs-6">مدفوع</span>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- أزرار الإجراءات -->
+<div class="d-flex gap-2 mb-3">
+  {% if run.status == 'draft' %}
+  <form method="post" action="{% url 'accounting:payroll_approve' run.pk %}" onsubmit="return confirm('اعتماد المسير وتسجيله كمصروف في المحاسبة؟')">
+    {% csrf_token %}
+    <button class="btn btn-success"><i class="bi bi-check-circle me-1"></i>اعتماد وتسجيل كمصروف</button>
+  </form>
+  {% endif %}
+  <form method="post" action="{% url 'accounting:payroll_delete' run.pk %}" onsubmit="return confirm('حذف المسير نهائياً؟')" class="ms-auto">
+    {% csrf_token %}
+    <button class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i>حذف المسير</button>
+  </form>
+</div>
+
+<!-- قسائم الرواتب -->
+<div class="data-table p-3">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr><th>الموظف</th><th>الأساسي</th><th>البدلات</th><th>الخصومات</th><th>الصافي</th></tr>
+    </thead>
+    <tbody>
+      {% for p in payslips %}
+      <tr>
+        <td class="fw-bold">{{ p.employee.full_name }}</td>
+        <td>{{ p.base_salary }}</td>
+        <td class="text-success">+{{ p.allowances }}</td>
+        <td class="text-danger">−{{ p.deductions }}</td>
+        <td class="fw-bold text-primary">{{ p.net }} AED</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center text-muted py-4">لا توجد قسائم</td></tr>
+      {% endfor %}
+    </tbody>
+    {% if payslips %}
+    <tfoot>
+      <tr class="border-top border-2">
+        <td class="fw-bold">الإجمالي</td>
+        <td colspan="3"></td>
+        <td class="fw-bold text-primary fs-6">{{ run.total_amount }} AED</td>
+      </tr>
+    </tfoot>
+    {% endif %}
+  </table>
+</div>
+{% endblock %}

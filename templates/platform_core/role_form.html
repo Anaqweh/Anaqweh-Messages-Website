@@ -57,6 +57,40 @@
       <div class="small text-muted mt-1">تقارير الحملات والأداء</div>
     </div></div>
     {% endif %}
+    {% if modules.accounting %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_accounting" class="form-check-input" {% if role.permissions.accounting.view %}checked{% endif %}>
+        المحاسبة
+      </label>
+      <div class="small text-muted mt-1">العملاء، الموظفون والرواتب</div>
+    </div></div>
+    {% endif %}
+    {% if modules.registrations %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_registrations" class="form-check-input" {% if role.permissions.registrations.view %}checked{% endif %}>
+        النماذج والتسجيل
+      </label>
+      <div class="small text-muted mt-1">لوحة التسجيلات وإدارة النماذج</div>
+    </div></div>
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="spark_registration_form" class="form-check-input" {% if role.permissions.registrations.forms.spark %}checked{% endif %}>
+        نموذج تسجيل معهد سبارك
+      </label>
+      <div class="small text-muted mt-1">السماح بفتح وتعبئة نموذج سبارك</div>
+    </div></div>
+    {% endif %}
+    {% if modules.stripe %}
+    <div class="col-md-4"><div class="card border-0 bg-light p-3">
+      <label class="form-check fw-bold">
+        <input type="checkbox" name="perm_stripe" class="form-check-input" {% if role.permissions.stripe.view %}checked{% endif %}>
+        خدمة الدفع (Stripe)
+      </label>
+      <div class="small text-muted mt-1">إعدادات الدفع وطلبات السحب</div>
+    </div></div>
+    {% endif %}
     <div class="col-md-4"><div class="card border-0 bg-light p-3">
       <label class="form-check fw-bold">
         <input type="checkbox" name="perm_settings" class="form-check-input" {% if role.permissions.settings.view %}checked{% endif %}>
