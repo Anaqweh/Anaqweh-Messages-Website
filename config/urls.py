@@ -6,6 +6,7 @@ from django.urls import re_path
 from django.views.static import serve
 
 urlpatterns = [
+    path('i18n/', include('django.conf.urls.i18n')),  # تبديل اللغة
     path('registrations/', include('apps.registrations.urls', namespace='registrations')),
     path('crm/', include('apps.crm.urls', namespace='crm')),
     path('tasks/', include('apps.tasks.urls', namespace='tasks')),

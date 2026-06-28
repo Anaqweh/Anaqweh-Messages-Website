@@ -1,10 +1,17 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+{% load i18n %}
+{% get_current_language as LANGUAGE_CODE %}
+{% get_current_language_bidi as LANGUAGE_BIDI %}
+<html lang="{{ LANGUAGE_CODE }}" dir="{% if LANGUAGE_BIDI %}rtl{% else %}ltr{% endif %}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}INEXC Email Manager{% endblock %}</title>
+{% if LANGUAGE_BIDI %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+{% else %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+{% endif %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -98,6 +105,16 @@ body{background:#f0f4f8;min-height:100vh}
 {% if user.is_authenticated %}
 <div class="inexc-platform-nav">
   <div class="nav-inner">
+    <form action="{% url 'set_language' %}" method="post" style="display:inline">
+      {% csrf_token %}
+      <input name="next" type="hidden" value="{{ request.path }}">
+      {% get_current_language as CUR_LANG %}
+      {% if CUR_LANG == 'ar' %}
+        <button type="submit" name="language" value="en" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600;cursor:pointer">🌐 EN</button>
+      {% else %}
+        <button type="submit" name="language" value="ar" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:13px;font-weight:600;cursor:pointer">🌐 ع</button>
+      {% endif %}
+    </form>
     {% if user.is_superuser or user.is_staff %}
       <span class="nav-label">مدير المنصة:</span>
       <a class="primary" href="{% url 'platform_core:tenant_list' %}">إدارة المنصة</a>
@@ -129,22 +146,37 @@ body{background:#f0f4f8;min-height:100vh}
 <nav class="sidebar" id="mainSidebar">
   <div class="sidebar-brand"><div class="brand-icon"><i class="bi bi-envelope-fill"></i></div><div><div class="brand-title">INEXC</div><div class="brand-sub">Email Manager</div></div></div>
 
-  <a href="{% url 'campaigns:dashboard' %}" class="nav-link mt-2"><i class="bi bi-grid-fill"></i> لوحة التحكم</a>
+  <form action="{% url 'set_language' %}" method="post" style="padding:10px 14px 0">
+    {% csrf_token %}
+    <input name="next" type="hidden" value="{{ request.path }}">
+    {% get_current_language as CUR_LANG %}
+    {% if CUR_LANG == 'ar' %}
+      <button type="submit" name="language" value="en" style="width:100%;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        <i class="bi bi-translate"></i> English
+      </button>
+    {% else %}
+      <button type="submit" name="language" value="ar" style="width:100%;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+        <i class="bi bi-translate"></i> العربية
+      </button>
+    {% endif %}
+  </form>
+
+  <a href="{% url 'campaigns:dashboard' %}" class="nav-link mt-2"><i class="bi bi-grid-fill"></i> {% trans "لوحة التحكم" %}</a>
 
   {% if user.is_superuser or tenant_permissions.email.view %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-campaigns')">
-      <span><i class="bi bi-megaphone-fill me-2"></i>الحملات والتسويق</span>
+      <span><i class="bi bi-megaphone-fill me-2"></i>{% trans "الحملات والتسويق" %}</span>
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-campaigns"></i>
     </div>
     <div class="nav-group-items" id="grp-campaigns">
-      <a href="{% url 'campaigns:campaign_list' %}" class="nav-link"><i class="bi bi-megaphone"></i> الحملات</a>
-      <a href="{% url 'campaigns:campaign_create' %}" class="nav-link"><i class="bi bi-plus-circle"></i> حملة جديدة</a>
-      <a href="{% url 'campaigns:smart_send' %}" class="nav-link"><i class="bi bi-send"></i> الإرسال الذكي</a>
-      <a href="{% url 'templates_mgr:template_list' %}" class="nav-link"><i class="bi bi-file-earmark-richtext"></i> القوالب</a>
-      <a href="{% url 'templates_mgr:builder' %}" class="nav-link"><i class="bi bi-palette"></i> محرر مرئي</a>
-      <a href="{% url 'recipients:list_view' %}" class="nav-link"><i class="bi bi-people"></i> القوائم</a>
-      <a href="{% url 'recipients:unsubscribe_list' %}" class="nav-link"><i class="bi bi-slash-circle"></i> إلغاء الاشتراك</a>
+      <a href="{% url 'campaigns:campaign_list' %}" class="nav-link"><i class="bi bi-megaphone"></i> {% trans "الحملات" %}</a>
+      <a href="{% url 'campaigns:campaign_create' %}" class="nav-link"><i class="bi bi-plus-circle"></i> {% trans "حملة جديدة" %}</a>
+      <a href="{% url 'campaigns:smart_send' %}" class="nav-link"><i class="bi bi-send"></i> {% trans "الإرسال الذكي" %}</a>
+      <a href="{% url 'templates_mgr:template_list' %}" class="nav-link"><i class="bi bi-file-earmark-richtext"></i> {% trans "القوالب" %}</a>
+      <a href="{% url 'templates_mgr:builder' %}" class="nav-link"><i class="bi bi-palette"></i> {% trans "محرر مرئي" %}</a>
+      <a href="{% url 'recipients:list_view' %}" class="nav-link"><i class="bi bi-people"></i> {% trans "القوائم" %}</a>
+      <a href="{% url 'recipients:unsubscribe_list' %}" class="nav-link"><i class="bi bi-slash-circle"></i> {% trans "إلغاء الاشتراك" %}</a>
     </div>
   </div>
   {% endif %}
@@ -152,57 +184,57 @@ body{background:#f0f4f8;min-height:100vh}
   {% if user.is_superuser or tenant_permissions.crm.view %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-crm')">
-      <span><i class="bi bi-diagram-3 me-2"></i>إدارة العملاء</span>
+      <span><i class="bi bi-diagram-3 me-2"></i>{% trans "إدارة العملاء" %}</span>
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-crm"></i>
     </div>
     <div class="nav-group-items" id="grp-crm">
-      <a href="/crm/" class="nav-link"><i class="bi bi-speedometer2"></i> لوحة CRM</a>
-      <a href="/crm/companies/" class="nav-link"><i class="bi bi-building"></i> الشركات</a>
-      <a href="/crm/contacts/" class="nav-link"><i class="bi bi-person-lines-fill"></i> جهات الاتصال</a>
-      <a href="/crm/deals/" class="nav-link"><i class="bi bi-graph-up-arrow"></i> الفرص</a>
-      <a href="/crm/quotes/" class="nav-link"><i class="bi bi-file-earmark-text"></i> عروض الأسعار</a>
-      <a href="/crm/tasks/" class="nav-link"><i class="bi bi-check2-square"></i> فريق المهام</a>
+      <a href="/crm/" class="nav-link"><i class="bi bi-speedometer2"></i> {% trans "لوحة CRM" %}</a>
+      <a href="/crm/companies/" class="nav-link"><i class="bi bi-building"></i> {% trans "الشركات" %}</a>
+      <a href="/crm/contacts/" class="nav-link"><i class="bi bi-person-lines-fill"></i> {% trans "جهات الاتصال" %}</a>
+      <a href="/crm/deals/" class="nav-link"><i class="bi bi-graph-up-arrow"></i> {% trans "الفرص" %}</a>
+      <a href="/crm/quotes/" class="nav-link"><i class="bi bi-file-earmark-text"></i> {% trans "عروض الأسعار" %}</a>
+      <a href="/crm/tasks/" class="nav-link"><i class="bi bi-check2-square"></i> {% trans "فريق المهام" %}</a>
     </div>
   </div>
   {% endif %}
 
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-tasks')">
-      <span><i class="bi bi-kanban me-2"></i>إدارة المهام</span>
+      <span><i class="bi bi-kanban me-2"></i>{% trans "إدارة المهام" %}</span>
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-tasks"></i>
     </div>
     <div class="nav-group-items" id="grp-tasks">
-      <a href="/tasks/" class="nav-link"><i class="bi bi-speedometer2"></i> لوحة المهام</a>
-      <a href="/tasks/list/" class="nav-link"><i class="bi bi-list-task"></i> كل المهام</a>
+      <a href="/tasks/" class="nav-link"><i class="bi bi-speedometer2"></i> {% trans "لوحة المهام" %}</a>
+      <a href="/tasks/list/" class="nav-link"><i class="bi bi-list-task"></i> {% trans "كل المهام" %}</a>
       <a href="/tasks/kanban/" class="nav-link"><i class="bi bi-grid-3x3-gap"></i> INEXC Flow</a>
-      <a href="/tasks/workflows/" class="nav-link"><i class="bi bi-diagram-3"></i> قوالب سير العمل</a>
+      <a href="/tasks/workflows/" class="nav-link"><i class="bi bi-diagram-3"></i> {% trans "قوالب سير العمل" %}</a>
     </div>
   </div>
 
   {% if user.is_superuser or tenant_permissions.finance.view %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-finance')">
-      <span><i class="bi bi-cash-coin me-2"></i>المالية والتقارير</span>
+      <span><i class="bi bi-cash-coin me-2"></i>{% trans "المالية والتقارير" %}</span>
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-finance"></i>
     </div>
     <div class="nav-group-items" id="grp-finance">
-      <a href="{% url 'payments:dashboard' %}" class="nav-link"><i class="bi bi-cash-coin"></i> المالية</a>
-      <a href="{% url 'reports:dashboard' %}" class="nav-link"><i class="bi bi-bar-chart-fill"></i> التقارير</a>
-      <a href="{% url 'accounting:reports' %}" class="nav-link"><i class="bi bi-calculator"></i> المحاسبة</a>
-      <a href="{% url 'accounting:employees' %}" class="nav-link"><i class="bi bi-people-fill"></i> الموظفون والرواتب</a>
+      <a href="{% url 'payments:dashboard' %}" class="nav-link"><i class="bi bi-cash-coin"></i> {% trans "المالية" %}</a>
+      <a href="{% url 'reports:dashboard' %}" class="nav-link"><i class="bi bi-bar-chart-fill"></i> {% trans "التقارير" %}</a>
+      <a href="{% url 'accounting:reports' %}" class="nav-link"><i class="bi bi-calculator"></i> {% trans "المحاسبة" %}</a>
+      <a href="{% url 'accounting:employees' %}" class="nav-link"><i class="bi bi-people-fill"></i> {% trans "الموظفون والرواتب" %}</a>
     </div>
   </div>
   {% endif %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-registrations')">
-      <span><i class="bi bi-file-earmark-text me-2"></i>النماذج والتسجيل</span>
+      <span><i class="bi bi-file-earmark-text me-2"></i>{% trans "النماذج والتسجيل" %}</span>
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-registrations"></i>
     </div>
     <div class="nav-group-items" id="grp-registrations">
       {% if not tenant_permissions or tenant_permissions.registrations.forms.spark %}
-      <a href="/registrations/templates/3/spark-fill/" class="nav-link"><i class="bi bi-mortarboard"></i> نموذج معهد سبارك</a>
+      <a href="/registrations/templates/3/spark-fill/" class="nav-link"><i class="bi bi-mortarboard"></i> {% trans "نموذج معهد سبارك" %}</a>
       {% endif %}
-      <a href="/registrations/" class="nav-link"><i class="bi bi-list-check"></i> لوحة التسجيلات</a>
+      <a href="/registrations/" class="nav-link"><i class="bi bi-list-check"></i> {% trans "لوحة التسجيلات" %}</a>
     </div>
   </div>
 
@@ -210,18 +242,18 @@ body{background:#f0f4f8;min-height:100vh}
   {% if user.is_staff or user.is_superuser %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-admin')">
-      <span><i class="bi bi-shield-lock me-2"></i>الإدارة العليا</span>
+      <span><i class="bi bi-shield-lock me-2"></i>{% trans "الإدارة العليا" %}</span>
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-admin"></i>
     </div>
     <div class="nav-group-items" id="grp-admin">
       <a href="/platform/tenants/" class="nav-link"><i class="bi bi-buildings"></i> الشركات/النسخ</a>
       <a href="/platform/tenants/wizard/" class="nav-link"><i class="bi bi-magic"></i> + شركة جديدة</a>
-      <a href="/workspace/" class="nav-link"><i class="bi bi-person-workspace"></i> مساحة العمل</a>
-      <a href="{% url 'accounts:user_list' %}" class="nav-link"><i class="bi bi-person-gear"></i> المستخدمون</a>
-      <a href="{% url 'accounts:audit_log' %}" class="nav-link"><i class="bi bi-journal-text"></i> سجل النشاط</a>
-      <a href="/platform/finance/" class="nav-link"><i class="bi bi-cash-stack"></i> اللوحة المالية</a>
-      <a href="/platform/payouts/" class="nav-link"><i class="bi bi-cash-coin"></i> طلبات السحب</a>
-      <a href="/platform/settings/" class="nav-link"><i class="bi bi-sliders"></i> إعدادات المنصة</a>
+      <a href="/workspace/" class="nav-link"><i class="bi bi-person-workspace"></i> {% trans "مساحة العمل" %}</a>
+      <a href="{% url 'accounts:user_list' %}" class="nav-link"><i class="bi bi-person-gear"></i> {% trans "المستخدمون" %}</a>
+      <a href="{% url 'accounts:audit_log' %}" class="nav-link"><i class="bi bi-journal-text"></i> {% trans "سجل النشاط" %}</a>
+      <a href="/platform/finance/" class="nav-link"><i class="bi bi-cash-stack"></i> {% trans "اللوحة المالية" %}</a>
+      <a href="/platform/payouts/" class="nav-link"><i class="bi bi-cash-coin"></i> {% trans "طلبات السحب" %}</a>
+      <a href="/platform/settings/" class="nav-link"><i class="bi bi-sliders"></i> {% trans "إعدادات المنصة" %}</a>
     </div>
   </div>
   {% endif %}
@@ -229,18 +261,18 @@ body{background:#f0f4f8;min-height:100vh}
   {% if tenant_membership.is_tenant_admin %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-company')">
-      <span><i class="bi bi-building-gear me-2"></i>إدارة الشركة</span>
+      <span><i class="bi bi-building-gear me-2"></i>{% trans "إدارة الشركة" %}</span>
       <i class="bi bi-chevron-down nav-arrow" id="arr-grp-company"></i>
     </div>
     <div class="nav-group-items" id="grp-company">
-      <a href="{% url 'workspace:members' %}" class="nav-link"><i class="bi bi-people"></i> فريق الشركة</a>
-      <a href="{% url 'workspace:member_add' %}" class="nav-link"><i class="bi bi-person-plus"></i> إضافة موظف</a>
-      <a href="{% url 'workspace:roles' %}" class="nav-link"><i class="bi bi-shield-check"></i> الأدوار والمسميات</a>
+      <a href="{% url 'workspace:members' %}" class="nav-link"><i class="bi bi-people"></i> {% trans "فريق الشركة" %}</a>
+      <a href="{% url 'workspace:member_add' %}" class="nav-link"><i class="bi bi-person-plus"></i> {% trans "إضافة موظف" %}</a>
+      <a href="{% url 'workspace:roles' %}" class="nav-link"><i class="bi bi-shield-check"></i> {% trans "الأدوار والمسميات" %}</a>
       {% if tenant_modules.registrations %}
-      <a href="{% url 'workspace:registration_settings' %}" class="nav-link"><i class="bi bi-gear"></i> إعدادات التسجيل</a>
+      <a href="{% url 'workspace:registration_settings' %}" class="nav-link"><i class="bi bi-gear"></i> {% trans "إعدادات التسجيل" %}</a>
       {% endif %}
       {% if tenant_modules.stripe %}
-      <a href="{% url 'workspace:finance_board' %}" class="nav-link"><i class="bi bi-wallet2"></i> لوحتي المالية</a>
+      <a href="{% url 'workspace:finance_board' %}" class="nav-link"><i class="bi bi-wallet2"></i> {% trans "لوحتي المالية" %}</a>
       <a href="{% url 'workspace:payout_request' %}" class="nav-link"><i class="bi bi-cash-coin"></i> طلب سحب الأموال</a>
       <a href="{% url 'workspace:stripe_settings' %}" class="nav-link"><i class="bi bi-credit-card"></i> إعدادات الدفع</a>
       {% endif %}

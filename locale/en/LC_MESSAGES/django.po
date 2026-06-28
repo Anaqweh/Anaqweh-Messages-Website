@@ -1,0 +1,182 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-28 19:20+0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+#: templates/base/base.html:149
+msgid "لوحة التحكم"
+msgstr "Dashboard"
+
+#: templates/base/base.html:154
+msgid "الحملات والتسويق"
+msgstr "Campaigns & Marketing"
+
+#: templates/base/base.html:158
+msgid "الحملات"
+msgstr "Campaigns"
+
+#: templates/base/base.html:159
+msgid "حملة جديدة"
+msgstr "New Campaign"
+
+#: templates/base/base.html:160
+msgid "الإرسال الذكي"
+msgstr "Smart Send"
+
+#: templates/base/base.html:161
+msgid "القوالب"
+msgstr "Templates"
+
+#: templates/base/base.html:162
+msgid "محرر مرئي"
+msgstr "Visual Editor"
+
+#: templates/base/base.html:163
+msgid "القوائم"
+msgstr "Lists"
+
+#: templates/base/base.html:164
+msgid "إلغاء الاشتراك"
+msgstr "Unsubscribe"
+
+#: templates/base/base.html:172
+msgid "إدارة العملاء"
+msgstr "Customer Management"
+
+#: templates/base/base.html:176
+msgid "لوحة CRM"
+msgstr "CRM Dashboard"
+
+#: templates/base/base.html:177
+msgid "الشركات"
+msgstr "Companies"
+
+#: templates/base/base.html:178
+msgid "جهات الاتصال"
+msgstr "Contacts"
+
+#: templates/base/base.html:179
+msgid "الفرص"
+msgstr "Deals"
+
+#: templates/base/base.html:180
+msgid "عروض الأسعار"
+msgstr "Quotes"
+
+#: templates/base/base.html:181
+msgid "فريق المهام"
+msgstr "Team Tasks"
+
+#: templates/base/base.html:188
+msgid "إدارة المهام"
+msgstr "Task Management"
+
+#: templates/base/base.html:192
+msgid "لوحة المهام"
+msgstr "Tasks Dashboard"
+
+#: templates/base/base.html:193
+msgid "كل المهام"
+msgstr "All Tasks"
+
+#: templates/base/base.html:195
+msgid "قوالب سير العمل"
+msgstr "Workflow Templates"
+
+#: templates/base/base.html:202
+msgid "المالية والتقارير"
+msgstr "Finance & Reports"
+
+#: templates/base/base.html:206
+msgid "المالية"
+msgstr "Finance"
+
+#: templates/base/base.html:207
+msgid "التقارير"
+msgstr "Reports"
+
+#: templates/base/base.html:208
+msgid "المحاسبة"
+msgstr "Accounting"
+
+#: templates/base/base.html:209
+msgid "الموظفون والرواتب"
+msgstr "Employees & Payroll"
+
+#: templates/base/base.html:215
+msgid "النماذج والتسجيل"
+msgstr "Forms & Registration"
+
+#: templates/base/base.html:220
+msgid "نموذج معهد سبارك"
+msgstr "Spark Institute Form"
+
+#: templates/base/base.html:222
+msgid "لوحة التسجيلات"
+msgstr "Registrations Dashboard"
+
+#: templates/base/base.html:230
+msgid "الإدارة العليا"
+msgstr "Top Management"
+
+#: templates/base/base.html:236
+msgid "مساحة العمل"
+msgstr "Workspace"
+
+#: templates/base/base.html:237
+msgid "المستخدمون"
+msgstr "Users"
+
+#: templates/base/base.html:238
+msgid "سجل النشاط"
+msgstr "Activity Log"
+
+#: templates/base/base.html:239
+msgid "اللوحة المالية"
+msgstr "Finance Board"
+
+#: templates/base/base.html:240
+msgid "طلبات السحب"
+msgstr "Payout Requests"
+
+#: templates/base/base.html:241
+msgid "إعدادات المنصة"
+msgstr "Platform Settings"
+
+#: templates/base/base.html:249
+msgid "إدارة الشركة"
+msgstr "Company Management"
+
+#: templates/base/base.html:253
+msgid "فريق الشركة"
+msgstr "Company Team"
+
+#: templates/base/base.html:254
+msgid "إضافة موظف"
+msgstr "Add Employee"
+
+#: templates/base/base.html:255
+msgid "الأدوار والمسميات"
+msgstr "Roles & Titles"
+
+#: templates/base/base.html:257
+msgid "إعدادات التسجيل"
+msgstr "Registration Settings"
+
+#: templates/base/base.html:260
+msgid "لوحتي المالية"
+msgstr "My Finance Board"
