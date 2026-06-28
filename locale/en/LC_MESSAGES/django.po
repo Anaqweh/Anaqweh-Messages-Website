@@ -3,12 +3,11 @@
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 19:20+0400\n"
+"POT-Creation-Date: 2026-06-28 19:39+0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,166 +16,326 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-#: templates/base/base.html:149
+
+#: templates/base/base.html:164 templates/campaigns/dashboard.html:3
+#: templates/campaigns/dashboard.html:4
 msgid "لوحة التحكم"
 msgstr "Dashboard"
 
-#: templates/base/base.html:154
+#: templates/base/base.html:169
 msgid "الحملات والتسويق"
 msgstr "Campaigns & Marketing"
 
-#: templates/base/base.html:158
+#: templates/base/base.html:173 templates/campaigns/campaign_list.html:3
 msgid "الحملات"
 msgstr "Campaigns"
 
-#: templates/base/base.html:159
+#: templates/base/base.html:174 templates/campaigns/campaign_list.html:5
+#: templates/campaigns/dashboard.html:6
 msgid "حملة جديدة"
 msgstr "New Campaign"
 
-#: templates/base/base.html:160
+#: templates/base/base.html:175
 msgid "الإرسال الذكي"
 msgstr "Smart Send"
 
-#: templates/base/base.html:161
+#: templates/base/base.html:176
 msgid "القوالب"
 msgstr "Templates"
 
-#: templates/base/base.html:162
+#: templates/base/base.html:177
 msgid "محرر مرئي"
 msgstr "Visual Editor"
 
-#: templates/base/base.html:163
+#: templates/base/base.html:178
 msgid "القوائم"
 msgstr "Lists"
 
-#: templates/base/base.html:164
+#: templates/base/base.html:179
 msgid "إلغاء الاشتراك"
 msgstr "Unsubscribe"
 
-#: templates/base/base.html:172
+#: templates/base/base.html:187
 msgid "إدارة العملاء"
 msgstr "Customer Management"
 
-#: templates/base/base.html:176
+#: templates/base/base.html:191
 msgid "لوحة CRM"
 msgstr "CRM Dashboard"
 
-#: templates/base/base.html:177
+#: templates/base/base.html:192
 msgid "الشركات"
 msgstr "Companies"
 
-#: templates/base/base.html:178
+#: templates/base/base.html:193
 msgid "جهات الاتصال"
 msgstr "Contacts"
 
-#: templates/base/base.html:179
+#: templates/base/base.html:194
 msgid "الفرص"
 msgstr "Deals"
 
-#: templates/base/base.html:180
+#: templates/base/base.html:195
 msgid "عروض الأسعار"
 msgstr "Quotes"
 
-#: templates/base/base.html:181
+#: templates/base/base.html:196
 msgid "فريق المهام"
 msgstr "Team Tasks"
 
-#: templates/base/base.html:188
+#: templates/base/base.html:203
 msgid "إدارة المهام"
 msgstr "Task Management"
 
-#: templates/base/base.html:192
+#: templates/base/base.html:207
 msgid "لوحة المهام"
 msgstr "Tasks Dashboard"
 
-#: templates/base/base.html:193
+#: templates/base/base.html:208
 msgid "كل المهام"
 msgstr "All Tasks"
 
-#: templates/base/base.html:195
+#: templates/base/base.html:210
 msgid "قوالب سير العمل"
 msgstr "Workflow Templates"
 
-#: templates/base/base.html:202
+#: templates/base/base.html:217
 msgid "المالية والتقارير"
 msgstr "Finance & Reports"
 
-#: templates/base/base.html:206
+#: templates/base/base.html:221
 msgid "المالية"
 msgstr "Finance"
 
-#: templates/base/base.html:207
+#: templates/base/base.html:222
 msgid "التقارير"
 msgstr "Reports"
 
-#: templates/base/base.html:208
+#: templates/base/base.html:223
 msgid "المحاسبة"
 msgstr "Accounting"
 
-#: templates/base/base.html:209
+#: templates/base/base.html:224
 msgid "الموظفون والرواتب"
 msgstr "Employees & Payroll"
 
-#: templates/base/base.html:215
+#: templates/base/base.html:230
 msgid "النماذج والتسجيل"
 msgstr "Forms & Registration"
 
-#: templates/base/base.html:220
+#: templates/base/base.html:235
 msgid "نموذج معهد سبارك"
 msgstr "Spark Institute Form"
 
-#: templates/base/base.html:222
+#: templates/base/base.html:237
 msgid "لوحة التسجيلات"
 msgstr "Registrations Dashboard"
 
-#: templates/base/base.html:230
+#: templates/base/base.html:245
 msgid "الإدارة العليا"
 msgstr "Top Management"
 
-#: templates/base/base.html:236
+#: templates/base/base.html:251
 msgid "مساحة العمل"
 msgstr "Workspace"
 
-#: templates/base/base.html:237
+#: templates/base/base.html:252
 msgid "المستخدمون"
 msgstr "Users"
 
-#: templates/base/base.html:238
+#: templates/base/base.html:253
 msgid "سجل النشاط"
 msgstr "Activity Log"
 
-#: templates/base/base.html:239
+#: templates/base/base.html:254
 msgid "اللوحة المالية"
 msgstr "Finance Board"
 
-#: templates/base/base.html:240
+#: templates/base/base.html:255
 msgid "طلبات السحب"
 msgstr "Payout Requests"
 
-#: templates/base/base.html:241
+#: templates/base/base.html:256
 msgid "إعدادات المنصة"
 msgstr "Platform Settings"
 
-#: templates/base/base.html:249
+#: templates/base/base.html:264
 msgid "إدارة الشركة"
 msgstr "Company Management"
 
-#: templates/base/base.html:253
+#: templates/base/base.html:268
 msgid "فريق الشركة"
 msgstr "Company Team"
 
-#: templates/base/base.html:254
+#: templates/base/base.html:269
 msgid "إضافة موظف"
 msgstr "Add Employee"
 
-#: templates/base/base.html:255
+#: templates/base/base.html:270
 msgid "الأدوار والمسميات"
 msgstr "Roles & Titles"
 
-#: templates/base/base.html:257
+#: templates/base/base.html:272
 msgid "إعدادات التسجيل"
 msgstr "Registration Settings"
 
-#: templates/base/base.html:260
+#: templates/base/base.html:275
 msgid "لوحتي المالية"
 msgstr "My Finance Board"
+
+#: templates/campaigns/campaign_list.html:4
+msgid "الحملات البريدية"
+msgstr "Email Campaigns"
+
+#: templates/campaigns/campaign_list.html:8
+msgid "إجمالي"
+msgstr "Total"
+
+#: templates/campaigns/campaign_list.html:9
+#: templates/campaigns/dashboard.html:11
+msgid "جارية"
+msgstr "Running"
+
+#: templates/campaigns/campaign_list.html:10
+msgid "مجدولة"
+msgstr "Scheduled"
+
+#: templates/campaigns/campaign_list.html:11
+#: templates/campaigns/dashboard.html:12
+msgid "مكتملة"
+msgstr "Completed"
+
+#: templates/campaigns/campaign_list.html:12
+#: templates/campaigns/campaign_list.html:31
+msgid "مرسل"
+msgstr "Sent"
+
+#: templates/campaigns/campaign_list.html:13
+#: templates/campaigns/campaign_list.html:31
+msgid "فاشل"
+msgstr "Failed"
+
+#: templates/campaigns/campaign_list.html:19
+msgid "توجد حملة جارية بدون مستلمين. راجع القائمة البريدية قبل الإرسال."
+msgstr "There is a running campaign with no recipients. Check the mailing list before sending."
+
+#: templates/campaigns/campaign_list.html:25
+msgid "بحث باسم الحملة أو العنوان..."
+msgstr "Search by campaign name or subject..."
+
+#: templates/campaigns/campaign_list.html:26
+msgid "كل الحالات"
+msgstr "All Statuses"
+
+#: templates/campaigns/campaign_list.html:27
+msgid "بحث"
+msgstr "Search"
+
+#: templates/campaigns/campaign_list.html:31
+msgid "الاسم"
+msgstr "Name"
+
+#: templates/campaigns/campaign_list.html:31
+#: templates/campaigns/dashboard.html:22 templates/campaigns/dashboard.html:39
+msgid "الحالة"
+msgstr "Status"
+
+#: templates/campaigns/campaign_list.html:31
+msgid "الجدولة"
+msgstr "Schedule"
+
+#: templates/campaigns/campaign_list.html:31
+msgid "الرسائل"
+msgstr "Messages"
+
+#: templates/campaigns/campaign_list.html:31
+msgid "المستلمون"
+msgstr "Recipients"
+
+#: templates/campaigns/campaign_list.html:31
+msgid "النجاح"
+msgstr "Success"
+
+#: templates/campaigns/campaign_list.html:31
+msgid "إجراءات"
+msgstr "Actions"
+
+#: templates/campaigns/campaign_list.html:35
+msgid "لا يوجد مستلمون"
+msgstr "No recipients"
+
+#: templates/campaigns/campaign_list.html:37
+msgid "بدون تكرار"
+msgstr "No recurrence"
+
+#: templates/campaigns/campaign_list.html:38
+msgid "متسلسلة"
+msgstr "Sequence"
+
+#: templates/campaigns/campaign_list.html:43
+msgid "عرض"
+msgstr "View"
+
+#: templates/campaigns/campaign_list.html:43
+msgid "تشغيل"
+msgstr "Start"
+
+#: templates/campaigns/campaign_list.html:43
+msgid "إيقاف مؤقت"
+msgstr "Pause"
+
+#: templates/campaigns/campaign_list.html:43
+msgid "إلغاء"
+msgstr "Cancel"
+
+#: templates/campaigns/campaign_list.html:46
+msgid "لا توجد حملات"
+msgstr "No campaigns"
+
+#: templates/campaigns/dashboard.html:10
+msgid "إجمالي الحملات"
+msgstr "Total Campaigns"
+
+#: templates/campaigns/dashboard.html:13
+msgid "رسائل مرسلة"
+msgstr "Emails Sent"
+
+#: templates/campaigns/dashboard.html:14
+msgid "فاشلة"
+msgstr "Failed"
+
+#: templates/campaigns/dashboard.html:15
+msgid "انتظار"
+msgstr "Pending"
+
+#: templates/campaigns/dashboard.html:20
+msgid "آخر الحملات"
+msgstr "Latest Campaigns"
+
+#: templates/campaigns/dashboard.html:20
+msgid "عرض الكل"
+msgstr "View All"
+
+#: templates/campaigns/dashboard.html:22 templates/campaigns/dashboard.html:39
+msgid "الحملة"
+msgstr "Campaign"
+
+#: templates/campaigns/dashboard.html:22
+msgid "معدل النجاح"
+msgstr "Success Rate"
+
+#: templates/campaigns/dashboard.html:30
+msgid "لا توجد حملات بعد"
+msgstr "No campaigns yet"
+
+#: templates/campaigns/dashboard.html:37
+msgid "آخر عمليات الإرسال"
+msgstr "Latest Sends"
+
+#: templates/campaigns/dashboard.html:39
+msgid "البريد"
+msgstr "Email"
+
+#: templates/campaigns/dashboard.html:47
+msgid "لا توجد سجلات"
+msgstr "No records"
