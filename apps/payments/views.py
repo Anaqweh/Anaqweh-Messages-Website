@@ -97,6 +97,7 @@ def _finance_attach_tenant(request, obj):
     return obj
 
 
+@login_required
 def dashboard(request):
     today, week_start, month_start, year_start = _periods()
     paid = _finance_objects(request, Payment).filter(status='paid')
@@ -277,6 +278,7 @@ def _delete_pdf_cache_for_invoice(invoice):
         pass
 
 
+@login_required
 def invoice_detail(request, pk):
     from .models import CompanySettings
     invoice = get_object_or_404(_finance_objects(request, Invoice).select_related('payment'), pk=pk)
@@ -400,7 +402,7 @@ def expenses(request):
 
 @login_required
 def expense_edit(request, pk):
-    exp = get_object_or_404(Expense, pk=pk)
+    exp = get_object_or_404(_finance_objects(request, Expense), pk=pk)
     if request.method == 'POST':
         exp.title = request.POST.get('title', '').strip() or exp.title
         exp.category = request.POST.get('category') or exp.category
@@ -421,7 +423,7 @@ def expense_edit(request, pk):
 @login_required
 @require_POST
 def expense_delete(request, pk):
-    exp = get_object_or_404(Expense, pk=pk)
+    exp = get_object_or_404(_finance_objects(request, Expense), pk=pk)
     exp.delete()
     return redirect('payments:expenses')
 
@@ -681,6 +683,7 @@ def sales_invoice_delete(request, token):
     return redirect("payments:sales_invoices")
 
 
+@login_required
 def sales_invoice_print(request, token):
     from .models import InvoiceBranding
     invoice = get_object_or_404(SalesInvoice.objects.prefetch_related('items'), token=token)
@@ -703,6 +706,7 @@ def _build_sales_qr(request, invoice):
         return ''
 
 
+@login_required
 def sales_invoice_pdf(request, token):
     from django.template.loader import render_to_string
     from django.http import HttpResponse

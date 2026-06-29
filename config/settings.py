@@ -4,7 +4,7 @@ from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'hHJpT19rp09eC8q2B10-sxpN00H_DDjAyyzhJAfJYM0jYwuoWICRAZyHAz'
+SECRET_KEY = config('SECRET_KEY')
 DEBUG = False
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")
 

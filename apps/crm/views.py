@@ -414,6 +414,7 @@ def quote_delete(request, pk):
     return redirect('crm:quote_list')
 
 
+@login_required
 def quote_pdf(request, pk):
     quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
     from apps.payments.models import CompanySettings

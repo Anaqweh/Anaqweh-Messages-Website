@@ -23,6 +23,7 @@ def _acc_customers(request):
         qs = qs.none()
     return qs
 
+@login_required
 def customers(request):
     q = (request.GET.get('q') or '').strip()
     qs = _acc_customers(request)
