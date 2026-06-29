@@ -8,7 +8,14 @@
   <div class="card border-0 shadow-sm mb-3"><div class="card-body">
     <div class="row g-3">
       <div class="col-md-3"><label class="form-label small fw-bold">نوع الفاتورة</label>
-        <select name="kind" class="form-select"><option value="sales">فاتورة مبيعات</option><option value="due">فاتورة مستحقة</option></select></div>
+        <select name="kind" class="form-select" id="kindSelect">
+          <option value="sales">فاتورة مبيعات</option>
+          <option value="due">فاتورة مستحقة</option>
+          <option value="purchase">فاتورة شراء</option>
+          <option value="receipt">سند قبض</option>
+          <option value="payment">سند صرف</option>
+          <option value="quote">عرض سعر</option>
+        </select></div>
       <div class="col-md-3"><label class="form-label small fw-bold">حالة الدفع</label>
         <select name="status" class="form-select"><option value="unpaid">غير مدفوعة</option><option value="paid">مدفوعة</option></select></div>
       <div class="col-md-3"><label class="form-label small fw-bold">طريقة الدفع</label>

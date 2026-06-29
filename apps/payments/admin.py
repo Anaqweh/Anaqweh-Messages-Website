@@ -68,3 +68,13 @@ try:
     SalesInvoiceItem._meta.verbose_name_plural = "بنود الفواتير"
 except Exception:
     pass
+
+
+# تصميم الفاتورة في لوحة الإدارة
+from .models import InvoiceBranding
+
+@admin.register(InvoiceBranding)
+class InvoiceBrandingAdmin(admin.ModelAdmin):
+    list_display = ('tenant', 'company_name_ar', 'primary_color', 'updated_at')
+    search_fields = ('company_name_ar', 'company_name_en', 'tenant__name')
+    list_filter = ('tenant',)

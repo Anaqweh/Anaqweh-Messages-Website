@@ -1,0 +1,138 @@
+{% extends "base/base.html" %}
+{% load i18n %}
+{% block title %}تصميم الفاتورة - INEXC{% endblock %}
+{% block page_title %}<i class="bi bi-palette-fill me-2"></i>تخصيص تصميم الفاتورة{% endblock %}
+{% block top_actions %}<a href="{% url 'payments:sales_invoices' %}" class="btn btn-outline-secondary btn-sm">← الفواتير</a>{% endblock %}
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+<div class="row g-3">
+
+  <!-- العمود الأيمن: الإعدادات -->
+  <div class="col-lg-7">
+
+    <!-- الهوية البصرية -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-image me-2"></i>الهوية البصرية</h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">الشعار</label>
+            {% if branding.logo %}<div class="mb-2"><img src="{{ branding.logo.url }}" style="max-height:60px;max-width:100%;border:1px solid #eee;border-radius:8px;padding:4px"></div>
+            <div class="form-check small"><input type="checkbox" name="remove_logo" value="1" class="form-check-input"><label class="form-check-label text-danger">حذف الشعار</label></div>{% endif %}
+            <input type="file" name="logo" accept="image/*" class="form-control form-control-sm mt-1">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">التوقيع</label>
+            {% if branding.signature %}<div class="mb-2"><img src="{{ branding.signature.url }}" style="max-height:60px;max-width:100%;border:1px solid #eee;border-radius:8px;padding:4px"></div>
+            <div class="form-check small"><input type="checkbox" name="remove_signature" value="1" class="form-check-input"><label class="form-check-label text-danger">حذف التوقيع</label></div>{% endif %}
+            <input type="file" name="signature" accept="image/*" class="form-control form-control-sm mt-1">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">الختم</label>
+            {% if branding.stamp %}<div class="mb-2"><img src="{{ branding.stamp.url }}" style="max-height:60px;max-width:100%;border:1px solid #eee;border-radius:8px;padding:4px"></div>
+            <div class="form-check small"><input type="checkbox" name="remove_stamp" value="1" class="form-check-input"><label class="form-check-label text-danger">حذف الختم</label></div>{% endif %}
+            <input type="file" name="stamp" accept="image/*" class="form-control form-control-sm mt-1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- الألوان -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-droplet-fill me-2"></i>الألوان</h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">اللون الرئيسي</label>
+            <div class="d-flex gap-2 align-items-center">
+              <input type="color" name="primary_color" value="{{ branding.primary_color }}" class="form-control form-control-color" id="pc" oninput="document.getElementById('pcx').value=this.value;updatePreview()">
+              <input type="text" value="{{ branding.primary_color }}" id="pcx" class="form-control form-control-sm" oninput="document.getElementById('pc').value=this.value;updatePreview()">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">اللون الثانوي</label>
+            <div class="d-flex gap-2 align-items-center">
+              <input type="color" name="secondary_color" value="{{ branding.secondary_color }}" class="form-control form-control-color" id="sc" oninput="document.getElementById('scx').value=this.value;updatePreview()">
+              <input type="text" value="{{ branding.secondary_color }}" id="scx" class="form-control form-control-sm" oninput="document.getElementById('sc').value=this.value;updatePreview()">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-bold">لون النص</label>
+            <div class="d-flex gap-2 align-items-center">
+              <input type="color" name="text_color" value="{{ branding.text_color }}" class="form-control form-control-color" id="tc" oninput="document.getElementById('tcx').value=this.value;updatePreview()">
+              <input type="text" value="{{ branding.text_color }}" id="tcx" class="form-control form-control-sm" oninput="document.getElementById('tc').value=this.value;updatePreview()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- بيانات الشركة -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-building me-2"></i>بيانات الشركة على الفاتورة</h6>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label small fw-bold">اسم الشركة (عربي)</label><input name="company_name_ar" value="{{ branding.company_name_ar }}" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">اسم الشركة (إنجليزي)</label><input name="company_name_en" value="{{ branding.company_name_en }}" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">البريد</label><input name="email" value="{{ branding.email }}" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">الهاتف</label><input name="phone" value="{{ branding.phone }}" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">الموقع</label><input name="website" value="{{ branding.website }}" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">العنوان</label><input name="address" value="{{ branding.address }}" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">الرقم الضريبي</label><input name="trn" value="{{ branding.trn }}" class="form-control form-control-sm"></div>
+          <div class="col-md-6"><label class="form-label small fw-bold">رقم الرخصة</label><input name="license_no" value="{{ branding.license_no }}" class="form-control form-control-sm"></div>
+          <div class="col-12"><label class="form-label small fw-bold">تذييل الفاتورة</label><textarea name="invoice_footer" rows="2" class="form-control form-control-sm">{{ branding.invoice_footer }}</textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary px-5"><i class="bi bi-check-lg me-1"></i>حفظ التصميم</button>
+  </div>
+
+  <!-- العمود الأيسر: المعاينة -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm" style="position:sticky;top:16px">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-eye me-2"></i>معاينة مباشرة</h6>
+        <div id="preview" style="border:1px solid #e8eef5;border-radius:12px;overflow:hidden;font-size:12px">
+          <div id="pv-head" style="display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:3px solid {{ branding.primary_color }}">
+            <div style="font-weight:800;color:{{ branding.primary_color }}" id="pv-name">{{ branding.company_name_ar|default:"اسم شركتك" }}</div>
+            <div style="font-size:22px;font-weight:800;color:{{ branding.primary_color }}" id="pv-inv">INVOICE</div>
+          </div>
+          <div style="padding:12px">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr><th id="pv-th" style="background:{{ branding.primary_color }};color:#fff;padding:8px;text-align:right;font-size:11px">الصنف</th><th id="pv-th2" style="background:{{ branding.primary_color }};color:#fff;padding:8px;font-size:11px">السعر</th></tr></thead>
+              <tbody><tr><td style="padding:8px;border-bottom:1px solid #eee" id="pv-txt">منتج تجريبي</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">100</td></tr></tbody>
+            </table>
+            <div style="text-align:left;margin-top:10px;font-weight:800;font-size:16px;color:{{ branding.primary_color }}" id="pv-total">الإجمالي: 100</div>
+          </div>
+          <div id="pv-bar" style="background:linear-gradient(135deg,{{ branding.primary_color }},{{ branding.secondary_color }});color:#fff;text-align:center;padding:10px;font-size:11px">{{ branding.invoice_footer|default:"شكراً لتعاملكم معنا" }}</div>
+        </div>
+        <p class="text-muted small mt-2 mb-0">المعاينة تقريبية. الفاتورة الفعلية تأخذ كل البيانات.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</form>
+
+<script>
+function updatePreview(){
+  var pc=document.getElementById('pc').value;
+  var sc=document.getElementById('sc').value;
+  document.getElementById('pv-head').style.borderBottomColor=pc;
+  document.getElementById('pv-name').style.color=pc;
+  document.getElementById('pv-inv').style.color=pc;
+  document.getElementById('pv-th').style.background=pc;
+  document.getElementById('pv-th2').style.background=pc;
+  document.getElementById('pv-total').style.color=pc;
+  document.getElementById('pv-bar').style.background='linear-gradient(135deg,'+pc+','+sc+')';
+}
+document.querySelector('[name=company_name_ar]').addEventListener('input',function(){
+  document.getElementById('pv-name').textContent=this.value||'اسم شركتك';
+});
+document.querySelector('[name=invoice_footer]').addEventListener('input',function(){
+  document.getElementById('pv-bar').textContent=this.value||'شكراً لتعاملكم معنا';
+});
+</script>
+{% endblock %}

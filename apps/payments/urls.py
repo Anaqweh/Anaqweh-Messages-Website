@@ -17,6 +17,7 @@ urlpatterns = [
     path('reports/', views.reports, name='reports'),
     path('expenses/new/', views.expense_create, name='expense_create'),
     path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
+    path('invoice-branding/', views.invoice_branding, name='invoice_branding'),
     path('sales-invoices/', views.sales_invoices, name='sales_invoices'),
     path('sales-invoices/new/', views.sales_invoice_create, name='sales_invoice_create'),
     path('sales-invoice/<uuid:token>/', views.sales_invoice_print, name='sales_invoice_print'),

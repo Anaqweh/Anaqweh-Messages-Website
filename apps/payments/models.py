@@ -169,9 +169,22 @@ class CompanySettings(models.Model):
 class SalesInvoice(models.Model):
     tenant = models.ForeignKey("platform_core.Tenant", null=True, blank=True, on_delete=models.SET_NULL, related_name="finance_sales_invoices")
     KIND_CHOICES = [
-        ('due', 'فاتورة مستحقة'),
         ('sales', 'فاتورة مبيعات'),
+        ('due', 'فاتورة مستحقة'),
+        ('purchase', 'فاتورة شراء'),
+        ('receipt', 'سند قبض'),
+        ('payment', 'سند صرف'),
+        ('quote', 'عرض سعر'),
     ]
+    # إعدادات كل نوع: (العنوان بالإنجليزية، بادئة الرقم، هل يظهر كمستحق)
+    KIND_META = {
+        'sales':    {'title': 'INVOICE',     'prefix': 'SAL', 'doc_ar': 'فاتورة مبيعات'},
+        'due':      {'title': 'INVOICE',     'prefix': 'DUE', 'doc_ar': 'فاتورة مستحقة'},
+        'purchase': {'title': 'PURCHASE',    'prefix': 'PUR', 'doc_ar': 'فاتورة شراء'},
+        'receipt':  {'title': 'RECEIPT',     'prefix': 'RCV', 'doc_ar': 'سند قبض'},
+        'payment':  {'title': 'PAYMENT',     'prefix': 'PAY', 'doc_ar': 'سند صرف'},
+        'quote':    {'title': 'QUOTATION',   'prefix': 'QUO', 'doc_ar': 'عرض سعر'},
+    }
     STATUS_CHOICES = [
         ('unpaid', 'غير مدفوعة'),
         ('paid', 'مدفوعة'),
@@ -184,7 +197,7 @@ class SalesInvoice(models.Model):
         ('card', 'بطاقة / Stripe'),
         ('other', 'أخرى'),
     ]
-    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default='sales')
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES, default='sales')
     invoice_number = models.CharField(max_length=40, unique=True, blank=True)
     token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     customer_name = models.CharField(max_length=200)
@@ -210,10 +223,34 @@ class SalesInvoice(models.Model):
     def save(self, *args, **kwargs):
         if not self.invoice_number:
             year = timezone.localdate().year
-            prefix = 'DUE' if self.kind == 'due' else 'SAL'
-            last = SalesInvoice.objects.filter(invoice_number__startswith=f'{prefix}-{year}-').count()
-            self.invoice_number = f'{prefix}-{year}-{last + 1:04d}'
+            meta = self.KIND_META.get(self.kind, self.KIND_META['sales'])
+            prefix = meta['prefix']
+            base = f'{prefix}-{year}-'
+            # نعتمد على أعلى رقم موجود فعلاً (لا على العدّ) لتجنّب التكرار بعد الحذف
+            existing = SalesInvoice.objects.filter(
+                invoice_number__startswith=base
+            ).values_list('invoice_number', flat=True)
+            max_seq = 0
+            for num in existing:
+                tail = num.replace(base, '', 1)
+                if tail.isdigit():
+                    max_seq = max(max_seq, int(tail))
+            # حلقة أمان: نزيد حتى نجد رقماً غير مستخدم
+            seq = max_seq + 1
+            while SalesInvoice.objects.filter(invoice_number=f'{base}{seq:04d}').exists():
+                seq += 1
+            self.invoice_number = f'{base}{seq:04d}'
         super().save(*args, **kwargs)
+
+    @property
+    def doc_title(self):
+        """العنوان الإنجليزي للمستند حسب نوعه."""
+        return self.KIND_META.get(self.kind, {}).get('title', 'INVOICE')
+
+    @property
+    def doc_title_ar(self):
+        """العنوان العربي للمستند حسب نوعه."""
+        return self.KIND_META.get(self.kind, {}).get('doc_ar', 'فاتورة')
 
     @property
     def subtotal(self):
@@ -247,3 +284,46 @@ class SalesInvoiceItem(models.Model):
 
     def __str__(self):
         return self.description[:40]
+
+
+class InvoiceBranding(models.Model):
+    """تصميم فاتورة المبيعات الخاص بكل شركة (شعار، ألوان، توقيع) - معزول لكل tenant."""
+    tenant = models.OneToOneField(
+        "platform_core.Tenant",
+        on_delete=models.CASCADE,
+        related_name="invoice_branding",
+    )
+    # الهوية البصرية
+    logo = models.ImageField('الشعار', upload_to='invoice_branding/', blank=True, null=True)
+    signature = models.ImageField('التوقيع', upload_to='invoice_branding/', blank=True, null=True)
+    stamp = models.ImageField('الختم', upload_to='invoice_branding/', blank=True, null=True)
+    # الألوان
+    primary_color = models.CharField('اللون الرئيسي', max_length=9, default='#0b4ea2')
+    secondary_color = models.CharField('اللون الثانوي', max_length=9, default='#1565c0')
+    text_color = models.CharField('لون النص', max_length=9, default='#1f2937')
+    # بيانات الشركة على الفاتورة
+    company_name_ar = models.CharField('اسم الشركة (عربي)', max_length=300, blank=True, default='')
+    company_name_en = models.CharField('اسم الشركة (إنجليزي)', max_length=300, blank=True, default='')
+    email = models.EmailField('البريد', blank=True, default='')
+    phone = models.CharField('الهاتف', max_length=50, blank=True, default='')
+    website = models.CharField('الموقع', max_length=120, blank=True, default='')
+    address = models.CharField('العنوان', max_length=300, blank=True, default='')
+    trn = models.CharField('الرقم الضريبي', max_length=50, blank=True, default='')
+    license_no = models.CharField('رقم الرخصة', max_length=50, blank=True, default='')
+    invoice_footer = models.TextField('تذييل الفاتورة', blank=True, default='شكراً لتعاملكم معنا')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'تصميم فاتورة'
+        verbose_name_plural = 'تصاميم الفواتير'
+
+    def __str__(self):
+        return f"تصميم فاتورة - {self.tenant.name if self.tenant else ''}"
+
+    @classmethod
+    def for_tenant(cls, tenant):
+        """يجلب أو ينشئ تصميم الفاتورة للشركة."""
+        if tenant is None:
+            return None
+        obj, _ = cls.objects.get_or_create(tenant=tenant)
+        return obj

@@ -25,17 +25,31 @@
   </div>
 </form>
 <div class="mb-3">
+  {% if is_admin %}
+  <form method="get" class="d-inline-block me-3 mb-2">
+    {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <select name="company" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="this.form.submit()">
+      <option value="">— كل الشركات —</option>
+      <option value="platform" {% if company_filter == 'platform' %}selected{% endif %}>المنصة (المدير العام)</option>
+      {% for co in companies %}
+      <option value="{{ co.pk }}" {% if company_filter == co.pk|stringformat:'s' %}selected{% endif %}>{{ co.name }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
   <a href="{% url 'payments:sales_invoices' %}" class="btn btn-sm {% if not kind %}btn-primary{% else %}btn-outline-primary{% endif %}">كل الأنواع</a>
   <a href="?kind=due{% if status %}&status={{ status }}{% endif %}" class="btn btn-sm {% if kind == 'due' %}btn-primary{% else %}btn-outline-primary{% endif %}">المستحقة</a>
   <a href="?kind=sales{% if status %}&status={{ status }}{% endif %}" class="btn btn-sm {% if kind == 'sales' %}btn-primary{% else %}btn-outline-primary{% endif %}">المبيعات</a>
 </div>
 <div class="data-table p-3">
   <table class="table table-sm align-middle">
-    <thead><tr><th>الرقم</th><th>النوع</th><th>العميل</th><th>الإجمالي</th><th>الضريبة</th><th>الحالة</th><th>طريقة الدفع</th><th>التاريخ</th><th>الاستحقاق</th><th></th></tr></thead>
+    <thead><tr><th>الرقم</th>{% if is_admin %}<th>الشركة</th>{% endif %}<th>النوع</th><th>العميل</th><th>الإجمالي</th><th>الضريبة</th><th>الحالة</th><th>طريقة الدفع</th><th>التاريخ</th><th>الاستحقاق</th><th></th></tr></thead>
     <tbody>
       {% for inv in invoices %}
       <tr {% if inv.is_overdue %}class="table-danger"{% endif %}>
         <td class="fw-bold">{{ inv.invoice_number }}</td>
+        {% if is_admin %}<td><span class="badge bg-light text-dark border">{% if inv.tenant %}{{ inv.tenant.name }}{% else %}المنصة{% endif %}</span></td>{% endif %}
         <td><span class="badge {% if inv.kind == 'due' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ inv.get_kind_display }}</span></td>
         <td>{{ inv.customer_name }}</td>
         <td class="fw-bold">{{ inv.total }} {{ inv.currency|upper }}</td>

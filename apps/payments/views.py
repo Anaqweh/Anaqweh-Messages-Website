@@ -102,14 +102,30 @@ def dashboard(request):
     paid = _finance_objects(request, Payment).filter(status='paid')
     expenses = _finance_objects(request, Expense).all()
 
+    # إيرادات فواتير المبيعات المدفوعة (تُدمج في الدخل)
+    from decimal import Decimal as _Dec
+    _all_sales_inc = list(_finance_objects(request, SalesInvoice).all())
+    _paid_sales = [i for i in _all_sales_inc if i.status == 'paid']
+    def _sales_income(since=None, on_day=None):
+        total = _Dec('0.00')
+        for i in _paid_sales:
+            d = i.issue_date
+            if d is None:
+                continue
+            if on_day is not None and d != on_day:
+                continue
+            if since is not None and d < since:
+                continue
+            total += i.total
+        return total
     cards = {
-        'today_income': _sum(paid.filter(paid_at__date=today), 'amount'),
-        'week_income': _sum(paid.filter(paid_at__date__gte=week_start), 'amount'),
-        'month_income': _sum(paid.filter(paid_at__date__gte=month_start), 'amount'),
-        'year_income': _sum(paid.filter(paid_at__date__gte=year_start), 'amount'),
+        'today_income': _sum(paid.filter(paid_at__date=today), 'amount') + _sales_income(on_day=today),
+        'week_income': _sum(paid.filter(paid_at__date__gte=week_start), 'amount') + _sales_income(since=week_start),
+        'month_income': _sum(paid.filter(paid_at__date__gte=month_start), 'amount') + _sales_income(since=month_start),
+        'year_income': _sum(paid.filter(paid_at__date__gte=year_start), 'amount') + _sales_income(since=year_start),
         'stripe_fees': _sum(paid, 'stripe_fee'),
         'expenses': _sum(expenses, 'amount'),
-        'net': _sum(paid, 'net_amount') - _sum(expenses, 'amount'),
+        'net': _sum(paid, 'net_amount') + _sales_income() - _sum(expenses, 'amount'),
     }
 
     # إحصائيات الفواتير الإلكترونية (قراءة فقط - لا تمس نظام الدفع)
@@ -143,6 +159,22 @@ def dashboard(request):
         val = sum((i.total for i in all_sales if i.status == 'paid' and mo <= i.issue_date < nxt), Decimal('0.00'))
         chart_labels.append(f'{mo.year}-{mo.month:02d}')
         chart_values.append(float(val))
+    # قائمة الشركات للمدير العام (لتبديل المالية)
+    fin_is_admin = False
+    fin_companies = []
+    fin_active_id = None
+    fin_active_name = None
+    try:
+        from apps.platform_core.navigation import is_platform_admin
+        from apps.platform_core.models import Tenant
+        fin_is_admin = bool(request.user.is_authenticated and is_platform_admin(request.user))
+        if fin_is_admin:
+            fin_companies = list(Tenant.objects.order_by('name').values('pk', 'name'))
+            fin_active_id = request.session.get('active_tenant_id')
+            fin_active_name = request.session.get('active_tenant_name')
+    except Exception:
+        pass
+
     return render(request, 'payments/dashboard.html', {
         'cards': cards,
         'inv_stats': inv_stats,
@@ -152,6 +184,10 @@ def dashboard(request):
         'invoices': _finance_objects(request, Invoice).select_related('payment')[:10],
         'expenses': _finance_objects(request, Expense).all()[:10],
         'payouts': StripePayout.objects.all()[:10],
+        'fin_is_admin': fin_is_admin,
+        'fin_companies': fin_companies,
+        'fin_active_id': fin_active_id,
+        'fin_active_name': fin_active_name,
     })
 
 
@@ -547,9 +583,11 @@ def sales_invoices(request):
     from django.utils import timezone
     kind = request.GET.get('kind', '')
     status = request.GET.get('status', '')
+    company_filter = request.GET.get('company', '')
     q = (request.GET.get('q') or '').strip()
-    qs = _finance_objects(request, SalesInvoice).all().prefetch_related('items')
-    if kind in ('due', 'sales'):
+    qs = _finance_objects(request, SalesInvoice).all().select_related('tenant').prefetch_related('items')
+    valid_kinds = [k for k, _ in SalesInvoice.KIND_CHOICES]
+    if kind in valid_kinds:
         qs = qs.filter(kind=kind)
     today = timezone.localdate()
     if status == 'overdue':
@@ -558,11 +596,33 @@ def sales_invoices(request):
         qs = qs.filter(status=status)
     if q:
         qs = qs.filter(Q(invoice_number__icontains=q) | Q(customer_name__icontains=q) | Q(customer_email__icontains=q))
+
+    # هل المستخدم مدير عام؟ (ليُعرض له عمود/فلتر الشركة)
+    is_admin = False
+    companies = []
+    try:
+        from apps.platform_core.navigation import is_platform_admin
+        from apps.platform_core.models import Tenant
+        is_admin = bool(request.user.is_authenticated and is_platform_admin(request.user))
+        if is_admin:
+            companies = list(Tenant.objects.order_by('name').values('pk', 'name'))
+            # فلتر الشركة المختار
+            if company_filter == 'platform':
+                qs = qs.filter(tenant__isnull=True)
+            elif company_filter.isdigit():
+                qs = qs.filter(tenant_id=int(company_filter))
+    except Exception:
+        pass
+
+    # ترتيب: حسب الشركة ثم الأحدث (تجميع بصري لكل شركة)
+    qs = qs.order_by('tenant__name', '-created_at')
+
     invoices = list(qs)
     for inv in invoices:
         inv.is_overdue = (inv.status == 'unpaid' and inv.due_date is not None and inv.due_date < today)
     return render(request, 'payments/sales_invoices.html', {
         'invoices': invoices, 'kind': kind, 'status': status, 'q': q,
+        'is_admin': is_admin, 'companies': companies, 'company_filter': company_filter,
     })
 
 
@@ -622,11 +682,13 @@ def sales_invoice_delete(request, token):
 
 
 def sales_invoice_print(request, token):
+    from .models import InvoiceBranding
     invoice = get_object_or_404(SalesInvoice.objects.prefetch_related('items'), token=token)
     company = CompanySettings.load()
+    branding = InvoiceBranding.for_tenant(invoice.tenant) if invoice.tenant_id else None
     qr_data_uri = _build_sales_qr(request, invoice)
     return render(request, 'payments/sales_invoice_print.html', {
-        'invoice': invoice, 'company': company, 'qr_data_uri': qr_data_uri,
+        'invoice': invoice, 'company': company, 'branding': branding, 'qr_data_uri': qr_data_uri,
     })
 
 
@@ -646,9 +708,11 @@ def sales_invoice_pdf(request, token):
     from django.http import HttpResponse
     invoice = get_object_or_404(SalesInvoice.objects.prefetch_related('items'), token=token)
     company = CompanySettings.load()
+    from .models import InvoiceBranding
+    branding = InvoiceBranding.for_tenant(invoice.tenant) if invoice.tenant_id else None
     qr_data_uri = _build_sales_qr(request, invoice)
     html = render_to_string('payments/sales_invoice_print.html', {
-        'invoice': invoice, 'company': company, 'qr_data_uri': qr_data_uri, 'pdf_mode': True,
+        'invoice': invoice, 'company': company, 'branding': branding, 'qr_data_uri': qr_data_uri, 'pdf_mode': True,
     })
     try:
         from weasyprint import HTML
@@ -659,3 +723,52 @@ def sales_invoice_pdf(request, token):
         return resp
     except Exception as e:
         return HttpResponse(f'تعذّر توليد PDF: {e}', status=500)
+
+
+@login_required
+def invoice_branding(request):
+    """صفحة تخصيص تصميم فاتورة المبيعات لكل شركة (شعار، ألوان، توقيع)."""
+    from .models import InvoiceBranding
+    tenant = _finance_tenant_for_request(request)
+    if tenant is None:
+        messages.error(request, 'اختر شركة أولاً لتخصيص فواتيرها.')
+        return redirect('payments:sales_invoices')
+
+    branding = InvoiceBranding.for_tenant(tenant)
+
+    if request.method == 'POST':
+        branding.company_name_ar = request.POST.get('company_name_ar', '').strip()
+        branding.company_name_en = request.POST.get('company_name_en', '').strip()
+        branding.email = request.POST.get('email', '').strip()
+        branding.phone = request.POST.get('phone', '').strip()
+        branding.website = request.POST.get('website', '').strip()
+        branding.address = request.POST.get('address', '').strip()
+        branding.trn = request.POST.get('trn', '').strip()
+        branding.license_no = request.POST.get('license_no', '').strip()
+        branding.invoice_footer = request.POST.get('invoice_footer', '').strip()
+        # الألوان (مع تحقق بسيط)
+        for fld in ('primary_color', 'secondary_color', 'text_color'):
+            val = (request.POST.get(fld) or '').strip()
+            if val.startswith('#') and 4 <= len(val) <= 9:
+                setattr(branding, fld, val)
+        # الصور
+        if request.FILES.get('logo'):
+            branding.logo = request.FILES['logo']
+        if request.FILES.get('signature'):
+            branding.signature = request.FILES['signature']
+        if request.FILES.get('stamp'):
+            branding.stamp = request.FILES['stamp']
+        # حذف الصور عند الطلب
+        if request.POST.get('remove_logo') == '1':
+            branding.logo = None
+        if request.POST.get('remove_signature') == '1':
+            branding.signature = None
+        if request.POST.get('remove_stamp') == '1':
+            branding.stamp = None
+        branding.save()
+        messages.success(request, 'تم حفظ تصميم الفاتورة بنجاح.')
+        return redirect('payments:invoice_branding')
+
+    return render(request, 'payments/invoice_branding.html', {
+        'branding': branding, 'tenant': tenant,
+    })

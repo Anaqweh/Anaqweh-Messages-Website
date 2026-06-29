@@ -3,6 +3,35 @@
 {% block page_title %}<i class="bi bi-cash-coin me-2"></i>المالية{% endblock %}
 {% block top_actions %}<a href="{% url 'payments:reports' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-graph-up"></i> التقارير</a> <a href="{% url 'payments:sales_invoices' %}" class="btn btn-outline-success btn-sm"><i class="bi bi-receipt-cutoff"></i> الفواتير الإلكترونية</a> <a href="{% url 'accounting:customers' %}" class="btn btn-outline-dark btn-sm"><i class="bi bi-people"></i> العملاء</a> <a href="{% url 'accounting:reports' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-bar-chart-line"></i> تقارير وتصدير</a> <a href="{% url 'payments:payouts' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-bank"></i> التحويلات</a> <a href="{% url 'payments:invoices' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-receipt"></i> الفواتير</a> <a href="{% url 'payments:expense_create' %}" class="btn btn-inexc btn-sm">+ إضافة تكلفة</a>{% endblock %}
 {% block content %}
+{% if fin_is_admin %}
+<div class="card border-0 shadow-sm mb-3" style="background:linear-gradient(135deg,#1e3a6e,#2563eb)">
+  <div class="card-body py-3 d-flex flex-wrap align-items-center gap-3">
+    <div class="text-white fw-bold"><i class="bi bi-buildings me-2"></i>عرض مالية:</div>
+    <form method="get" id="finCompanyForm" class="d-inline-block">
+      <select class="form-select" style="min-width:240px" onchange="finSwitchCompany(this.value)">
+        <option value="__platform__" {% if not fin_active_id %}selected{% endif %}>🏛️ المنصة (حساباتي الخاصة)</option>
+        {% for co in fin_companies %}
+        <option value="{{ co.pk }}" {% if fin_active_id == co.pk %}selected{% endif %}>🏢 {{ co.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% if fin_active_name %}
+    <span class="badge bg-light text-dark">تتصفّح الآن: {{ fin_active_name }}</span>
+    {% else %}
+    <span class="badge bg-light text-dark">حساباتك كمدير عام</span>
+    {% endif %}
+  </div>
+</div>
+<script>
+function finSwitchCompany(val){
+  if(val === '__platform__'){
+    window.location.href = "{% url 'platform_core:clear_tenant' %}";
+  } else {
+    window.location.href = "/platform/switch-tenant/" + val + "/";
+  }
+}
+</script>
+{% endif %}
 <div class="row g-3 mb-3">
   <div class="col-md-3 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">دخل اليوم</div><div class="h4 fw-bold">{{ cards.today_income }} AED</div></div></div></div>
   <div class="col-md-3 col-6"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">دخل الأسبوع</div><div class="h4 fw-bold">{{ cards.week_income }} AED</div></div></div></div>

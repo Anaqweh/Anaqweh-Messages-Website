@@ -219,6 +219,7 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
     <div class="nav-group-items" id="grp-finance">
       <a href="{% url 'payments:dashboard' %}" class="nav-link"><i class="bi bi-cash-coin"></i> {% trans "المالية" %}</a>
+      <a href="{% url 'payments:invoice_branding' %}" class="nav-link"><i class="bi bi-palette"></i> {% trans "تصميم الفاتورة" %}</a>
       <a href="{% url 'reports:dashboard' %}" class="nav-link"><i class="bi bi-bar-chart-fill"></i> {% trans "التقارير" %}</a>
       <a href="{% url 'accounting:reports' %}" class="nav-link"><i class="bi bi-calculator"></i> {% trans "المحاسبة" %}</a>
       <a href="{% url 'accounting:employees' %}" class="nav-link"><i class="bi bi-people-fill"></i> {% trans "الموظفون والرواتب" %}</a>
