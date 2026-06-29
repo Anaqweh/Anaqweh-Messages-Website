@@ -6,10 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = False
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*").split(",")
+ALLOWED_HOSTS = [h.strip() for h in config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",") if h.strip()]
 
 INSTALLED_APPS = [
-    "apps.registrations.apps.RegistrationsConfig",
     'apps.crm',
     'apps.platform_core',
     'apps.tasks',
@@ -46,7 +45,6 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'apps.registrations.form_permissions.RegistrationModelPermissionMiddleware',
     'apps.platform_core.permission_middleware.TenantPermissionMiddleware',
     'apps.platform_core.tenant_context.TenantContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -186,3 +184,20 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="INEXC <info@inexc.com
 
 
 CSRF_TRUSTED_ORIGINS = ["http://165.232.167.39:8000", "http://165.232.167.39"]
+
+
+# Performance: shared Redis cache for all Gunicorn workers.
+REDIS_CACHE_URL = config("REDIS_CACHE_URL", default="redis://redis:6379/1")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_CACHE_URL,
+        "TIMEOUT": 300,
+        "KEY_PREFIX": "messages_website",
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_CACHE_ALIAS = "default"
+

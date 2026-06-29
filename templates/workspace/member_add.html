@@ -43,7 +43,7 @@
 </div></div>
 
 <script>
-const ROLES_PERMS = {{ roles_json|safe }};
+const ROLES_PERMS = JSON.parse('{{ roles_json|default:"{}"|escapejs }}');
 function applyRole(){
   const sel = document.getElementById('roleSelect');
   const roleId = sel.value;

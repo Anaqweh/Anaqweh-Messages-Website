@@ -184,6 +184,6 @@ function sendTest() {
 }
 
 // Supported vars for template form
-const supported_vars = {{ supported_vars|default:"[]"|safe }};
+const supported_vars = JSON.parse('{{ supported_vars|default:"[]"|escapejs }}');
 </script>
 {% endblock %}

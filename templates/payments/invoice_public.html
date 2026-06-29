@@ -127,7 +127,7 @@ body{margin:0;background:#eef3f9;color:var(--ink);font-family:Tahoma,Arial,sans-
         {% if p.paid_at %}<div class="s">تاريخ الدفع: {{ p.paid_at|date:"Y-m-d H:i" }}</div>{% endif %}
       </div>
       <div class="card qrbox">
-        {% if qr_data_uri %}<img src="{{ qr_data_uri|safe }}" alt="QR">{% endif %}
+        {% if qr_data_uri %}<img src="{{ qr_data_uri }}" alt="QR">{% endif %}
         <div class="ql">تحقق من الفاتورة</div>
       </div>
     </section>

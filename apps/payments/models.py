@@ -264,6 +264,20 @@ class SalesInvoice(models.Model):
     def total(self):
         return (self.subtotal + self.tax_amount).quantize(Decimal('0.01'))
 
+    @property
+    def cost_total(self):
+        return sum((it.cost_total for it in self.items.all()), Decimal('0.00')).quantize(Decimal('0.01'))
+
+    @property
+    def gross_profit(self):
+        return (self.subtotal - self.cost_total).quantize(Decimal('0.01'))
+
+    @property
+    def margin_percent(self):
+        if not self.subtotal:
+            return Decimal('0.00')
+        return (self.gross_profit * Decimal('100') / self.subtotal).quantize(Decimal('0.01'))
+
     def __str__(self):
         return self.invoice_number or 'فاتورة'
 
@@ -273,6 +287,7 @@ class SalesInvoiceItem(models.Model):
     description = models.CharField(max_length=300)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('1'))
     unit_price = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0'))
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -281,6 +296,14 @@ class SalesInvoiceItem(models.Model):
     @property
     def line_total(self):
         return (self.quantity * self.unit_price).quantize(Decimal('0.01'))
+
+    @property
+    def cost_total(self):
+        return (self.quantity * self.unit_cost).quantize(Decimal('0.01'))
+
+    @property
+    def gross_profit(self):
+        return (self.line_total - self.cost_total).quantize(Decimal('0.01'))
 
     def __str__(self):
         return self.description[:40]

@@ -60,7 +60,7 @@ function finSwitchCompany(val){
 (function(){
   var ctx=document.getElementById('revChart');
   if(!ctx) return;
-  new Chart(ctx,{type:'bar',data:{labels:{{ chart_labels|safe }},datasets:[{label:'الإيرادات (AED)',data:{{ chart_values|safe }},backgroundColor:'#0b4ea2',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+  new Chart(ctx,{type:'bar',data:{labels:JSON.parse('{{ chart_labels|default:"[]"|escapejs }}'),datasets:[{label:'الإيرادات (AED)',data:JSON.parse('{{ chart_values|default:"[]"|escapejs }}'),backgroundColor:'#0b4ea2',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
 })();
 </script>
 <div class="data-table p-3">

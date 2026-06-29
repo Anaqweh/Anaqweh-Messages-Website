@@ -9,6 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+import json as _json
 
 from .models import Payment, Invoice, Expense, StripePayout, StripeWebhookEvent, CompanySettings, SalesInvoice, SalesInvoiceItem
 
@@ -35,29 +36,32 @@ def _finance_objects(request, model):
     if not any(field.name == "tenant" for field in model._meta.fields):
         return qs
 
+    def is_general_manager():
+        if getattr(request.user, "is_superuser", False):
+            return True
+        try:
+            from apps.platform_core.navigation import is_platform_admin
+            return bool(is_platform_admin(request.user))
+        except Exception:
+            return False
+
+    if is_general_manager():
+        active_tenant_id = request.GET.get("company") or request.session.get("active_tenant_id")
+
+        if active_tenant_id and str(active_tenant_id).isdigit():
+            return qs.filter(tenant_id=int(active_tenant_id))
+
+        # GM_PLATFORM_DEFAULT:
+        # المدير العام يبدأ بحسابات المنصة فقط، ولا يرى شركة إلا عند اختيارها.
+        return qs.filter(tenant__isnull=True)
+
     try:
-        from apps.platform_core.navigation import active_membership_for, is_platform_admin
-    except Exception:
-        return qs
-
-    user = getattr(request, "user", None)
-    user = getattr(request, "user", None)
-
-    # المدير العام — هل اختار شركة للتصفح؟
-    if user and user.is_authenticated and is_platform_admin(user):
-        active_tenant_id = request.session.get("active_tenant_id")
-        if active_tenant_id:
-            try:
-                from apps.platform_core.models import Tenant
-                tenant = Tenant.objects.get(pk=active_tenant_id)
-                return qs.filter(tenant=tenant)
-            except Exception:
-                pass
-        return qs.filter(tenant__isnull=True)  # بيانات المنصة الأصلية
-    if user and user.is_authenticated:
-        membership = active_membership_for(user)
+        from apps.platform_core.navigation import active_membership_for
+        membership = active_membership_for(request.user)
         if membership:
             return qs.filter(tenant=membership.tenant)
+    except Exception:
+        pass
 
     return qs.none()
 
@@ -107,7 +111,7 @@ def dashboard(request):
     from decimal import Decimal as _Dec
     _all_sales_inc = list(_finance_objects(request, SalesInvoice).all())
     _paid_sales = [i for i in _all_sales_inc if i.status == 'paid']
-    def _sales_income(since=None, on_day=None):
+    def _sales_income(since=None, on_day=None, include_tax=True):
         total = _Dec('0.00')
         for i in _paid_sales:
             d = i.issue_date
@@ -117,7 +121,7 @@ def dashboard(request):
                 continue
             if since is not None and d < since:
                 continue
-            total += i.total
+            total += i.total if include_tax else i.subtotal
         return total
     cards = {
         'today_income': _sum(paid.filter(paid_at__date=today), 'amount') + _sales_income(on_day=today),
@@ -126,7 +130,7 @@ def dashboard(request):
         'year_income': _sum(paid.filter(paid_at__date__gte=year_start), 'amount') + _sales_income(since=year_start),
         'stripe_fees': _sum(paid, 'stripe_fee'),
         'expenses': _sum(expenses, 'amount'),
-        'net': _sum(paid, 'net_amount') + _sales_income() - _sum(expenses, 'amount'),
+        'net': _sum(paid, 'net_amount') + _sales_income(include_tax=False) - _sum(expenses, 'amount'),
     }
 
     # إحصائيات الفواتير الإلكترونية (قراءة فقط - لا تمس نظام الدفع)
@@ -135,7 +139,7 @@ def dashboard(request):
     cnt_paid = sum(1 for i in all_sales if i.status == 'paid')
     cnt_unpaid = sum(1 for i in all_sales if i.status == 'unpaid')
     cnt_overdue = sum(1 for i in all_sales if i.status == 'unpaid' and i.due_date is not None and i.due_date < today)
-    sales_revenue = sum((i.total for i in all_sales if i.status == 'paid'), Decimal('0.00'))
+    sales_revenue = sum((i.subtotal for i in all_sales if i.status == 'paid'), Decimal('0.00'))
     sales_outstanding = sum((i.total for i in all_sales if i.status == 'unpaid'), Decimal('0.00'))
     sales_tax = sum((i.tax_amount for i in all_sales if i.status == 'paid'), Decimal('0.00'))
     inv_stats = {
@@ -157,7 +161,7 @@ def dashboard(request):
             m = m.replace(month=m.month - 1)
     for mo in reversed(months):
         nxt = mo.replace(year=mo.year + 1, month=1) if mo.month == 12 else mo.replace(month=mo.month + 1)
-        val = sum((i.total for i in all_sales if i.status == 'paid' and mo <= i.issue_date < nxt), Decimal('0.00'))
+        val = sum((i.subtotal for i in all_sales if i.status == 'paid' and mo <= i.issue_date < nxt), Decimal('0.00'))
         chart_labels.append(f'{mo.year}-{mo.month:02d}')
         chart_values.append(float(val))
     # قائمة الشركات للمدير العام (لتبديل المالية)
@@ -179,8 +183,8 @@ def dashboard(request):
     return render(request, 'payments/dashboard.html', {
         'cards': cards,
         'inv_stats': inv_stats,
-        'chart_labels': chart_labels,
-        'chart_values': chart_values,
+        'chart_labels': _json.dumps(chart_labels),
+        'chart_values': _json.dumps(chart_values),
         'payments': _finance_objects(request, Payment).all()[:15],
         'invoices': _finance_objects(request, Invoice).select_related('payment')[:10],
         'expenses': _finance_objects(request, Expense).all()[:10],
@@ -776,3 +780,32 @@ def invoice_branding(request):
     return render(request, 'payments/invoice_branding.html', {
         'branding': branding, 'tenant': tenant,
     })
+
+def _apply_sales_invoice_item_costs(invoice, request):
+    """Save internal company cost per invoice item. Never exposed to customer templates."""
+    try:
+        costs = request.POST.getlist("item_cost")
+        if not costs or not hasattr(invoice, "items"):
+            return
+
+        from decimal import Decimal, InvalidOperation
+
+        items = list(invoice.items.order_by("id"))
+        for item, raw_cost in zip(items, costs):
+            if not hasattr(item, "unit_cost"):
+                continue
+
+            raw = str(raw_cost or "0").strip().replace(",", ".")
+            try:
+                cost = Decimal(raw)
+            except (InvalidOperation, ValueError):
+                cost = Decimal("0.00")
+
+            if cost < 0:
+                cost = Decimal("0.00")
+
+            item.unit_cost = cost
+            item.save(update_fields=["unit_cost"])
+    except Exception:
+        return
+

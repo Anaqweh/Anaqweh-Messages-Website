@@ -20,6 +20,21 @@ def _task_tenant(request):
     except Exception:
         return None
 
+def _task_qs(request):
+    """يرجع مهام معزولة حسب الشركة (المدير العام يرى الكل)."""
+    qs = Task.objects.all()
+    t = _task_tenant(request)
+    if t:
+        return qs.filter(tenant=t)
+    # غير المدير العام بلا شركة لا يرى شيئاً
+    try:
+        from apps.platform_core.navigation import is_platform_admin
+        if not is_platform_admin(request.user):
+            return qs.none()
+    except Exception:
+        return qs.none()
+    return qs
+
 
 @login_required
 def task_dashboard(request):
@@ -115,7 +130,7 @@ def task_create(request):
 @login_required
 def task_detail(request, pk):
     tenant = _task_tenant(request)
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(_task_qs(request), pk=pk)
     stages = []
     if task.workflow_template:
         stages = task.workflow_template.stages.all()
@@ -130,7 +145,7 @@ def task_detail(request, pk):
 
 @login_required
 def task_edit(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(_task_qs(request), pk=pk)
     tenant = _task_tenant(request)
     workflows = TaskWorkflowTemplate.objects.filter(is_active=True)
     if request.method == 'POST':
@@ -165,7 +180,7 @@ def task_edit(request, pk):
 @login_required
 @require_POST
 def task_delete(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(_task_qs(request), pk=pk)
     task.delete()
     messages.success(request, 'تم حذف المهمة')
     return redirect('tasks:task_list')
@@ -174,7 +189,7 @@ def task_delete(request, pk):
 @login_required
 @require_POST
 def task_move_stage(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(_task_qs(request), pk=pk)
     action = request.POST.get('action', '')
     note = request.POST.get('note', '').strip()
     old_stage = task.current_stage
@@ -214,7 +229,7 @@ def task_move_stage(request, pk):
 @login_required
 @require_POST
 def task_add_comment(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(_task_qs(request), pk=pk)
     body = request.POST.get('body', '').strip()
     if body:
         TaskComment.objects.create(task=task, author=request.user, body=body)
@@ -225,7 +240,7 @@ def task_add_comment(request, pk):
 @login_required
 @require_POST
 def task_add_attachment(request, pk):
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(_task_qs(request), pk=pk)
     f = request.FILES.get('file')
     if f:
         TaskAttachment.objects.create(
@@ -286,7 +301,15 @@ def workflow_create(request):
 @login_required
 def workflow_edit(request, pk):
     tenant = _task_tenant(request)
-    wf = get_object_or_404(TaskWorkflowTemplate, pk=pk)
+    # عزل: تعديل قوالب الشركة فقط (المدير العام يعدّل الكل)
+    _wf_qs = TaskWorkflowTemplate.objects.all()
+    try:
+        from apps.platform_core.navigation import is_platform_admin
+        if not is_platform_admin(request.user):
+            _wf_qs = _wf_qs.filter(tenant=tenant) if tenant else _wf_qs.none()
+    except Exception:
+        _wf_qs = _wf_qs.filter(tenant=tenant) if tenant else _wf_qs.none()
+    wf = get_object_or_404(_wf_qs, pk=pk)
     if request.method == 'POST':
         wf.name = request.POST.get('name', wf.name).strip()
         wf.description = request.POST.get('description', '').strip()

@@ -61,6 +61,217 @@
   </div></div>
 
   <div class="text-center mb-4"><button type="submit" class="btn btn-primary btn-lg px-5">حفظ وإصدار الفاتورة</button></div>
+
+<!-- VISIBLE_COMPANY_COST_START -->
+<style id="visible-company-cost-css">
+  .company-cost-internal-box {
+    border: 1px dashed #0d6efd;
+    background: #f4f8ff;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 12px 0;
+  }
+  .company-cost-internal-box .company-cost-title {
+    font-weight: 800;
+    color: #0b4ea2;
+    margin-bottom: 8px;
+  }
+  .company-cost-cell {
+    min-width: 155px;
+  }
+  .company-cost-cell input,
+  .company-cost-fallback input {
+    direction: ltr;
+    text-align: center;
+    font-weight: 700;
+  }
+  .company-cost-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #6b7280;
+    white-space: nowrap;
+  }
+</style>
+
+<script id="visible-company-cost-js">
+(function () {
+  function visible(el) {
+    return !!(el && el.offsetParent !== null);
+  }
+
+  function isBadName(name) {
+    name = String(name || '').toLowerCase();
+    return (
+      name.indexOf('cost') !== -1 ||
+      name.indexOf('tax') !== -1 ||
+      name.indexOf('vat') !== -1 ||
+      name.indexOf('total') !== -1 ||
+      name.indexOf('subtotal') !== -1 ||
+      name.indexOf('discount') !== -1 ||
+      name.indexOf('csrf') !== -1
+    );
+  }
+
+  function looksLikePriceInput(input) {
+    if (!input || input.name === 'item_cost') return false;
+    var name = String(input.name || '').toLowerCase();
+    var type = String(input.type || '').toLowerCase();
+
+    if (isBadName(name)) return false;
+    if (!['number', 'text', 'tel'].includes(type)) return false;
+
+    return (
+      name.indexOf('unit_price') !== -1 ||
+      name.indexOf('price') !== -1 ||
+      name.indexOf('rate') !== -1 ||
+      name.indexOf('amount') !== -1 ||
+      name.indexOf('value') !== -1
+    );
+  }
+
+  function priceInputs() {
+    return Array.from(document.querySelectorAll('input')).filter(function (input) {
+      return visible(input) && looksLikePriceInput(input);
+    });
+  }
+
+  function createCostInput() {
+    var wrap = document.createElement('div');
+    wrap.className = 'company-cost-wrap';
+
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.name = 'item_cost';
+    input.step = '0.01';
+    input.min = '0';
+    input.value = '0';
+    input.placeholder = '0.00';
+    input.autocomplete = 'off';
+    input.className = 'form-control form-control-sm company-cost-input';
+
+    var note = document.createElement('span');
+    note.className = 'company-cost-note';
+    note.textContent = 'داخلي فقط، لا يظهر للعميل';
+
+    wrap.appendChild(input);
+    wrap.appendChild(note);
+    return wrap;
+  }
+
+  function addHeader(table, index) {
+    if (!table || table.querySelector('[data-company-cost-header="1"]')) return;
+    var headerRow = table.querySelector('thead tr');
+    if (!headerRow) return;
+
+    var th = document.createElement('th');
+    th.setAttribute('data-company-cost-header', '1');
+    th.className = 'company-cost-cell text-center';
+    th.innerHTML = 'تكلفة الشركة<br><small>داخلية</small>';
+
+    var ref = headerRow.children[index + 1];
+    if (ref) headerRow.insertBefore(th, ref);
+    else headerRow.appendChild(th);
+  }
+
+  function addToTable(input) {
+    var row = input.closest('tr');
+    if (!row || row.querySelector('input[name="item_cost"]')) return false;
+
+    var cell = input.closest('td,th');
+    if (!cell) return false;
+
+    var table = row.closest('table');
+    var index = Array.from(row.children).indexOf(cell);
+
+    addHeader(table, index);
+
+    var td = document.createElement('td');
+    td.className = 'company-cost-cell text-center';
+    td.appendChild(createCostInput());
+
+    var ref = row.children[index + 1];
+    if (ref) row.insertBefore(td, ref);
+    else row.appendChild(td);
+
+    return true;
+  }
+
+  function addToGrid(input) {
+    var box = input.closest('.col-md-1,.col-md-2,.col-md-3,.col-md-4,.col-lg-1,.col-lg-2,.col-lg-3,.col-lg-4,.col,.form-group,.mb-3');
+    if (!box || !box.parentElement) return false;
+    if (box.parentElement.querySelector('input[name="item_cost"]')) return false;
+
+    var div = document.createElement('div');
+    div.className = 'col-md-2 company-cost-cell';
+
+    var label = document.createElement('label');
+    label.className = 'form-label fw-bold';
+    label.textContent = 'تكلفة الشركة';
+
+    div.appendChild(label);
+    div.appendChild(createCostInput());
+
+    box.parentElement.insertBefore(div, box.nextSibling);
+    return true;
+  }
+
+  function addFallbackBox() {
+    var form = document.querySelector('form');
+    if (!form) return;
+    if (form.querySelector('.company-cost-fallback')) return;
+    if (form.querySelector('input[name="item_cost"]')) return;
+
+    var box = document.createElement('div');
+    box.className = 'company-cost-internal-box company-cost-fallback';
+    box.innerHTML =
+      '<div class="company-cost-title">تكلفة الشركة للفاتورة</div>' +
+      '<div class="row g-2 align-items-end">' +
+      '<div class="col-md-3">' +
+      '<label class="form-label fw-bold">تكلفة الشركة لأول صنف</label>' +
+      '<input type="number" name="item_cost" step="0.01" min="0" value="0" class="form-control" autocomplete="off">' +
+      '<span class="company-cost-note">داخلي فقط ولا يظهر للعميل</span>' +
+      '</div>' +
+      '</div>';
+
+    var submit = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (submit && submit.parentElement) {
+      submit.parentElement.insertBefore(box, submit);
+    } else {
+      form.appendChild(box);
+    }
+  }
+
+  function apply() {
+    var count = 0;
+    priceInputs().forEach(function (input) {
+      if (addToTable(input) || addToGrid(input)) count++;
+    });
+
+    if (!document.querySelector('input[name="item_cost"]')) {
+      addFallbackBox();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('load', apply);
+
+  document.addEventListener('click', function () {
+    setTimeout(apply, 100);
+    setTimeout(apply, 400);
+  });
+
+  document.addEventListener('input', function () {
+    setTimeout(apply, 100);
+  });
+
+  new MutationObserver(function () {
+    apply();
+  }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+<!-- VISIBLE_COMPANY_COST_END -->
+
 </form>
 <script>
 function addRow(){

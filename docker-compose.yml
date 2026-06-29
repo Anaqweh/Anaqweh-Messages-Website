@@ -47,8 +47,8 @@ services:
         condition: service_healthy
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py collectstatic --no-input --clear 2>/dev/null || true &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120 --graceful-timeout 30 --max-requests 200 --max-requests-jitter 50"
+             python manage.py collectstatic --noinput 2>/dev/null || true &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --worker-class gthread --workers 2 --threads 4 --timeout 90 --graceful-timeout 30 --max-requests 500 --max-requests-jitter 50 --access-logfile - --error-logfile -"
 
   celery_worker:
     build: .

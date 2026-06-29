@@ -30,3 +30,19 @@ token.txt*
 config/*.save*
 protected_backups/
 *.bak_*
+
+# ملفات تدقيق ومخرجات مؤقتة
+*_audit_*.txt
+*_audit_*.sh
+*_debug_*.txt
+safe_*.txt
+safe_*.sh
+share_*.txt
+*_backup_*.json
+add_invoice_costing*.sh
+apply_*.sh
+fix_*.sh
+fix_*.py
+
+*audit*.sh
+*audit*.txt

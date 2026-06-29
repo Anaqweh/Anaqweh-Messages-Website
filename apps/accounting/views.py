@@ -108,14 +108,17 @@ def _report_data(request):
     revenue = sum((i.subtotal for i in paid), Decimal('0.00'))
     tax_collected = sum((i.tax_amount for i in paid), Decimal('0.00'))
     gross = sum((i.total for i in paid), Decimal('0.00'))
+    cost_of_sales = sum((getattr(i, 'cost_total', Decimal('0.00')) for i in paid), Decimal('0.00'))
+    gross_profit = revenue - cost_of_sales
     total_expenses = sum((e.amount for e in expenses), Decimal('0.00'))
-    net_profit = gross - total_expenses
+    net_profit = gross_profit - total_expenses
     outstanding = sum((i.total for i in unpaid), Decimal('0.00'))
     return {
         'today': today, 'start': start, 'end': end,
         'invoices': invoices, 'paid': paid, 'unpaid': unpaid,
         'expenses': list(expenses),
         'revenue': revenue, 'tax_collected': tax_collected, 'gross': gross,
+        'cost_of_sales': cost_of_sales, 'gross_profit': gross_profit,
         'total_expenses': total_expenses, 'net_profit': net_profit,
         'outstanding': outstanding,
         'cnt_paid': len(paid), 'cnt_unpaid': len(unpaid), 'cnt_total': len(invoices),

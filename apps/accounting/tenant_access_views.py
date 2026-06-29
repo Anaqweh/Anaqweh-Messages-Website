@@ -8,7 +8,19 @@ from .models import Employee
 
 
 def _tenant_for_request(request):
+    try:
+        active_tenant_id = request.GET.get("company") or request.session.get("active_tenant_id")
+        if active_tenant_id and str(active_tenant_id).isdigit():
+            from apps.platform_core.models import Tenant
+            tenant = Tenant.objects.filter(pk=int(active_tenant_id)).first()
+            if tenant:
+                return tenant
+    except Exception:
+        pass
+
     if request.user.is_superuser:
+        # GM_PLATFORM_DEFAULT:
+        # None means platform records only in scoped query helpers, not all companies.
         return None
 
     try:
@@ -52,6 +64,8 @@ def _employees_qs(request):
     field_names = {f.name for f in Employee._meta.fields}
     if tenant is not None and "tenant" in field_names:
         qs = qs.filter(tenant=tenant)
+    elif request.user.is_superuser and "tenant" in field_names:
+        qs = qs.filter(tenant__isnull=True)
     elif not request.user.is_superuser:
         qs = qs.none()
 

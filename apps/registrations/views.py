@@ -598,10 +598,8 @@ def _reg_editable_items(data):
 
 
 
-from django.views.decorators.csrf import csrf_exempt
 
-@csrf_exempt
-def ocr_id_image(request):
+def ocr_id_image_disabled(request):
     import json, base64, re
     from django.http import JsonResponse
     from PIL import Image, ImageEnhance

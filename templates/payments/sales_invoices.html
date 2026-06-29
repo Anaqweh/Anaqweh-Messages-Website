@@ -6,6 +6,126 @@
 <a href="{% url 'payments:sales_invoice_create' %}" class="btn btn-primary btn-sm">+ فاتورة جديدة</a>
 {% endblock %}
 {% block content %}
+<style id="sales-invoices-ui-css">
+  #sales-invoices-page {
+    --si-text: #0f2544;
+    --si-muted: #64748b;
+    --si-line: #e5e7eb;
+    --si-soft: #f8fafc;
+    --si-blue: #1463ff;
+    color: var(--si-text);
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  #sales-invoices-page .card,
+  #sales-invoices-page .table-responsive {
+    border-radius: 8px;
+    border: 1px solid rgba(15, 37, 68, 0.08);
+    box-shadow: 0 8px 22px rgba(15, 37, 68, 0.06);
+  }
+
+  #sales-invoices-page .table-responsive {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #sales-invoices-page .table {
+    width: 100%;
+    min-width: 1180px;
+    margin-bottom: 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #sales-invoices-page .table thead th {
+    background: var(--si-soft);
+    color: var(--si-text);
+    font-size: 12.5px;
+    font-weight: 800;
+    padding: 11px 10px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--si-line);
+  }
+
+  #sales-invoices-page .table tbody td {
+    padding: 10px;
+    vertical-align: middle;
+    white-space: nowrap;
+    border-color: var(--si-line);
+  }
+
+  #sales-invoices-page .table tbody td:nth-child(4) {
+    white-space: normal;
+    min-width: 150px;
+    max-width: 220px;
+  }
+
+  #sales-invoices-page .table tbody td:last-child {
+    min-width: 190px;
+    width: 190px;
+    white-space: nowrap;
+  }
+
+  #sales-invoices-page .table td:last-child .btn,
+  #sales-invoices-page .table td:last-child button {
+    min-width: 54px;
+    padding: 5px 8px;
+    margin: 2px;
+  }
+
+  #sales-invoices-page .badge,
+  #sales-invoices-page .btn,
+  #sales-invoices-page .form-control,
+  #sales-invoices-page .form-select {
+    font-size: 12.5px;
+  }
+
+  #sales-invoices-page .btn {
+    border-radius: 6px;
+    padding: 6px 11px;
+    font-weight: 700;
+  }
+
+  #sales-invoices-page .badge {
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-weight: 800;
+  }
+
+  #sales-invoices-page input[type="search"],
+  #sales-invoices-page input[name="q"] {
+    min-height: 38px;
+  }
+
+  #sales-invoices-page .form-select {
+    min-height: 38px;
+  }
+
+  #sales-invoices-page .table .text-muted {
+    color: var(--si-muted) !important;
+  }
+
+  @media (max-width: 1100px) {
+    #sales-invoices-page {
+      overflow-x: visible;
+    }
+
+    #sales-invoices-page .table {
+      min-width: 1120px;
+      font-size: 12px;
+    }
+
+    #sales-invoices-page .table thead th,
+    #sales-invoices-page .table tbody td {
+      padding: 9px 8px;
+    }
+  }
+</style>
+<div id="sales-invoices-page" dir="rtl">
+
 <form method="get" class="mb-3">
   <div class="row g-2 align-items-center">
     <div class="col-md-4">
@@ -29,13 +149,12 @@
   <form method="get" class="d-inline-block me-3 mb-2">
     {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
     {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-    <select name="company" class="form-select form-select-sm d-inline-block" style="width:auto" onchange="this.form.submit()">
-      <option value="">— كل الشركات —</option>
-      <option value="platform" {% if company_filter == 'platform' %}selected{% endif %}>المنصة (المدير العام)</option>
-      {% for co in companies %}
-      <option value="{{ co.pk }}" {% if company_filter == co.pk|stringformat:'s' %}selected{% endif %}>{{ co.name }}</option>
-      {% endfor %}
-    </select>
+    <select name="company" class="form-select" onchange="this.form.submit()">
+              <option value="platform" {% if company_filter == "platform" or not company_filter %}selected{% endif %}>المنصة (المدير العام)</option>
+              {% for company in companies %}
+                <option value="{{ company.pk }}" {% if company_filter == company.pk|stringformat:"s" %}selected{% endif %}>{{ company.name }}</option>
+              {% endfor %}
+            </select>
   </form>
   {% endif %}
   <a href="{% url 'payments:sales_invoices' %}" class="btn btn-sm {% if not kind %}btn-primary{% else %}btn-outline-primary{% endif %}">كل الأنواع</a>
@@ -70,5 +189,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
+
 </div>
 {% endblock %}
