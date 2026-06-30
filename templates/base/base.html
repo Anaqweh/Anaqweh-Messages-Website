@@ -20,8 +20,8 @@ body{background:#f0f4f8;min-height:100vh}
 .sidebar{position:fixed;top:0;right:0;width:260px;height:100vh;background:linear-gradient(180deg,#1e3a6e,#2a5298);overflow-y:auto;z-index:1000}
 .sidebar-brand{padding:1.5rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center}
 .brand-icon{width:42px;height:42px;background:#00b4d8;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;margin-left:.75rem}
-.brand-title{font-size:1.3rem;font-weight:800;color:#fff}
-.brand-sub{font-size:.72rem;color:rgba(255,255,255,.55)}
+.brand-title{font-size:1.45rem;font-weight:600;color:#fff;letter-spacing:.3px;line-height:1}
+.brand-sub{font-size:.62rem;color:rgba(255,255,255,.5);letter-spacing:2.5px;margin-top:5px}
 .nav-section-title{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;padding:.9rem 1.25rem .3rem}
 .sidebar .nav-link{display:flex;align-items:center;gap:.6rem;padding:.62rem 1.25rem;color:rgba(255,255,255,.75);border-radius:8px;margin:2px .5rem;font-size:.9rem}
 .sidebar .nav-link:hover,.sidebar .nav-link.active{background:rgba(255,255,255,.15);color:#fff}
@@ -144,7 +144,7 @@ body{background:#f0f4f8;min-height:100vh}
 
 {% if user.is_authenticated %}
 <nav class="sidebar" id="mainSidebar">
-  <div class="sidebar-brand"><div class="brand-icon"><i class="bi bi-envelope-fill"></i></div><div><div class="brand-title">INEXC</div><div class="brand-sub">Email Manager</div></div></div>
+  <div class="sidebar-brand"><div class="brand-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div><div><div class="brand-title">inexc<span style="color:#34d0ee">suite</span></div><div class="brand-sub">BUSINESS SUITE</div></div></div>
 
   <form action="{% url 'set_language' %}" method="post" style="padding:10px 14px 0">
     {% csrf_token %}

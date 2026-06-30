@@ -4,23 +4,30 @@
 <style>
 .crm-wrap{direction:rtl;max-width:1150px;margin:24px auto;padding:0 14px;color:#102033}
 .crm-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
-.crm-head h1{margin:0;color:#0b4ea2}
-.crm-btn{background:#0b4ea2;color:#fff;text-decoration:none;border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}
+.crm-head h1{margin:0;color:#0b4ea2;font-weight:600;font-size:1.6rem;letter-spacing:-.3px}
+.crm-btn{background:#0b4ea2;color:#fff;text-decoration:none;border:0;border-radius:9px;padding:10px 18px;font-weight:500;font-size:14px;cursor:pointer;transition:background .15s}
 .crm-btn.light{background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff}
 .crm-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;box-shadow:0 8px 24px rgba(11,78,162,.08);overflow:visible}
 .context-box{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;gap:10px;align-items:end;flex-wrap:wrap}
-.context-box label{display:block;font-weight:800;color:#0b4ea2;margin-bottom:6px}
+.context-box label{display:block;font-weight:500;color:#5a6b7e;margin-bottom:6px;font-size:13px}
 .context-box select,.context-box input{padding:10px;border:1px solid #cbd5e1;border-radius:8px;min-width:240px}
 table{width:100%;border-collapse:collapse;background:#fff}
-th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:right}
-th{background:#f5f8fc;color:#344054}
+th,td{padding:14px 16px;border-bottom:1px solid #eef2f7;text-align:right;font-size:14px;color:#33404f}
+th{background:#f7f9fc;color:#6b7a8d;font-weight:600;font-size:12.5px;letter-spacing:.2px;text-transform:none}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .quote-actions-menu{position:relative}
-.quote-actions-menu summary{cursor:pointer;list-style:none;background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff;border-radius:8px;padding:8px 12px;font-weight:700}
-.quote-actions-menu .menu-body{position:absolute;z-index:20;background:#fff;border:1px solid #d9e4f2;border-radius:10px;box-shadow:0 12px 28px rgba(11,78,162,.16);padding:8px;min-width:190px;display:grid;gap:6px}
-.quote-actions-menu a,.quote-actions-menu button{display:block;width:100%;text-align:right;border:0;background:#fff;color:#0b4ea2;text-decoration:none;padding:8px;border-radius:7px;font-weight:700;cursor:pointer}
-.quote-actions-menu a:hover,.quote-actions-menu button:hover{background:#eef6ff}
-.badge-context{display:inline-block;background:#eef6ff;color:#0b4ea2;border-radius:999px;padding:7px 12px;font-weight:800}
+.quote-actions-menu summary{cursor:pointer;list-style:none;background:#fff;color:#0b4ea2;border:1px solid #cfe2ff;border-radius:9px;padding:8px 16px;font-weight:500;font-size:14px;display:flex;align-items:center;gap:8px;justify-content:space-between;min-width:120px;transition:all .15s}
+.quote-actions-menu summary::-webkit-details-marker{display:none}
+.quote-actions-menu summary::after{content:"⌄";font-size:16px;line-height:1;transition:transform .2s}
+.quote-actions-menu[open] summary{background:#eef6ff;border-color:#0b4ea2}
+.quote-actions-menu[open] summary::after{transform:rotate(180deg)}
+.quote-actions-menu .menu-body{position:absolute;top:calc(100% + 6px);left:0;z-index:30;background:#fff;border:1px solid #e3ebf5;border-radius:12px;box-shadow:0 10px 30px rgba(11,78,162,.14);padding:6px;min-width:210px;display:grid;gap:2px}
+.quote-actions-menu a,.quote-actions-menu button{display:flex;align-items:center;gap:10px;width:100%;text-align:right;border:0;background:#fff;color:#1f2d3d;text-decoration:none;padding:10px 12px;border-radius:9px;font-weight:600;font-size:13.5px;cursor:pointer;transition:background .12s}
+.quote-actions-menu a:hover,.quote-actions-menu button:hover{background:#f3f8ff;color:#0b4ea2}
+.quote-actions-menu .ico{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:#eef6ff;color:#0b4ea2;font-size:13px;flex-shrink:0}
+.quote-actions-menu button.success .ico{background:#e6f7ee;color:#0f9d58}
+.quote-actions-menu .muted-line{height:1px;background:#eef1f5;margin:4px 6px}
+.badge-context{display:inline-block;background:#eef6ff;color:#0b4ea2;border-radius:999px;padding:6px 14px;font-weight:500;font-size:13px}
 @media(max-width:750px){table{font-size:13px}.crm-head{align-items:stretch}.context-box select,.context-box input{min-width:100%;width:100%}}
 </style>
 
@@ -83,17 +90,17 @@ th{background:#f5f8fc;color:#344054}
               <details class="quote-actions-menu">
                 <summary>إجراءات</summary>
                 <div class="menu-body">
-                  <a href="/crm/quotes/{{ quote.pk }}/"><span class="ico">👁</span><span>عرض التفاصيل</span></a>
-                  <a href="/crm/quotes/{{ quote.pk }}/edit/"><span class="ico">✎</span><span>تعديل العرض</span></a>
+                  <a href="/crm/quotes/{{ quote.pk }}/"><span class="ico"><i class="bi bi-eye"></i></span><span>عرض التفاصيل</span></a>
+                  <a href="/crm/quotes/{{ quote.pk }}/edit/"><span class="ico"><i class="bi bi-pencil"></i></span><span>تعديل العرض</span></a>
                   <div class="muted-line"></div>
-                  <a href="/crm/quotes/{{ quote.pk }}/print/" target="_blank"><span class="ico">🖨</span><span>عرض / طباعة</span></a>
-                  <a href="/crm/quotes/{{ quote.pk }}/pdf/" target="_blank"><span class="ico">PDF</span><span>تنزيل PDF</span></a>
+                  <a href="/crm/quotes/{{ quote.pk }}/print/" target="_blank"><span class="ico"><i class="bi bi-printer"></i></span><span>عرض / طباعة</span></a>
+                  <a href="/crm/quotes/{{ quote.pk }}/pdf/" target="_blank"><span class="ico"><i class="bi bi-file-earmark-pdf"></i></span><span>تنزيل PDF</span></a>
                   <div class="muted-line"></div>
                   <form method="post" action="/crm/quotes/{{ quote.pk }}/to-invoice/" onsubmit="return confirm('تحويل هذا العرض إلى فاتورة مبيعات؟');">
                     {% csrf_token %}
-                    <button type="submit" class="success"><span class="ico">↗</span><span>تحويل إلى فاتورة</span></button>
+                    <button type="submit" class="success"><span class="ico"><i class="bi bi-arrow-up-right-circle"></i></span><span>تحويل إلى فاتورة</span></button>
                   </form>
-                  <a href="/crm/quotes/{{ quote.pk }}/#send-email-section"><span class="ico">@</span><span>إرسال بالبريد</span></a>
+                  <a href="/crm/quotes/{{ quote.pk }}/#send-email-section"><span class="ico"><i class="bi bi-envelope"></i></span><span>إرسال بالبريد</span></a>
                 </div>
               </details>
             </div>

@@ -21,11 +21,24 @@ def _company_user_ids(request):
         pass
     return [request.user.id]
 
+def _platform_user_ids():
+    """معرّفات مستخدمي المنصة (الذين لا ينتمون لأي شركة)."""
+    try:
+        from apps.platform_core.models import TenantMembership
+        from django.contrib.auth import get_user_model
+        U = get_user_model()
+        member_ids = set(TenantMembership.objects.values_list('user_id', flat=True))
+        return list(U.objects.exclude(id__in=member_ids).values_list('id', flat=True))
+    except Exception:
+        return []
+
 def _owned(qs, request):
-    """عزل بالشركة: موظفو الشركة يرون قوالب بعضهم، المدير العام يرى الكل."""
-    if request.user.is_superuser:
-        return qs
-    return qs.filter(owner_id__in=_company_user_ids(request))
+    """عزل كامل: المدير العام يرى قوالب المنصة فقط، وكل شركة ترى قوالبها فقط."""
+    from apps.platform_core.navigation import active_membership_for
+    m = active_membership_for(request.user)
+    if m and m.tenant_id:
+        return qs.filter(owner_id__in=_company_user_ids(request))
+    return qs.filter(owner_id__in=_platform_user_ids())
 
 @login_required
 def template_list(request):

@@ -331,11 +331,30 @@ function addSingleRecipient() {
 }
 
 document.getElementById('sendBtn').disabled = false;
+  document.getElementById('progressSection').style.display = 'none';
   document.getElementById('resultSection').style.display = 'block';
+  const total = success + failed;
   document.getElementById('resultSection').innerHTML = `
-    <div class="alert ${failed===0?'alert-success':'alert-warning'}">
-      <i class="fas fa-check-circle me-2"></i>
-      <strong>اكتمل الإرسال:</strong> نجح ${success} — فشل ${failed}
+    <div class="border rounded-3 p-3" style="background:#fff;">
+      <div class="d-flex align-items-center mb-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center me-2"
+             style="width:38px;height:38px;background:${failed===0?'#d1f4e0':'#fde8c8'};">
+          <i class="fas ${failed===0?'fa-check':'fa-exclamation'}"
+             style="color:${failed===0?'#0f6e56':'#854f0b'};"></i>
+        </div>
+        <div>
+          <div class="fw-bold">اكتمل الإرسال</div>
+          <small class="text-muted">تمت معالجة كل المستلمين</small>
+        </div>
+      </div>
+      <div class="row g-2 text-center">
+        <div class="col-4"><div class="rounded-3 py-2" style="background:#f1f3f5;">
+          <div class="small text-muted">الإجمالي</div><div class="fs-4 fw-bold">${total}</div></div></div>
+        <div class="col-4"><div class="rounded-3 py-2" style="background:#d1f4e0;">
+          <div class="small" style="color:#0f6e56;">نجح</div><div class="fs-4 fw-bold" style="color:#0f6e56;">${success}</div></div></div>
+        <div class="col-4"><div class="rounded-3 py-2" style="background:#f1f3f5;">
+          <div class="small text-muted">فشل</div><div class="fs-4 fw-bold ${failed>0?'text-danger':'text-muted'}">${failed}</div></div></div>
+      </div>
     </div>`;
 }
 </script>

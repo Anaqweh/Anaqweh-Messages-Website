@@ -184,7 +184,9 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="INEXC <info@inexc.com>")
 
 
-CSRF_TRUSTED_ORIGINS = ["http://165.232.167.39:8000", "http://165.232.167.39"]
+CSRF_TRUSTED_ORIGINS = ["https://inexcsuite.com", "https://www.inexcsuite.com", "http://inexcsuite.com", "http://www.inexcsuite.com", "http://165.232.167.39:8000", "http://165.232.167.39"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 
 # Performance: shared Redis cache for all Gunicorn workers.
@@ -202,3 +204,12 @@ CACHES = {
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_CACHE_ALIAS = "default"
 
+
+# ── إعدادات أمان HTTPS (inexcsuite.com) ──
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True

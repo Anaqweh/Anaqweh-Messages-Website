@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ title }} | inexcsuite{% endblock %}
+{% block branding %}
+<h1 id="site-name"><a href="{% url "admin:index" %}">inexcsuite — لوحة الإدارة</a></h1>
+{% endblock %}
+{% block extrastyle %}{{ block.super }}
+<style>
+:root{--inexc-dark:#1e3a6e;--inexc-blue:#0b4ea2;--inexc-cyan:#34d0ee}
+#header{background:var(--inexc-dark);color:#fff}
+#branding h1,#branding h1 a:link,#branding h1 a:visited{color:#fff;font-weight:600}
+#branding h1 a:hover{color:var(--inexc-cyan)}
+.module h2,.module caption,.inline-group h2{background:var(--inexc-blue)}
+div.breadcrumbs{background:#2a5298;color:#fff}
+div.breadcrumbs a{color:#cfe2ff}
+a:link,a:visited{color:var(--inexc-blue)}
+.button,input[type=submit],input[type=button],.submit-row input,a.button{background:var(--inexc-blue)}
+.button:hover,input[type=submit]:hover{background:var(--inexc-dark)}
+.button.default,input[type=submit].default,.submit-row input.default{background:var(--inexc-dark)}
+.button.default:hover,input[type=submit].default:hover{background:#16294f}
+#user-tools a:hover,#user-tools a:focus{border-bottom-color:var(--inexc-cyan);color:var(--inexc-cyan)}
+.selector-chosen h2{background:var(--inexc-blue)}
+.object-tools a:link,.object-tools a:visited{background:#2a5298}
+.object-tools a:hover{background:var(--inexc-dark)}
+</style>
+{% endblock %}

@@ -28,3 +28,7 @@ urlpatterns += [
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+admin.site.site_header = "inexcsuite — لوحة الإدارة"
+admin.site.site_title = "inexcsuite"
+admin.site.index_title = "إدارة النظام"
