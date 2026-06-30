@@ -36,6 +36,7 @@ def default_permissions():
         "registrations": {
             "forms": {"spark": False},"view": False, "create": False, "edit": False, "delete": False, "settings": False},
         "stripe": {"view": False, "settings": False, "payouts": False},
+        "emailjs": {"view": False, "edit": False},
     }
 
 

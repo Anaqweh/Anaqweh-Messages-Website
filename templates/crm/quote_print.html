@@ -1,0 +1,157 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ quote.quote_number }}</title>
+<style>
+:root{
+  --inv-primary: {% if branding and branding.primary_color %}{{ branding.primary_color }}{% else %}#0b4ea2{% endif %};
+  --inv-secondary: {% if branding and branding.secondary_color %}{{ branding.secondary_color }}{% else %}#1565c0{% endif %};
+  --inv-text: {% if branding and branding.text_color %}{{ branding.text_color }}{% else %}#1f2937{% endif %};
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#e9edf3;color:#1f2937;padding:14px}
+.sheet{max-width:840px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(11,78,162,.12);overflow:hidden;position:relative}
+.ribbon{position:absolute;top:24px;right:-46px;transform:rotate(45deg);color:#fff;padding:5px 52px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.2);background:var(--inv-secondary);z-index:5}
+.head{display:flex;justify-content:space-between;align-items:center;padding:28px 32px 14px;border-bottom:3px solid var(--inv-primary);gap:20px}
+.head .brand{display:flex;align-items:center;gap:16px}
+.head .brand img{max-height:68px}
+.head .brand .bn{font-size:14px;font-weight:800;color:var(--inv-primary);line-height:1.45;max-width:250px}
+.head .brand .bn small{display:block;font-size:10px;color:#7a8699;font-weight:600;margin-top:2px}
+.head .inv{text-align:left;flex-shrink:0;white-space:nowrap}
+.head .inv h1{font-size:26px;font-weight:800;color:var(--inv-primary);letter-spacing:2px}
+.head .inv .kind{margin-top:4px;font-size:13px;color:var(--inv-primary);font-weight:700;background:#eef4fb;padding:3px 10px;border-radius:6px;display:inline-block}
+.head .inv .n{margin-top:6px;font-size:13px;color:#374151;font-weight:700}
+.head .inv .d{font-size:12px;color:#7a8699;margin-top:2px}
+.cinfo{display:flex;flex-wrap:wrap;gap:6px 26px;padding:11px 32px;background:#f4f7fb;font-size:12.5px;color:#475569}
+.cinfo b{color:var(--inv-primary)}
+.parties{display:flex;flex-wrap:wrap;gap:20px;padding:18px 32px}
+.parties .card{flex:1;min-width:230px;background:#f8fafc;border:1px solid #e8eef5;border-radius:12px;padding:16px 18px}
+.parties .card .t{font-size:11px;color:#7a8699;font-weight:700;letter-spacing:1px;margin-bottom:8px}
+.parties .card .v{font-size:15px;font-weight:700;color:#111827}
+.parties .card .s{font-size:12.5px;color:#64748b;margin-top:3px}
+table.items{width:100%;border-collapse:collapse}
+table.items thead th{background:var(--inv-primary);color:#fff;padding:11px 18px;font-size:13px;text-align:right}
+table.items tbody td{padding:11px 18px;border-bottom:1px solid #eef2f7;font-size:13.5px}
+table.items tbody tr:nth-child(even){background:#fafbfd}
+.items-wrap{padding:0 32px}
+.sumwrap{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:14px 32px;flex-wrap:wrap}
+.qrbox{text-align:center}
+.qrbox img{width:96px;height:96px;border:6px solid #f4f7fb;border-radius:10px}
+.qrbox .ql{font-size:11px;color:#7a8699;margin-top:4px}
+.totals{min-width:300px;margin-right:auto}
+.totals .row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;color:#475569}
+.totals .row.grand{border-top:2px solid var(--inv-primary);margin-top:8px;padding-top:11px;font-size:19px;font-weight:800;color:var(--inv-primary)}
+.signs{display:flex;justify-content:space-between;align-items:flex-end;padding:8px 32px 16px;gap:20px}
+.signs .note{font-size:13px;color:#64748b;max-width:50%;line-height:1.8}
+.signs .authsign{display:flex;align-items:flex-end;justify-content:flex-end;gap:36px;flex-shrink:0}
+.signs .stmpcol{flex-shrink:0;display:flex;align-items:center}
+.signs .sigcol{text-align:center;flex-shrink:0;min-width:150px}
+.signs .sigline{font-size:13px;font-weight:700;color:var(--inv-primary);margin-top:4px;border-top:1px solid #cbd5e1;padding-top:6px;white-space:nowrap}
+.signs .sigline small{display:block;font-size:10px;color:#7a8699;font-weight:600}
+.signs .sig{max-height:50px;width:auto;display:block;margin:0 auto 2px}
+.signs .stmp{max-height:85px;width:auto;opacity:.96}
+@media screen and (max-width:600px){
+  .signs{flex-direction:column;align-items:stretch;gap:18px;padding:8px 16px 16px}
+  .signs .note{max-width:100%;order:2}
+  .signs .authsign{order:1;justify-content:space-around;gap:16px;flex-wrap:nowrap}
+  .signs .sig{max-height:48px}
+  .signs .stmp{max-height:80px}
+}
+.bar{background:var(--inv-primary);color:#fff;text-align:center;padding:11px;font-size:12.5px;font-weight:600}
+.actions{max-width:840px;margin:16px auto;text-align:center;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.actions button,.actions a{padding:10px 22px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;background:var(--inv-primary);color:#fff}
+.actions a.sec{background:#fff;color:var(--inv-primary);border:1px solid var(--inv-primary)}
+@media print{body{background:#fff;padding:0}.actions{display:none}.sheet{box-shadow:none;border-radius:0}}
+</style>
+</head>
+<body>
+{% firstof branding.company_name_ar company.name_ar as c_name_ar %}
+{% firstof branding.company_name_en company.name_en as c_name_en %}
+{% firstof branding.phone company.phone as c_phone %}
+{% firstof branding.email company.email as c_email %}
+{% firstof branding.website company.website as c_website %}
+{% firstof branding.trn company.trn as c_trn %}
+{% firstof branding.license_no company.license_no as c_license %}
+{% firstof branding.invoice_footer company.invoice_footer as c_footer %}
+<div class="sheet">
+  <div class="ribbon">{{ quote.get_status_display }}</div>
+  <div class="head">
+    <div class="brand">
+      {% if branding.logo %}<img src="{{ branding.logo.url }}" alt="logo">{% elif company.logo %}<img src="{{ company.logo.url }}" alt="logo">{% endif %}
+      <div class="bn">{{ c_name_ar }}<small>{{ c_name_en }}</small></div>
+    </div>
+    <div class="inv">
+      <h1>QUOTATION</h1>
+      <div class="kind">عرض سعر</div>
+      <div class="n">{{ quote.quote_number }}</div>
+      <div class="d">{{ quote.created_at|date:"Y-m-d" }}</div>
+    </div>
+  </div>
+  <div class="cinfo">
+    {% if c_phone %}<span>📞 <b>{{ c_phone }}</b></span>{% endif %}
+    {% if c_email %}<span>✉️ <b>{{ c_email }}</b></span>{% endif %}
+    {% if c_website %}<span>🌐 <b>{{ c_website }}</b></span>{% endif %}
+    {% if c_trn %}<span>TRN: <b>{{ c_trn }}</b></span>{% endif %}
+    {% if c_license %}<span>رخصة: <b>{{ c_license }}</b></span>{% endif %}
+  </div>
+  <div class="parties">
+    <div class="card">
+      <div class="t">عرض مقدّم إلى</div>
+      <div class="v">{% if quote.company %}{{ quote.company.name }}{% else %}{{ quote.title }}{% endif %}</div>
+      {% if quote.contact %}<div class="s">{{ quote.contact.name }}</div>{% endif %}
+      {% if quote.contact.email %}<div class="s">{{ quote.contact.email }}</div>{% endif %}
+      {% if quote.contact.phone %}<div class="s">{{ quote.contact.phone }}</div>{% endif %}
+    </div>
+    <div class="card">
+      <div class="t">معلومات العرض</div>
+      <div class="v">{{ quote.title }}</div>
+      {% if quote.valid_until %}<div class="s">صالح حتى: {{ quote.valid_until|date:"Y-m-d" }}</div>{% endif %}
+      <div class="s">الحالة: {{ quote.get_status_display }}</div>
+    </div>
+  </div>
+  <div class="items-wrap">
+    <table class="items">
+      <thead><tr><th>#</th><th>البيان / الوصف</th><th style="text-align:center">الكمية</th><th style="text-align:left">سعر الوحدة</th><th style="text-align:left">الإجمالي</th></tr></thead>
+      <tbody>
+        {% for it in quote.items.all %}
+        <tr><td>{{ forloop.counter }}</td><td>{{ it.description }}</td><td style="text-align:center">{{ it.quantity }}</td><td style="text-align:left">{{ it.unit_price }}</td><td style="text-align:left">{{ it.line_total }} {{ quote.currency|upper }}</td></tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:#999">لا توجد بنود</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="sumwrap">
+    <div class="qrbox">
+      {% if qr_data_uri %}<img src="{{ qr_data_uri }}" alt="QR">{% endif %}
+      <div class="ql">امسح للتحقق</div>
+    </div>
+    <div class="totals">
+      <div class="row"><span>الإجمالي الفرعي</span><span>{{ quote.subtotal }} {{ quote.currency|upper }}</span></div>
+      <div class="row"><span>الضريبة ({{ quote.tax_rate }}%)</span><span>{{ quote.tax_amount }} {{ quote.currency|upper }}</span></div>
+      <div class="row grand"><span>الإجمالي</span><span>{{ quote.total }} {{ quote.currency|upper }}</span></div>
+    </div>
+  </div>
+  <div class="signs">
+    <div class="note">{% if quote.notes %}{{ quote.notes }}{% else %}{{ c_footer }}{% endif %}</div>
+    <div class="authsign">
+      {% if branding.stamp %}<div class="stmpcol"><img class="stmp" src="{{ branding.stamp.url }}" alt="stamp"></div>{% elif company.stamp %}<div class="stmpcol"><img class="stmp" src="{{ company.stamp.url }}" alt="stamp"></div>{% endif %}
+      <div class="sigcol">
+        {% if branding.signature %}<img class="sig" src="{{ branding.signature.url }}" alt="signature">{% elif company.signature %}<img class="sig" src="{{ company.signature.url }}" alt="signature">{% endif %}
+        <div class="sigline">التوقيع المعتمد<small>Authorized Signature</small></div>
+      </div>
+    </div>
+  </div>
+  <div class="bar">{{ c_name_ar }} &nbsp;•&nbsp; {{ c_website }} &nbsp;•&nbsp; {{ c_phone }}</div>
+</div>
+{% if not pdf_mode %}
+<div class="actions">
+  <button onclick="window.print()">🖨 طباعة / حفظ PDF</button>
+  <a class="sec" href="{% url 'crm:quote_pdf' quote.pk %}">⬇ تنزيل PDF</a>
+  <a class="sec" href="{% url 'crm:quote_list' %}">← قائمة العروض</a>
+</div>
+{% endif %}
+</body>
+</html>

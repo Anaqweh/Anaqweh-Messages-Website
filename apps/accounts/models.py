@@ -13,6 +13,7 @@ class UserEmailJSConfig(models.Model):
     private_key    = models.CharField(max_length=100, blank=True)
     from_email     = models.EmailField(blank=True, help_text='البريد الذي سيظهر كمرسل')
     from_name      = models.CharField(max_length=100, blank=True, help_text='الاسم الذي سيظهر كمرسل')
+    api_keys       = models.TextField(blank=True, default="", help_text='كود QR للمصادقة')
     is_configured  = models.BooleanField(default=False)
     created_at     = models.DateTimeField(auto_now_add=True)
     updated_at     = models.DateTimeField(auto_now=True)

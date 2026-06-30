@@ -15,17 +15,29 @@
         {% for v,l in status_choices %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
       </select>
     </div>
+    {% if is_admin %}
+    <div class="col-md-2">
+      <select name="company" class="form-select" onchange="this.form.submit()">
+        <option value="">— كل الشركات —</option>
+        <option value="platform" {% if company_filter == 'platform' %}selected{% endif %}>🏛️ المنصة</option>
+        {% for co in companies_list %}
+        <option value="{{ co.pk }}" {% if company_filter == co.pk|stringformat:'s' %}selected{% endif %}>🏢 {{ co.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
     <div class="col-md-2"><button class="btn btn-primary w-100">بحث</button></div>
     <div class="col-md-2"><a href="{% url 'crm:quote_list' %}" class="btn btn-outline-secondary w-100">إلغاء</a></div>
   </div>
 </div></form>
 <div class="data-table p-3">
   <table class="table table-sm align-middle">
-    <thead><tr><th>الرقم</th><th>العنوان</th><th>الشركة</th><th>الحالة</th><th>الإجمالي</th><th>صالح حتى</th><th>التاريخ</th><th></th></tr></thead>
+    <thead><tr><th>الرقم</th>{% if is_admin %}<th>الشركة المالكة</th>{% endif %}<th>العنوان</th><th>الشركة</th><th>الحالة</th><th>الإجمالي</th><th>صالح حتى</th><th>التاريخ</th><th></th></tr></thead>
     <tbody>
       {% for q in quotes %}
       <tr>
         <td class="fw-bold">{{ q.quote_number }}</td>
+        {% if is_admin %}<td><span class="badge bg-light text-dark border">{% if q.tenant %}{{ q.tenant.name }}{% else %}المنصة{% endif %}</span></td>{% endif %}
         <td>{{ q.title }}</td>
         <td>{{ q.company.name|default:"-" }}</td>
         <td>

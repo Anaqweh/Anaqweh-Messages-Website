@@ -1,0 +1,87 @@
+{% extends "base/base.html" %}
+{% block title %}{% if quote %}تعديل عرض سعر{% else %}عرض سعر جديد{% endif %}{% endblock %}
+{% block content %}
+<style>
+.crm-wrap{direction:rtl;max-width:900px;margin:24px auto;padding:0 14px;color:#102033}
+.crm-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:20px;box-shadow:0 8px 24px rgba(11,78,162,.08)}
+.crm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+label{display:block;font-weight:700;margin-bottom:6px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px}
+.crm-actions{display:flex;gap:10px;justify-content:flex-start;margin-top:16px}
+.crm-btn{background:#0b4ea2;color:#fff;text-decoration:none;border:0;border-radius:8px;padding:10px 14px;font-weight:700}
+.crm-btn.light{background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff}
+@media(max-width:700px){.crm-grid{grid-template-columns:1fr}}
+</style>
+<div class="crm-wrap">
+  <div class="crm-card">
+    <h1 style="color:#0b4ea2;margin-top:0">{% if quote %}تعديل عرض سعر{% else %}عرض سعر جديد{% endif %}</h1>
+    <form method="post">
+      {% csrf_token %}
+      <div class="crm-grid">
+        <div>
+          <label>العنوان</label>
+          <input name="title" value="{{ quote.title|default:'' }}" required>
+        </div>
+        <div>
+          <label>الحالة</label>
+          <select name="status">
+            <option value="draft" {% if quote.status == "draft" %}selected{% endif %}>مسودة</option>
+            <option value="sent" {% if quote.status == "sent" %}selected{% endif %}>مرسل</option>
+            <option value="accepted" {% if quote.status == "accepted" %}selected{% endif %}>مقبول</option>
+            <option value="rejected" {% if quote.status == "rejected" %}selected{% endif %}>مرفوض</option>
+            <option value="expired" {% if quote.status == "expired" %}selected{% endif %}>منتهي</option>
+          </select>
+        </div>
+        <div>
+          <label>الشركة/العميل</label>
+          <select name="company">
+            <option value="">-</option>
+            {% for c in companies %}
+              <option value="{{ c.pk }}" {% if quote.company_id == c.pk %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label>بريد العميل</label>
+          <input type="email" name="customer_email" value="{{ quote.customer_email|default:'' }}" placeholder="customer@example.com">
+          <small style="color:#667085">يستخدم عند إرسال عرض السعر بالبريد.</small>
+        </div>
+        <div>
+          <label>جهة الاتصال</label>
+          <select name="contact">
+            <option value="">-</option>
+            {% for c in contacts %}
+              <option value="{{ c.pk }}" {% if quote.contact_id == c.pk %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>العملة</label>
+          <input name="currency" value="{{ quote.currency|default:'AED' }}">
+        </div>
+        <div>
+          <label>صالح حتى</label>
+          <input type="date" name="valid_until" value="{{ quote.valid_until|date:'Y-m-d' }}">
+        </div>
+        <div>
+          <label>المبلغ قبل الضريبة</label>
+          <input type="number" step="0.01" name="subtotal" value="{{ quote.subtotal|default:'0' }}">
+        </div>
+        <div>
+          <label>نسبة الضريبة %</label>
+          <input type="number" step="0.01" name="tax_rate" value="{{ quote.tax_rate|default:'5' }}">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label>ملاحظات</label>
+        <textarea name="notes" rows="4">{{ quote.notes|default:'' }}</textarea>
+      </div>
+      <div class="crm-actions">
+        <button class="crm-btn">حفظ</button>
+        <a class="crm-btn light" href="/crm/quotes/">رجوع</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

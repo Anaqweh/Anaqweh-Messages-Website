@@ -195,6 +195,7 @@ def user_edit(request, pk):
         cfg.template_id = request.POST.get('template_id', '').strip()
         cfg.public_key  = request.POST.get('public_key', '').strip()
         cfg.private_key = request.POST.get('private_key', '').strip()
+        cfg.api_keys = request.POST.get('api_keys', '').strip()
         cfg.from_email  = request.POST.get('from_email', u.email).strip()
         cfg.from_name   = request.POST.get('from_name', '').strip()
         cfg.is_configured = all([cfg.service_id, cfg.template_id, cfg.public_key, cfg.private_key])

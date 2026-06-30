@@ -491,17 +491,28 @@ def submission_email(request, pk):
     if not recipient:
         _reg_safe_message(request, "error", "لا يوجد بريد إلكتروني لإرسال التسجيل.")
         return redirect("registrations:submission_detail", pk=submission.pk)
-    # جلب مفاتيح EmailJS من Tenant الخاص بهذا التسجيل فقط
+    # جلب مفاتيح EmailJS: شركة التسجيل إن وُجدت، وإلا مفاتيح المستخدم الحالي (المدير)
     tenant = getattr(submission, "tenant", None)
-    if tenant is None:
-        _reg_safe_message(request, "error", "لا توجد شركة مرتبطة بهذا التسجيل.")
-        return redirect("registrations:submission_detail", pk=submission.pk)
-    t_sid = (tenant.emailjs_service_id or "").strip()
-    t_tid = (tenant.emailjs_template_id or "").strip()
-    t_pub = (tenant.emailjs_public_key or "").strip()
-    t_priv = (tenant.emailjs_private_key or "").strip()
+    t_sid = t_tid = t_pub = t_priv = ""
+    if tenant is not None:
+        t_sid = (getattr(tenant, "emailjs_service_id", "") or "").strip()
+        t_tid = (getattr(tenant, "emailjs_template_id", "") or "").strip()
+        t_pub = (getattr(tenant, "emailjs_public_key", "") or "").strip()
+        t_priv = (getattr(tenant, "emailjs_private_key", "") or "").strip()
+    # إن لم تكتمل مفاتيح الشركة، نستخدم إعدادات المستخدم الحالي (المدير)
+    _use_user_cfg = not (t_sid and t_tid and t_pub)
+    if _use_user_cfg:
+        try:
+            from apps.campaigns.emailjs_service import get_user_emailjs_config
+            _ucfg = get_user_emailjs_config(request.user)
+            t_sid = t_sid or _ucfg.get("service_id", "")
+            t_tid = t_tid or _ucfg.get("template_id", "")
+            t_pub = t_pub or _ucfg.get("public_key", "")
+            t_priv = t_priv or _ucfg.get("private_key", "")
+        except Exception:
+            pass
     if not (t_sid and t_tid and t_pub):
-        _reg_safe_message(request, "error", "لم يتم إعداد بريد EmailJS لهذه الشركة. يرجى مراجعة إعدادات التسجيل.")
+        _reg_safe_message(request, "error", "لم يتم إعداد بريد EmailJS. يرجى ضبط إعدادات الإرسال أولاً.")
         return redirect("registrations:submission_detail", pk=submission.pk)
     try:
         from apps.campaigns.emailjs_service import send_via_emailjs
@@ -525,17 +536,19 @@ def submission_email(request, pk):
           </div>
         </div>
         '''
-        result = send_via_emailjs(
-            service_id=t_sid,
-            template_id=t_tid,
-            public_key=t_pub,
-            private_key=t_priv,
+        # نمرّر user لقراءة مفاتيح المدير، أو service/template للشركة إن توفّرت
+        _send_kwargs = dict(
             to_email=recipient,
             to_name=student_name,
             subject=f"تأكيد التسجيل - معهد سبارك - طلب #{submission.pk}",
             body_html=html,
             body_text=f"تم استلام طلب تسجيلك #{submission.pk}. الرابط: {pdf_url}",
+            user=request.user,
         )
+        if not _use_user_cfg:
+            _send_kwargs["service_id"] = t_sid
+            _send_kwargs["template_id"] = t_tid
+        result = send_via_emailjs(**_send_kwargs)
         if result.get("success"):
             if hasattr(submission, "email_sent_at"):
                 submission.email_sent_at = timezone.now()

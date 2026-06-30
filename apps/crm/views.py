@@ -290,7 +290,8 @@ def quote_list(request):
     from django.db.models import Q
     q = (request.GET.get('q') or '').strip()
     status = request.GET.get('status', '')
-    qs = _scope(CRMQuote.objects.select_related('company', 'contact', 'deal'), request.user)
+    company_filter = request.GET.get('company', '')
+    qs = _scope(CRMQuote.objects.select_related('company', 'contact', 'deal', 'tenant'), request.user)
     tid = _tenant_ids(request.user)
     if tid is not None:
         qs = qs.filter(tenant_id__in=tid)
@@ -298,17 +299,37 @@ def quote_list(request):
         qs = qs.filter(Q(quote_number__icontains=q) | Q(title__icontains=q) | Q(company__name__icontains=q))
     if status:
         qs = qs.filter(status=status)
+
+    # المدير العام: عمود + فلتر الشركة
+    is_admin = False
+    companies_list = []
+    try:
+        from apps.platform_core.navigation import is_platform_admin
+        from apps.platform_core.models import Tenant
+        is_admin = bool(request.user.is_authenticated and is_platform_admin(request.user))
+        if is_admin:
+            companies_list = list(Tenant.objects.order_by('name').values('pk', 'name'))
+            if company_filter == 'platform':
+                qs = qs.filter(tenant__isnull=True)
+            elif company_filter.isdigit():
+                qs = qs.filter(tenant_id=int(company_filter))
+    except Exception:
+        pass
+
+    qs = qs.order_by('tenant__name', '-id')
     return render(request, 'crm/quote_list.html', {
         'quotes': qs, 'q': q, 'status': status,
         'status_choices': CRMQuote.STATUS_CHOICES,
+        'is_admin': is_admin, 'companies_list': companies_list,
+        'company_filter': company_filter,
     })
 
 
 @login_required
 def quote_create(request):
-    companies = CRMCompany.objects.all()
-    contacts = CRMContact.objects.all()
-    deals = CRMDeal.objects.all()
+    companies = _scope(CRMCompany.objects.all(), request.user)
+    contacts = _scope(CRMContact.objects.all(), request.user)
+    deals = _scope(CRMDeal.objects.all(), request.user)
     if request.method == 'POST':
         from decimal import Decimal, InvalidOperation
         quote = CRMQuote.objects.create(
@@ -364,9 +385,9 @@ def quote_detail(request, pk):
 @login_required
 def quote_edit(request, pk):
     quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
-    companies = CRMCompany.objects.all()
-    contacts = CRMContact.objects.all()
-    deals = CRMDeal.objects.all()
+    companies = _scope(CRMCompany.objects.all(), request.user)
+    contacts = _scope(CRMContact.objects.all(), request.user)
+    deals = _scope(CRMDeal.objects.all(), request.user)
     if request.method == 'POST':
         from decimal import Decimal, InvalidOperation
         quote.title = request.POST.get('title', '').strip() or quote.title
@@ -414,25 +435,50 @@ def quote_delete(request, pk):
     return redirect('crm:quote_list')
 
 
+def _quote_branding(quote):
+    """يجلب تصميم الشركة (InvoiceBranding) لعرض السعر، مثل الفاتورة."""
+    try:
+        from apps.payments.models import InvoiceBranding
+        if quote.tenant_id:
+            return InvoiceBranding.for_tenant(quote.tenant)
+    except Exception:
+        pass
+    return None
+
+def _quote_qr(request):
+    try:
+        import qrcode, io, base64
+        img = qrcode.make(request.build_absolute_uri())
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        return ''
+
 @login_required
+def quote_print(request, pk):
+    """صفحة عرض السعر الاحترافية (للعرض في المتصفح)."""
+    quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
+    from apps.payments.models import CompanySettings
+    return render(request, 'crm/quote_print.html', {
+        'quote': quote,
+        'company': CompanySettings.load(),
+        'branding': _quote_branding(quote),
+        'qr_data_uri': _quote_qr(request),
+        'pdf_mode': False,
+    })
+
 def quote_pdf(request, pk):
     quote = get_object_or_404(_scope(CRMQuote.objects.prefetch_related('items'), request.user), pk=pk)
     from apps.payments.models import CompanySettings
-    company = CompanySettings.load()
-    qr_data_uri = ''
-    try:
-        import qrcode, io, base64
-        url = request.build_absolute_uri()
-        img = qrcode.make(url)
-        buf = io.BytesIO()
-        img.save(buf, format='PNG')
-        qr_data_uri = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
-    except Exception:
-        pass
     from django.template.loader import render_to_string
     from django.http import HttpResponse
-    html = render_to_string('crm/quote_detail.html', {
-        'quote': quote, 'company': company, 'qr_data_uri': qr_data_uri, 'pdf_mode': True,
+    html = render_to_string('crm/quote_print.html', {
+        'quote': quote,
+        'company': CompanySettings.load(),
+        'branding': _quote_branding(quote),
+        'qr_data_uri': _quote_qr(request),
+        'pdf_mode': True,
     })
     try:
         from weasyprint import HTML

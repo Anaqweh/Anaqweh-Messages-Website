@@ -30,13 +30,13 @@ class TenantPermissionMiddleware:
         "/django-admin/",
         "/accounts/users/",
         "/accounts/audit-log/",
-        "/accounts/emailjs-settings/",
-        "/accounts/emailjs-test/",
         "/payments/payouts/",
         "/accounting/",
     )
 
     MODULE_PREFIXES = (
+        ("/accounts/emailjs-settings/", "emailjs"),
+        ("/accounts/emailjs-test/", "emailjs"),
         ("/crm/", "crm"),
         ("/payments/", "finance"),
         ("/campaigns/", "email"),

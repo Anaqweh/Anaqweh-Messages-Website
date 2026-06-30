@@ -64,6 +64,11 @@ def send_via_emailjs(to_email, to_name, subject, body_html,
     if extra_params:
         template_params.update(extra_params)
 
+    import sys
+    print('DEBUG service_id=', repr(service_id), file=sys.stderr)
+    print('DEBUG template_id=', repr(template_id), file=sys.stderr)
+    print('DEBUG public_key=', repr(public_key[:8] if public_key else None), 'len=', len(public_key) if public_key else 0, file=sys.stderr)
+    print('DEBUG private_key len=', len(private_key) if private_key else 0, file=sys.stderr)
     payload = {
         'service_id':      service_id,
         'template_id':     template_id,
@@ -254,10 +259,23 @@ def send_via_emailjs(to_email, to_name, subject, body_html, body_text='', extra_
             pass
         return ''
 
-    sid = service_id or env_value('EMAILJS_SERVICE_ID')
-    tid = template_id or env_value('EMAILJS_TEMPLATE_ID')
-    public_key = env_value('EMAILJS_PUBLIC_KEY') or env_value('EMAILJS_USER_ID')
-    private_key = env_value('EMAILJS_PRIVATE_KEY')
+    # أولاً: إعدادات المستخدم من قاعدة البيانات (الأصح)
+    sid = tid = public_key = private_key = ''
+    if user is not None and getattr(user, 'is_authenticated', False):
+        try:
+            ucfg = user.emailjs_config
+            if all([ucfg.service_id, ucfg.template_id, ucfg.public_key, ucfg.private_key]):
+                sid = ucfg.service_id
+                tid = ucfg.template_id
+                public_key = ucfg.public_key
+                private_key = ucfg.private_key
+        except Exception:
+            pass
+    # ثانياً: المُمرّر مباشرة، ثم .env كاحتياطي
+    sid = service_id or sid or env_value('EMAILJS_SERVICE_ID')
+    tid = template_id or tid or env_value('EMAILJS_TEMPLATE_ID')
+    public_key = public_key or env_value('EMAILJS_PUBLIC_KEY') or env_value('EMAILJS_USER_ID')
+    private_key = private_key or env_value('EMAILJS_PRIVATE_KEY')
 
     if not sid or not tid or not public_key:
         return {

@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'apps.templates_mgr',
     'apps.reports',
     'apps.accounting',
+    'apps.registrations',
 ]
 
 MIDDLEWARE = [

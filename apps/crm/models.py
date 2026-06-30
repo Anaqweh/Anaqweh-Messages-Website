@@ -104,6 +104,7 @@ class CRMQuote(models.Model):
     deal = models.ForeignKey(CRMDeal, null=True, blank=True, on_delete=models.SET_NULL, related_name="quotes")
     quote_number = models.CharField(max_length=40, unique=True, blank=True)
     title = models.CharField(max_length=180)
+    customer_email = models.EmailField("بريد العميل", blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
     currency = models.CharField(max_length=10, default="AED")
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=5)

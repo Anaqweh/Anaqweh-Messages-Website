@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import quote_secure_views
 
 app_name = "crm"
 
@@ -31,7 +32,26 @@ urlpatterns = [
     path("quotes/<int:pk>/edit/", views.quote_edit, name="quote_edit"),
     path("quotes/<int:pk>/delete/", views.quote_delete, name="quote_delete"),
     path("quotes/<int:pk>/pdf/", views.quote_pdf, name="quote_pdf"),
+    path("quotes/<int:pk>/print/", views.quote_print, name="quote_print"),
     path("quotes/<int:pk>/to-invoice/", views.quote_to_invoice, name="quote_to_invoice"),
     path("quotes/<int:pk>/send-email/", views.quote_send_email, name="quote_send_email"),
 ]
 
+
+
+urlpatterns = [
+    path('quotes/', quote_secure_views.quote_list, name='quote_list'),
+    path('quotes/new/', quote_secure_views.quote_create, name='quote_create'),
+    path('quotes/<int:pk>/', quote_secure_views.quote_detail, name='quote_detail'),
+    path('quotes/<int:pk>/edit/', quote_secure_views.quote_edit, name='quote_edit'),
+    path('quotes/<int:pk>/delete/', quote_secure_views.quote_delete, name='quote_delete'),
+] + urlpatterns
+
+
+# INEXC_SECURE_QUOTE_ACTION_ROUTES
+urlpatterns = [
+    path("quotes/<int:pk>/pdf/", quote_secure_views.quote_pdf, name="quote_pdf"),
+    path("quotes/<int:pk>/print/", quote_secure_views.quote_print, name="quote_print"),
+    path("quotes/<int:pk>/to-invoice/", quote_secure_views.quote_to_invoice, name="quote_to_invoice"),
+    path("quotes/<int:pk>/send-email/", quote_secure_views.quote_send_email, name="quote_send_email"),
+] + urlpatterns

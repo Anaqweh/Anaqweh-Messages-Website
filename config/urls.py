@@ -18,6 +18,7 @@ urlpatterns = [
     path('', include('apps.campaigns.urls', namespace='campaigns')),
     path('recipients/', include('apps.recipients.urls', namespace='recipients')),
     path('templates/', include('apps.templates_mgr.urls', namespace='templates_mgr')),
+    path('registrations/', include('apps.registrations.urls', namespace='registrations')),
     path('reports/', include('apps.reports.urls', namespace='reports')),
 ]
 

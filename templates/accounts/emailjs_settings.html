@@ -50,6 +50,10 @@
                 <label class="form-label fw-semibold">Private Key</label>
                 <input type="password" name="private_key" value="{{ cfg.private_key }}" class="form-control" placeholder="المفتاح الخاص">
               </div>
+              <div class="col-md-12">
+                <label class="form-label fw-semibold">API Keys</label>
+                <textarea name="api_keys" rows="2" class="form-control" placeholder="كود QR للمصادقة">{{ cfg.api_keys }}</textarea>
+              </div>
               <div class="col-md-6">
                 <label class="form-label fw-semibold">البريد المرسِل</label>
                 <input type="email" name="from_email" value="{{ cfg.from_email }}" class="form-control" placeholder="you@example.com">

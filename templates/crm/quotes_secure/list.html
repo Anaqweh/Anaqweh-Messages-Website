@@ -1,0 +1,109 @@
+{% extends "base/base.html" %}
+{% block title %}عروض الأسعار{% endblock %}
+{% block content %}
+<style>
+.crm-wrap{direction:rtl;max-width:1150px;margin:24px auto;padding:0 14px;color:#102033}
+.crm-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.crm-head h1{margin:0;color:#0b4ea2}
+.crm-btn{background:#0b4ea2;color:#fff;text-decoration:none;border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}
+.crm-btn.light{background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff}
+.crm-card{background:#fff;border:1px solid #d9e4f2;border-radius:10px;box-shadow:0 8px 24px rgba(11,78,162,.08);overflow:visible}
+.context-box{background:#fff;border:1px solid #d9e4f2;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.context-box label{display:block;font-weight:800;color:#0b4ea2;margin-bottom:6px}
+.context-box select,.context-box input{padding:10px;border:1px solid #cbd5e1;border-radius:8px;min-width:240px}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{padding:12px;border-bottom:1px solid #edf2f7;text-align:right}
+th{background:#f5f8fc;color:#344054}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.quote-actions-menu{position:relative}
+.quote-actions-menu summary{cursor:pointer;list-style:none;background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff;border-radius:8px;padding:8px 12px;font-weight:700}
+.quote-actions-menu .menu-body{position:absolute;z-index:20;background:#fff;border:1px solid #d9e4f2;border-radius:10px;box-shadow:0 12px 28px rgba(11,78,162,.16);padding:8px;min-width:190px;display:grid;gap:6px}
+.quote-actions-menu a,.quote-actions-menu button{display:block;width:100%;text-align:right;border:0;background:#fff;color:#0b4ea2;text-decoration:none;padding:8px;border-radius:7px;font-weight:700;cursor:pointer}
+.quote-actions-menu a:hover,.quote-actions-menu button:hover{background:#eef6ff}
+.badge-context{display:inline-block;background:#eef6ff;color:#0b4ea2;border-radius:999px;padding:7px 12px;font-weight:800}
+@media(max-width:750px){table{font-size:13px}.crm-head{align-items:stretch}.context-box select,.context-box input{min-width:100%;width:100%}}
+</style>
+
+<div class="crm-wrap">
+  <div class="crm-head">
+    <div>
+      <h1>عروض الأسعار</h1>
+      <p style="margin:6px 0 0;color:#667085">
+        هذه القائمة معزولة حسب الشركة.
+        {% if is_platform_admin_quote %}
+          <span class="badge-context">السياق الحالي: {{ selected_quote_context_label }}</span>
+        {% endif %}
+      </p>
+    </div>
+    <a class="crm-btn" href="/crm/quotes/new/">+ عرض سعر جديد</a>
+  </div>
+
+  {% if is_platform_admin_quote %}
+  <form method="get" class="context-box">
+    <div>
+      <label>عرض عروض الأسعار حسب</label>
+      <select name="tenant_context">
+        <option value="platform" {% if selected_quote_tenant_id == "platform" %}selected{% endif %}>المدير العام</option>
+        {% for tenant in quote_tenants %}
+          <option value="{{ tenant.id }}" {% if selected_quote_tenant_id == tenant.id|stringformat:"s" %}selected{% endif %}>{{ tenant.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="crm-btn">تطبيق</button>
+  </form>
+  {% endif %}
+
+  <form method="get" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap">
+    <input name="q" value="{{ q }}" placeholder="بحث..." style="padding:10px;border:1px solid #cbd5e1;border-radius:8px;min-width:260px">
+    <button class="crm-btn light">بحث</button>
+  </form>
+
+  <div class="crm-card">
+    <table>
+      <thead>
+        <tr>
+          <th>الرقم</th>
+          <th>العنوان</th>
+          <th>الحالة</th>
+          <th>الإجمالي</th>
+          <th>العميل</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for quote in quotes %}
+        <tr>
+          <td>{{ quote.quote_number|default:quote.pk }}</td>
+          <td>{{ quote.title }}</td>
+          <td>{{ quote.get_status_display|default:quote.status }}</td>
+          <td>{{ quote.total }} {{ quote.currency }}</td>
+          <td>{{ quote.company|default:"-" }}</td>
+          <td>
+            <div class="actions">
+              <details class="quote-actions-menu">
+                <summary>إجراءات</summary>
+                <div class="menu-body">
+                  <a href="/crm/quotes/{{ quote.pk }}/"><span class="ico">👁</span><span>عرض التفاصيل</span></a>
+                  <a href="/crm/quotes/{{ quote.pk }}/edit/"><span class="ico">✎</span><span>تعديل العرض</span></a>
+                  <div class="muted-line"></div>
+                  <a href="/crm/quotes/{{ quote.pk }}/print/" target="_blank"><span class="ico">🖨</span><span>عرض / طباعة</span></a>
+                  <a href="/crm/quotes/{{ quote.pk }}/pdf/" target="_blank"><span class="ico">PDF</span><span>تنزيل PDF</span></a>
+                  <div class="muted-line"></div>
+                  <form method="post" action="/crm/quotes/{{ quote.pk }}/to-invoice/" onsubmit="return confirm('تحويل هذا العرض إلى فاتورة مبيعات؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="success"><span class="ico">↗</span><span>تحويل إلى فاتورة</span></button>
+                  </form>
+                  <a href="/crm/quotes/{{ quote.pk }}/#send-email-section"><span class="ico">@</span><span>إرسال بالبريد</span></a>
+                </div>
+              </details>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:#667085">لا توجد عروض أسعار في هذا السياق.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

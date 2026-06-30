@@ -161,6 +161,7 @@ PERMISSION_LABELS = {
     "crm": "CRM",
     "reports": "التقارير",
     "settings": "الإعدادات",
+    "emailjs": "إعداد EmailJS",
 }
 
 ACTION_LABELS = {
