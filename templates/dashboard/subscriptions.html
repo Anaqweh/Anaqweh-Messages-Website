@@ -1,0 +1,47 @@
+{% extends "dashboard/base.html" %}
+{% block heading %}الاشتراكات{% endblock %}
+{% block content %}
+<div class="cards">
+  <div class="card"><div class="ic c-green"><i class="bi bi-cash-coin"></i></div><div><div class="num">{{ monthly_revenue }}</div><div class="lbl">الدخل الشهري (AED)</div></div></div>
+  <div class="card"><div class="ic c-amber"><i class="bi bi-hourglass-split"></i></div><div><div class="num">{{ expiring|length }}</div><div class="lbl">تنتهي خلال 7 أيام</div></div></div>
+  <div class="card"><div class="ic c-pink"><i class="bi bi-x-circle"></i></div><div><div class="num">{{ expired|length }}</div><div class="lbl">منتهية</div></div></div>
+</div>
+<div class="panel" style="margin-bottom:20px">
+  <h2><i class="bi bi-people"></i> اشتراكات الشركات</h2>
+  <table>
+    <thead><tr><th>الشركة</th><th>الباقة</th><th>النهاية</th><th>المتبقي</th><th>الحالة</th></tr></thead>
+    <tbody>
+    {% for s in subs %}
+      <tr><td>{{ s.tenant.name }}</td><td>{{ s.plan.name|default:"-" }}</td><td>{{ s.end_date }}</td>
+      <td>{% if s.is_expired %}<span class="badge" style="background:#fdecec;color:#e24b4a">منتهي</span>{% elif s.days_left <= 7 %}<span class="badge wait">{{ s.days_left }} أيام</span>{% else %}<span class="badge ok">{{ s.days_left }} يوم</span>{% endif %}</td>
+      <td>{{ s.get_status_display }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="empty">لا توجد اشتراكات بعد</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+  <div class="panel">
+    <h2><i class="bi bi-link-45deg"></i> ربط/تجديد اشتراك</h2>
+    <form method="post" action="/dashboard/subscriptions/save/">{% csrf_token %}
+      <div style="display:grid;gap:10px">
+        <select name="tenant" required style="padding:10px;border:1px solid #cbd5e1;border-radius:9px"><option value="">اختر الشركة</option>{% for t in unlinked %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}{% for s in subs %}<option value="{{ s.tenant.pk }}">{{ s.tenant.name }} (تجديد)</option>{% endfor %}</select>
+        <select name="plan" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px"><option value="">الباقة</option>{% for p in plans %}<option value="{{ p.pk }}">{{ p.name }} - {{ p.price_monthly }}</option>{% endfor %}</select>
+        <input type="date" name="start_date" required style="padding:9px;border:1px solid #cbd5e1;border-radius:9px">
+        <input type="date" name="end_date" required style="padding:9px;border:1px solid #cbd5e1;border-radius:9px">
+        <button type="submit" style="background:#0b4ea2;color:#fff;border:0;border-radius:9px;padding:11px;cursor:pointer">حفظ</button>
+      </div>
+    </form>
+  </div>
+  <div class="panel">
+    <h2><i class="bi bi-box"></i> إضافة باقة</h2>
+    <form method="post" action="/dashboard/subscriptions/plan/add/">{% csrf_token %}
+      <div style="display:grid;gap:10px">
+        <input name="name" required placeholder="اسم الباقة" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">
+        <input name="price" type="number" step="0.01" placeholder="السعر الشهري" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">
+        <button type="submit" style="background:#0f9d58;color:#fff;border:0;border-radius:9px;padding:11px;cursor:pointer">إضافة</button>
+      </div>
+    </form>
+    {% if plans %}<div style="margin-top:12px;font-size:.85rem">{% for p in plans %}<span class="badge ok" style="margin-left:6px">{{ p.name }} ({{ p.price_monthly }})</span>{% endfor %}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

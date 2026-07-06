@@ -174,3 +174,64 @@ def customer_delete(request, pk):
         return redirect("dashboard:customers")
     return render(request, "dashboard/customer_delete.html",
                   {"obj": obj, "active": "customers"})
+
+
+# ── الاشتراكات ──
+@login_required
+@user_passes_test(_is_admin)
+def subscriptions(request):
+    from apps.platform_core.models import SubscriptionPlan, TenantSubscription, Tenant
+    from django.utils import timezone
+    today = timezone.localdate()
+    subs = TenantSubscription.objects.select_related("tenant", "plan").order_by("end_date")
+    plans = SubscriptionPlan.objects.all()
+    # شركات بلا اشتراك (لعرضها للربط)
+    linked_ids = subs.values_list("tenant_id", flat=True)
+    unlinked = Tenant.objects.exclude(id__in=linked_ids).order_by("name")
+    # إحصاءات
+    expiring = [s for s in subs if s.status == "active" and 0 <= s.days_left <= 7]
+    expired = [s for s in subs if s.status == "active" and s.is_expired]
+    monthly_revenue = sum((s.plan.price_monthly for s in subs if s.status == "active" and s.plan and not s.is_expired), 0)
+    return render(request, "dashboard/subscriptions.html", {
+        "subs": subs, "plans": plans, "unlinked": unlinked,
+        "expiring": expiring, "expired": expired,
+        "monthly_revenue": monthly_revenue, "today": today,
+        "active": "subscriptions",
+    })
+
+
+@login_required
+@user_passes_test(_is_admin)
+def plan_add(request):
+    from apps.platform_core.models import SubscriptionPlan
+    from django.shortcuts import redirect
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        price = (request.POST.get("price") or "0").strip()
+        desc = (request.POST.get("description") or "").strip()
+        if name:
+            SubscriptionPlan.objects.create(name=name, price_monthly=price or 0, description=desc)
+    return redirect("dashboard:subscriptions")
+
+
+@login_required
+@user_passes_test(_is_admin)
+def subscription_save(request):
+    """ربط/تحديث اشتراك شركة بباقة وتواريخ."""
+    from apps.platform_core.models import SubscriptionPlan, TenantSubscription, Tenant
+    from django.shortcuts import redirect
+    if request.method == "POST":
+        tenant_id = request.POST.get("tenant")
+        plan_id = request.POST.get("plan")
+        start = request.POST.get("start_date")
+        end = request.POST.get("end_date")
+        status = request.POST.get("status", "active")
+        if tenant_id and start and end:
+            tenant = Tenant.objects.filter(pk=tenant_id).first()
+            plan = SubscriptionPlan.objects.filter(pk=plan_id).first() if plan_id else None
+            if tenant:
+                TenantSubscription.objects.update_or_create(
+                    tenant=tenant,
+                    defaults={"plan": plan, "start_date": start, "end_date": end, "status": status},
+                )
+    return redirect("dashboard:subscriptions")

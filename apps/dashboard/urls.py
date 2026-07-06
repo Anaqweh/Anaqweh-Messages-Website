@@ -12,4 +12,7 @@ urlpatterns = [
     path("customers/add/", views.customer_add, name="customer_add"),
     path("customers/<int:pk>/edit/", views.customer_edit, name="customer_edit"),
     path("customers/<int:pk>/delete/", views.customer_delete, name="customer_delete"),
+    path("subscriptions/", views.subscriptions, name="subscriptions"),
+    path("subscriptions/plan/add/", views.plan_add, name="plan_add"),
+    path("subscriptions/save/", views.subscription_save, name="subscription_save"),
 ]

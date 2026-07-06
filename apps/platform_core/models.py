@@ -241,3 +241,57 @@ class PayoutRequest(models.Model):
 
     def __str__(self):
         return f"{self.tenant.name} - {self.net_amount} ({self.get_status_display()})"
+
+
+class SubscriptionPlan(models.Model):
+    """باقات الاشتراك في المنصة."""
+    name = models.CharField("اسم الباقة", max_length=80)
+    price_monthly = models.DecimalField("السعر الشهري", max_digits=10, decimal_places=2, default=0)
+    currency = models.CharField("العملة", max_length=10, default="AED")
+    description = models.TextField("الوصف/المزايا", blank=True)
+    is_active = models.BooleanField("متاحة", default=True)
+    sort_order = models.PositiveIntegerField("الترتيب", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sort_order", "price_monthly"]
+        verbose_name = "باقة اشتراك"
+        verbose_name_plural = "باقات الاشتراك"
+
+    def __str__(self):
+        return f"{self.name} ({self.price_monthly} {self.currency}/شهر)"
+
+
+class TenantSubscription(models.Model):
+    """اشتراك شركة في باقة."""
+    STATUS_CHOICES = [
+        ("active", "نشط"),
+        ("expired", "منتهي"),
+        ("cancelled", "ملغي"),
+    ]
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name="subscription", verbose_name="الشركة")
+    plan = models.ForeignKey(SubscriptionPlan, null=True, blank=True, on_delete=models.SET_NULL, related_name="subscriptions", verbose_name="الباقة")
+    start_date = models.DateField("بداية الاشتراك")
+    end_date = models.DateField("نهاية الاشتراك")
+    status = models.CharField("الحالة", max_length=20, choices=STATUS_CHOICES, default="active")
+    notes = models.TextField("ملاحظات", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["end_date"]
+        verbose_name = "اشتراك شركة"
+        verbose_name_plural = "اشتراكات الشركات"
+
+    def __str__(self):
+        return f"{self.tenant.name} — {self.plan.name if self.plan else 'بلا باقة'} (حتى {self.end_date})"
+
+    @property
+    def is_expired(self):
+        from django.utils import timezone
+        return self.end_date < timezone.localdate()
+
+    @property
+    def days_left(self):
+        from django.utils import timezone
+        return (self.end_date - timezone.localdate()).days

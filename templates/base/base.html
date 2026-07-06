@@ -120,6 +120,7 @@ body{background:#f0f4f8;min-height:100vh}
       <a class="primary" href="{% url 'platform_core:tenant_list' %}">إدارة المنصة</a>
       <a href="{% url 'platform_core:tenant_list' %}">الشركات والصلاحيات</a>
       <a href="{% url 'accounts:user_list' %}">مستخدمو المنصة</a>
+      <a href="/dashboard/subscriptions/">الاشتراكات</a>
       <a href="{% url 'crm:dashboard' %}">CRM</a>
       <a href="{% url 'payments:dashboard' %}">المالية</a>
       <a href="{% url 'campaigns:dashboard' %}">الرئيسية</a>
@@ -177,6 +178,10 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="{% url 'templates_mgr:builder' %}" class="nav-link"><i class="bi bi-palette"></i> {% trans "محرر مرئي" %}</a>
       <a href="{% url 'recipients:list_view' %}" class="nav-link"><i class="bi bi-people"></i> {% trans "القوائم" %}</a>
       <a href="{% url 'recipients:unsubscribe_list' %}" class="nav-link"><i class="bi bi-slash-circle"></i> {% trans "إلغاء الاشتراك" %}</a>
+  {% if user.is_superuser or user.is_staff %}
+  <a href="/dashboard/subscriptions/" class="nav-link" style="background:rgba(52,208,238,.12)"><i class="bi bi-award"></i> الاشتراكات</a>
+  {% endif %}
+  
     </div>
   </div>
   {% endif %}
