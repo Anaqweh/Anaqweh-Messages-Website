@@ -1,0 +1,44 @@
+{% extends "dashboard/base.html" %}
+{% block heading %}نظرة عامة
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const CD = {{ charts_json|safe }};
+const cyan = "#00b4d8", colors = ["#0b4ea2","#00b4d8","#0f9d58","#f0932b","#e84393","#6c5ce7"];
+setTimeout(function(){
+  if (document.getElementById("chartQuotes") && CD.quote_status.labels.length) {
+    new Chart(document.getElementById("chartQuotes"), {
+      type: "doughnut",
+      data: { labels: CD.quote_status.labels, datasets: [{ data: CD.quote_status.data, backgroundColor: colors }] },
+      options: { plugins: { legend: { position: "bottom", labels: { font: { family: "Tajawal" } } } } }
+    });
+  }
+  if (document.getElementById("chartMonthly") && CD.monthly.labels.length) {
+    new Chart(document.getElementById("chartMonthly"), {
+      type: "bar",
+      data: { labels: CD.monthly.labels, datasets: [{ data: CD.monthly.data, backgroundColor: cyan, borderRadius: 6 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    });
+  }
+}, 100);
+</script>
+{% endblock %}
+{% block content %}
+<div class="cards">
+  <div class="card"><div class="ic c-blue"><i class="bi bi-building"></i></div><div><div class="num">{{ stats.companies }}</div><div class="lbl">الشركات</div></div></div>
+  <div class="card"><div class="ic c-cyan"><i class="bi bi-people"></i></div><div><div class="num">{{ stats.customers }}</div><div class="lbl">العملاء</div></div></div>
+  <div class="card"><div class="ic c-green"><i class="bi bi-file-earmark-text"></i></div><div><div class="num">{{ stats.quotes }}</div><div class="lbl">عروض الأسعار</div></div></div>
+  <div class="card"><div class="ic c-amber"><i class="bi bi-briefcase"></i></div><div><div class="num">{{ stats.deals }}</div><div class="lbl">الصفقات</div></div></div>
+  <div class="card"><div class="ic c-purple"><i class="bi bi-clipboard-check"></i></div><div><div class="num">{{ stats.registrations }}</div><div class="lbl">التسجيلات</div></div></div>
+  <div class="card"><div class="ic c-pink"><i class="bi bi-credit-card"></i></div><div><div class="num">{{ stats.payments }}</div><div class="lbl">المدفوعات</div></div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:26px">
+  <div class="panel"><h2><i class="bi bi-pie-chart"></i> حالات عروض الأسعار</h2><canvas id="chartQuotes" height="150"></canvas></div>
+  <div class="panel"><h2><i class="bi bi-bar-chart"></i> التسجيلات شهرياً</h2><canvas id="chartMonthly" height="150"></canvas></div>
+</div>
+<div class="panel">
+  <h2><i class="bi bi-clock-history"></i> آخر العمليات</h2>
+  {% for log in stats.recent_logs %}
+    <div class="log-item"><span>{{ log.action|default:log }}</span><span>{{ log.created_at|date:"Y-m-d H:i"|default:"" }}</span></div>
+  {% empty %}<div class="empty">لا توجد عمليات</div>{% endfor %}
+</div>
+{% endblock %}

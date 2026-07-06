@@ -91,7 +91,10 @@ def _report_data(request):
         if _ft is not None:
             invoices = invoices.filter(tenant=_ft)
             expenses = expenses.filter(tenant=_ft)
-        elif not request.user.is_superuser:
+        elif request.user.is_superuser or request.user.is_staff:
+            invoices = invoices.filter(tenant__isnull=True)
+            expenses = expenses.filter(tenant__isnull=True)
+        else:
             invoices = invoices.none()
             expenses = expenses.none()
     except Exception:
@@ -113,8 +116,38 @@ def _report_data(request):
     total_expenses = sum((e.amount for e in expenses), Decimal('0.00'))
     net_profit = gross_profit - total_expenses
     outstanding = sum((i.total for i in unpaid), Decimal('0.00'))
+    # ── إيرادات أونلاين (Stripe) — قراءة فقط ──
+    online_revenue = Decimal('0.00'); online_fees = Decimal('0.00'); online_net = Decimal('0.00'); cnt_online = 0
+    try:
+        from apps.payments.models import Payment
+        pays = Payment.objects.filter(status='paid')
+        try:
+            if _ft is not None:
+                pays = pays.filter(tenant=_ft)
+            elif request.user.is_superuser or request.user.is_staff:
+                pays = pays.filter(tenant__isnull=True)
+            else:
+                pays = pays.none()
+        except Exception:
+            pass
+        if start:
+            pays = pays.filter(paid_at__date__gte=start)
+        if end:
+            pays = pays.filter(paid_at__date__lte=end)
+        for p in pays:
+            online_revenue += (p.amount or Decimal('0.00'))
+            online_fees += (p.stripe_fee or Decimal('0.00'))
+            online_net += (p.net_amount or (p.amount or Decimal('0.00')) - (p.stripe_fee or Decimal('0.00')))
+            cnt_online += 1
+    except Exception:
+        pass
+    total_revenue_all = revenue + online_revenue
+    net_profit_all = net_profit + online_net
     return {
         'today': today, 'start': start, 'end': end,
+        'online_revenue': online_revenue, 'online_fees': online_fees,
+        'online_net': online_net, 'cnt_online': cnt_online,
+        'total_revenue_all': total_revenue_all, 'net_profit_all': net_profit_all,
         'invoices': invoices, 'paid': paid, 'unpaid': unpaid,
         'expenses': list(expenses),
         'revenue': revenue, 'tax_collected': tax_collected, 'gross': gross,
@@ -128,6 +161,15 @@ def _report_data(request):
 @login_required
 def reports(request):
     data = _report_data(request)
+    # قائمة الشركات للمدير العام (لمحدد السياق)
+    data["is_platform_admin"] = bool(request.user.is_staff or request.user.is_superuser)
+    data["active_tenant_name"] = request.session.get("active_tenant_name", "")
+    if data["is_platform_admin"]:
+        try:
+            from apps.platform_core.models import Tenant
+            data["all_tenants"] = Tenant.objects.all().order_by("name")
+        except Exception:
+            data["all_tenants"] = []
     return render(request, 'accounting/reports.html', data)
 
 

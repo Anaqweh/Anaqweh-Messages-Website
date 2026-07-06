@@ -14,6 +14,7 @@ urlpatterns = [
     path('payments/', include('apps.payments.urls', namespace='payments')),
     path('accounting/', include('apps.accounting.urls', namespace='accounting')),
     path('django-admin/', admin.site.urls),
+    path('dashboard/', include('apps.dashboard.urls', namespace='dashboard')),
     path('accounts/', include('apps.accounts.urls', namespace='accounts')),
     path('', include('apps.campaigns.urls', namespace='campaigns')),
     path('recipients/', include('apps.recipients.urls', namespace='recipients')),

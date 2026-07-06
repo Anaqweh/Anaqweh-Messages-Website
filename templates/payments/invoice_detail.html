@@ -3,7 +3,9 @@
 
 {% block content %}
 {% with p=invoice.payment c=company %}
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
+body, *{font-family:'Tajawal',Tahoma,Arial,sans-serif}
 :root{--blue:#0b4ea2;--ink:#101828;--muted:#667085;--line:#d9e2ef;--soft:#f5f8fc;--ok:#14833b;--warn:#b7791f}
 body{background:#eef3f9}
 .inv-page{max-width:980px;margin:18px auto;padding:0 14px;direction:rtl;color:var(--ink)}
@@ -11,10 +13,12 @@ body{background:#eef3f9}
 .inv-btn{border:0;border-radius:7px;background:var(--blue);color:#fff;padding:9px 13px;text-decoration:none;font-weight:700;cursor:pointer;font-size:14px}
 .inv-btn.light{background:#fff;color:var(--blue);border:1px solid #bfd0e8}
 .inv-sheet{background:#fff;border-radius:12px;box-shadow:0 14px 35px rgba(11,78,162,.12);overflow:hidden}
-.inv-head{background:linear-gradient(135deg,var(--blue),#073b7e);color:#fff;padding:22px 26px;display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.inv-head{background:linear-gradient(135deg,var(--blue),#073b7e);color:#fff;padding:22px 26px;display:table;width:100%;box-sizing:border-box}
+.inv-head .brand{display:table-cell;vertical-align:top}
+.inv-head .inv-meta{display:table-cell;vertical-align:top;text-align:left}
 .brand{display:flex;gap:12px;align-items:center}
 .brand img{width:72px;max-height:72px;object-fit:contain;background:#fff;border-radius:8px;padding:7px}
-.brand-title{font-size:19px;font-weight:900;line-height:1.45}
+.brand-title{font-size:17px;font-weight:700;line-height:1.45;white-space:nowrap}
 .brand-title small{display:block;font-size:11px;font-weight:500;opacity:.88}
 .inv-meta{text-align:left;min-width:210px}
 .inv-meta h2{margin:0 0 7px;font-size:24px}

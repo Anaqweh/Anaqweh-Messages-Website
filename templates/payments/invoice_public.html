@@ -4,13 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>فاتورة {{ invoice.invoice_number }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--blue:#0b4ea2;--ink:#101828;--muted:#667085;--line:#d9e2ef;--soft:#f5f8fc;--ok:#14833b;--warn:#b7791f}
 *{box-sizing:border-box}
-body{margin:0;background:#eef3f9;color:var(--ink);font-family:Tahoma,Arial,sans-serif}
+body{margin:0;background:#eef3f9;color:var(--ink);font-family:'Tajawal',Tahoma,Arial,sans-serif}
 .page{max-width:940px;margin:18px auto;padding:0 12px}
 .sheet{background:#fff;border-radius:14px;box-shadow:0 14px 35px rgba(11,78,162,.12);overflow:hidden}
-.head{background:linear-gradient(135deg,var(--blue),#073b7e);color:#fff;padding:22px 26px;display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.head{background:linear-gradient(135deg,var(--blue),#073b7e);color:#fff;padding:22px 26px;display:table;width:100%;box-sizing:border-box}
+.head > *{display:table-cell;vertical-align:top}
+.head > *:last-child{text-align:left}
 .brand{display:flex;align-items:center;gap:12px}
 .brand img{width:72px;max-height:72px;object-fit:contain;background:#fff;border-radius:8px;padding:7px}
 .brand .name{font-size:19px;font-weight:900;line-height:1.45}
@@ -36,8 +39,8 @@ body{margin:0;background:#eef3f9;color:var(--ink);font-family:Tahoma,Arial,sans-
 .row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
 .row:last-child{border-bottom:0;font-size:17px;font-weight:900;color:var(--blue)}
 .note{margin:0 26px 14px;border:1px solid var(--line);border-radius:9px;background:#fbfdff;padding:11px 12px;color:#475467;font-size:13px;text-align:center}
-.signs{display:flex;justify-content:flex-end;align-items:flex-end;gap:34px;padding:2px 26px 16px;min-height:92px}
-.sign{text-align:center;color:var(--muted);font-size:12px}
+.signs{display:block;text-align:left;padding:2px 26px 16px;min-height:92px;direction:ltr}
+.sign{display:inline-block;vertical-align:bottom;text-align:center;color:var(--muted);font-size:12px;margin-right:34px}
 .sign img{display:block;max-width:135px;max-height:72px;object-fit:contain;margin:0 auto 4px}
 .footer{background:#f8fbff;border-top:1px solid var(--line);padding:11px 26px;text-align:center;color:#475467;font-size:12.5px}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0 0}

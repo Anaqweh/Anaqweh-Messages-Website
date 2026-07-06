@@ -9,27 +9,67 @@
 {% block content %}
 <form method="get" class="card border-0 shadow-sm mb-3"><div class="card-body">
   <div class="row g-2 align-items-end">
-    <div class="col-md-3"><label class="form-label small fw-bold">من تاريخ</label><input type="date" name="from" value="{{ start }}" class="form-control"></div>
+    {% if is_platform_admin %}
+<div class="card border-0 shadow-sm mb-3"><div class="card-body py-3">
+  {% if active_tenant_name %}
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div><i class="bi bi-building"></i> السياق الحالي: <strong style="color:#0b4ea2">{{ active_tenant_name }}</strong> <span class="text-muted small">(التقرير معزول على هذه الشركة)</span></div>
+      <a href="/platform/clear-tenant/" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-repeat"></i> العودة للمدير العام</a>
+    </div>
+  {% else %}
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div><i class="bi bi-building"></i> السياق: <strong style="color:#0b4ea2">منصة المدير العام</strong></div>
+      <div class="d-flex gap-2">
+        <select id="ctxTenant" class="form-select form-select-sm" style="min-width:200px">
+          <option value="">— اختر شركة —</option>
+          {% for t in all_tenants %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}
+        </select>
+        <button type="button" class="btn btn-sm btn-primary" onclick="var v=document.getElementById('ctxTenant').value;if(v){window.location='/platform/switch-tenant/'+v+'/'}">عرض</button>
+      </div>
+    </div>
+  {% endif %}
+</div></div>
+{% endif %}
+<div class="col-12" style="margin-bottom:4px">
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" onclick="qkRange(0,0)" class="btn btn-sm" style="background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff;border-radius:8px">اليوم</button>
+    <button type="button" onclick="qkRange(1,1)" class="btn btn-sm" style="background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff;border-radius:8px">أمس</button>
+    <button type="button" onclick="qkRange(6,0)" class="btn btn-sm" style="background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff;border-radius:8px">آخر 7 أيام</button>
+    <button type="button" onclick="qkMonth()" class="btn btn-sm" style="background:#eef6ff;color:#0b4ea2;border:1px solid #cfe2ff;border-radius:8px">هذا الشهر</button>
+  </div>
+</div>
+<script>
+function qkFmt(d){return d.toISOString().slice(0,10)}
+function qkRange(back,endBack){var e=new Date();e.setDate(e.getDate()-endBack);var s=new Date();s.setDate(s.getDate()-back);document.querySelector("input[name=from]").value=qkFmt(s);document.querySelector("input[name=to]").value=qkFmt(e);document.querySelector("input[name=from]").form.submit()}
+function qkMonth(){var n=new Date();var s=new Date(n.getFullYear(),n.getMonth(),1);document.querySelector("input[name=from]").value=qkFmt(s);document.querySelector("input[name=to]").value=qkFmt(n);document.querySelector("input[name=from]").form.submit()}
+</script>
+<div class="col-md-3"><label class="form-label small fw-bold">من تاريخ</label><input type="date" name="from" value="{{ start }}" class="form-control"></div>
     <div class="col-md-3"><label class="form-label small fw-bold">إلى تاريخ</label><input type="date" name="to" value="{{ end }}" class="form-control"></div>
     <div class="col-md-3"><button class="btn btn-primary">تطبيق الفلتر</button> <a href="{% url 'accounting:reports' %}" class="btn btn-outline-secondary">إلغاء</a></div>
   </div>
 </div></form>
 
 <div class="row g-3 mb-3">
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الإيرادات (قبل الضريبة)</div><div class="h4 fw-bold text-success">{{ revenue }} AED</div></div></div></div>
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">الضريبة المحصّلة</div><div class="h4 fw-bold text-primary">{{ tax_collected }} AED</div></div></div></div>
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي المبيعات</div><div class="h4 fw-bold">{{ gross }} AED</div></div></div></div>
-<div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">تكلفة المبيعات</div><div class="h4 fw-bold text-danger">{{ cost_of_sales }} AED</div></div></div></div>
-<div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي الربح</div><div class="h4 fw-bold text-success">{{ gross_profit }} AED</div></div></div></div>
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">المصروفات</div><div class="h4 fw-bold text-warning">{{ total_expenses }} AED</div></div></div></div>
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">صافي الربح</div><div class="h4 fw-bold text-primary">{{ net_profit }} AED</div></div></div></div>
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">المستحقات القائمة</div><div class="h4 fw-bold text-danger">{{ outstanding }} AED</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm" style="border-top:4px solid #0b4ea2 !important"><div class="card-body text-center"><div class="text-muted small"><i class="bi bi-graph-up-arrow"></i> إجمالي الدخل</div><div class="h3 fw-bold" style="color:#0b4ea2">{{ total_revenue_all }} AED</div><div class="small text-muted">من كل المصادر</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0 shadow-sm" style="border-top:4px solid #b7791f !important"><div class="card-body text-center"><div class="text-muted small"><i class="bi bi-graph-down-arrow"></i> إجمالي المصروفات</div><div class="h3 fw-bold" style="color:#b7791f">{{ total_expenses }} AED</div><div class="small text-muted">تشغيلية + رسوم</div></div></div></div>
+  <div class="col-md-4"><div class="card border-0" style="background:#1e3a6e"><div class="card-body text-center"><div class="small" style="color:#9db4d0"><i class="bi bi-wallet2"></i> صافي الربح</div><div class="h3 fw-bold" style="color:#34d0ee">{{ net_profit_all }} AED</div><div class="small" style="color:#8aa3c0">الرقم النهائي</div></div></div></div>
 </div>
 
 <div class="row g-3 mb-3">
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">فواتير مدفوعة</div><div class="h5 fw-bold text-success">{{ cnt_paid }}</div></div></div></div>
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">فواتير غير مدفوعة</div><div class="h5 fw-bold text-secondary">{{ cnt_unpaid }}</div></div></div></div>
-  <div class="col-md-4"><div class="card border-0 shadow-sm"><div class="card-body text-center"><div class="text-muted small">إجمالي الفواتير</div><div class="h5 fw-bold">{{ cnt_total }}</div></div></div></div>
+  <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body">
+    <div class="fw-bold mb-2" style="color:#1e3a6e"><i class="bi bi-cash-stack"></i> مصادر الدخل</div>
+    <div class="d-flex justify-content-between py-2 border-bottom small"><span class="text-muted">فواتير المبيعات ({{ cnt_paid }} مدفوعة)</span><span>{{ revenue }} AED</span></div>
+    <div class="d-flex justify-content-between py-2 border-bottom small"><span class="text-muted">أونلاين / Stripe ({{ cnt_online }} عملية)</span><span>{{ online_revenue }} AED</span></div>
+    <div class="d-flex justify-content-between py-2 border-bottom small"><span class="text-muted">إجمالي المبيعات (مع الضريبة)</span><span>{{ gross }} AED</span></div>
+    <div class="d-flex justify-content-between py-2 small"><span class="text-muted">مستحقات غير مدفوعة ({{ cnt_unpaid }})</span><span class="text-danger">{{ outstanding }} AED</span></div>
+  </div></div></div>
+  <div class="col-md-6"><div class="card border-0 shadow-sm"><div class="card-body">
+    <div class="fw-bold mb-2" style="color:#1e3a6e"><i class="bi bi-receipt"></i> تفصيل التكاليف</div>
+    <div class="d-flex justify-content-between py-2 border-bottom small"><span class="text-muted">مصروفات تشغيلية</span><span>{{ total_expenses }} AED</span></div>
+    <div class="d-flex justify-content-between py-2 border-bottom small"><span class="text-muted">تكلفة المبيعات</span><span>{{ cost_of_sales }} AED</span></div>
+    <div class="d-flex justify-content-between py-2 border-bottom small"><span class="text-muted">رسوم Stripe</span><span>{{ online_fees }} AED</span></div>
+    <div class="d-flex justify-content-between py-2 small"><span class="text-muted">الضريبة المحصّلة (أمانة — ليست ربحاً)</span><span>{{ tax_collected }} AED</span></div>
+  </div></div></div>
 </div>
 
 <div class="data-table p-3">

@@ -185,7 +185,9 @@ def dashboard(request):
         'inv_stats': inv_stats,
         'chart_labels': _json.dumps(chart_labels),
         'chart_values': _json.dumps(chart_values),
-        'payments': _finance_objects(request, Payment).all()[:15],
+        'payments': (_finance_objects(request, Payment).all() if request.GET.get('show') == 'all' else _finance_objects(request, Payment).exclude(status__in=['failed', 'refunded']))[:15],
+        'hidden_count': _finance_objects(request, Payment).filter(status__in=['failed', 'refunded']).count(),
+        'showing_all': request.GET.get('show') == 'all',
         'invoices': _finance_objects(request, Invoice).select_related('payment')[:10],
         'expenses': _finance_objects(request, Expense).all()[:10],
         'payouts': StripePayout.objects.all()[:10],
@@ -339,7 +341,7 @@ def _build_invoice_qr(request, invoice):
     try:
         import qrcode, io, base64
         p = invoice.payment
-        content = request.build_absolute_uri()
+        content = request.build_absolute_uri(f'/payments/invoice/{invoice.token}/')
         img = qrcode.make(content)
         buf = io.BytesIO()
         img.save(buf, format='PNG')
@@ -580,7 +582,9 @@ def reports(request):
         'year': block(paid.filter(paid_at__date__gte=year_start), exps.filter(spent_at__gte=year_start)),
         'all': block(paid, exps),
     }
-    return render(request, 'payments/reports.html', {'report': report})
+    pending_qs = _finance_objects(request, Payment).filter(status='pending')
+    pending = {'total': _sum(pending_qs, 'amount'), 'count': pending_qs.count()}
+    return render(request, 'payments/reports.html', {'report': report, 'pending': pending})
 
 
 @login_required
@@ -687,7 +691,6 @@ def sales_invoice_delete(request, token):
     return redirect("payments:sales_invoices")
 
 
-@login_required
 def sales_invoice_print(request, token):
     from .models import InvoiceBranding
     invoice = get_object_or_404(SalesInvoice.objects.prefetch_related('items'), token=token)
@@ -702,7 +705,7 @@ def sales_invoice_print(request, token):
 def _build_sales_qr(request, invoice):
     try:
         import qrcode, io, base64
-        img = qrcode.make(request.build_absolute_uri())
+        img = qrcode.make(request.build_absolute_uri(f'/payments/sales-invoice/{invoice.token}/'))
         buf = io.BytesIO()
         img.save(buf, format='PNG')
         return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii')
@@ -710,7 +713,6 @@ def _build_sales_qr(request, invoice):
         return ''
 
 
-@login_required
 def sales_invoice_pdf(request, token):
     from django.template.loader import render_to_string
     from django.http import HttpResponse
@@ -809,3 +811,21 @@ def _apply_sales_invoice_item_costs(invoice, request):
     except Exception:
         return
 
+
+@login_required
+def cancel_pending_payment(request, pk):
+    """إلغاء عملية معلّقة فقط (pending -> failed). لا حذف، لا لمس للمدفوعة."""
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages as dj_messages
+    if not (request.user.is_superuser or request.user.is_staff):
+        return redirect('payments:dashboard')
+    if request.method != 'POST':
+        return redirect('payments:dashboard')
+    p = get_object_or_404(Payment, pk=pk)
+    if p.status != 'pending':
+        dj_messages.error(request, 'لا يمكن إلغاء إلا العمليات المعلّقة فقط')
+        return redirect('payments:dashboard')
+    p.status = 'failed'
+    p.save(update_fields=['status', 'updated_at'])
+    dj_messages.success(request, f'أُلغيت العملية المعلّقة #{p.pk} ({p.amount} {p.currency.upper()})')
+    return redirect('payments:dashboard')

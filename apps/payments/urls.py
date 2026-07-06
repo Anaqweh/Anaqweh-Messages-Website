@@ -15,6 +15,7 @@ urlpatterns = [
     path('expenses/', views.expenses, name='expenses'),
     path('payouts/', views.payouts, name='payouts'),
     path('reports/', views.reports, name='reports'),
+    path('cancel-pending/<int:pk>/', views.cancel_pending_payment, name='cancel_pending'),
     path('expenses/new/', views.expense_create, name='expense_create'),
     path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
     path('invoice-branding/', views.invoice_branding, name='invoice_branding'),

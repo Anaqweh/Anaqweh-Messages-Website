@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ invoice.invoice_number }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --inv-primary: {% if branding and branding.primary_color %}{{ branding.primary_color }}{% else %}#0b4ea2{% endif %};
@@ -11,16 +12,18 @@
   --inv-text: {% if branding and branding.text_color %}{{ branding.text_color }}{% else %}#1f2937{% endif %};
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#e9edf3;color:#1f2937;padding:14px}
+body{font-family:'Tajawal','Segoe UI',Tahoma,Arial,sans-serif;background:#e9edf3;color:#1f2937;padding:14px}
 .sheet{max-width:840px;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 10px 40px rgba(11,78,162,.12);overflow:hidden;position:relative}
 .ribbon{position:absolute;top:26px;left:-44px;transform:rotate(-45deg);color:#fff;padding:6px 56px;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .ribbon.paid{background:#16a34a}.ribbon.unpaid{background:#d97706}.ribbon.cancelled{background:#dc2626}
-.head{display:flex;justify-content:space-between;align-items:center;padding:18px 32px 14px;border-bottom:3px solid var(--inv-primary)}
-.head .brand{display:flex;align-items:center;gap:16px}
+.head{display:table;width:100%;box-sizing:border-box;padding:18px 32px 14px;border-bottom:3px solid var(--inv-primary)}
+.head .brand{display:table-cell;vertical-align:middle}
+.head .brand img{display:inline-block;vertical-align:middle;margin-left:16px}
+.head .brand .bn{display:inline-block;vertical-align:middle}
 .head .brand img{max-height:68px}
-.head .brand .bn{font-size:15px;font-weight:800;color:var(--inv-primary);line-height:1.5;max-width:280px}
+.head .brand .bn{font-size:14px;font-weight:700;color:var(--inv-primary);line-height:1.5;white-space:nowrap}
 .head .brand .bn small{display:block;font-size:10px;color:#7a8699;font-weight:600;margin-top:2px}
-.head .inv{text-align:left}
+.head .inv{display:table-cell;vertical-align:middle;text-align:left}
 .head .inv h1{font-size:26px;font-weight:800;color:var(--inv-primary);letter-spacing:2px}
 .head .inv .kind{margin-top:4px;font-size:13px;color:var(--inv-primary);font-weight:700;background:#eef4fb;padding:3px 10px;border-radius:6px;display:inline-block}
 .head .inv .n{margin-top:6px;font-size:13px;color:#374151;font-weight:700}
@@ -43,16 +46,18 @@ table.items tbody tr:nth-child(even){background:#fafbfd}
 .qrbox .ql{font-size:11px;color:#7a8699;margin-top:4px}
 .totals{min-width:300px;margin-right:auto}
 .totals .row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;color:#475569}
-.totals .row.grand{border-top:2px solid var(--inv-primary);margin-top:8px;padding-top:11px;font-size:19px;font-weight:800;color:var(--inv-primary)}
-.signs{display:flex;justify-content:space-between;align-items:flex-end;padding:8px 32px 16px;gap:20px}
-.signs .note{font-size:13px;color:#64748b;max-width:50%;line-height:1.8}
-.signs .authsign{display:flex;align-items:flex-end;gap:28px}
-.signs .sigcol{text-align:center}
+.totals .row.grand{border-top:2px solid var(--inv-primary);margin-top:8px;padding-top:11px;padding-bottom:6px;font-size:19px;font-weight:700;color:var(--inv-primary);line-height:1.9}
+.signs{display:table;width:100%;padding:8px 32px 16px}
+.signs .note{display:table-cell;vertical-align:bottom;font-size:13px;color:#64748b;width:50%;line-height:1.8}
+.signs .authsign{display:table-cell;vertical-align:bottom;text-align:left;direction:ltr;white-space:nowrap}
+.signs .sigcol{display:inline-block;vertical-align:bottom;text-align:center;margin-right:28px}
 .signs .sigline{font-size:13px;font-weight:700;color:var(--inv-primary);margin-bottom:6px}
 .signs .sigline small{display:block;font-size:10px;color:#7a8699;font-weight:600}
 .signs .sig{max-height:60px;display:block;margin:0 auto}
-.signs .stmp{max-height:105px;opacity:.96}
-.bar{background:linear-gradient(135deg,var(--inv-primary),var(--inv-secondary));color:#fff;text-align:center;padding:14px;font-size:12px;letter-spacing:1px}
+.signs .stmp{display:inline-block;vertical-align:bottom;max-height:105px;opacity:.96}
+.bar{background:linear-gradient(135deg,var(--inv-primary),var(--inv-secondary));color:#fff;text-align:center;padding:14px 14px 16px;font-size:12px;letter-spacing:.4px;line-height:2}
+.bar b{font-weight:700;vertical-align:baseline}
+.bar span{display:inline-block;margin:0 10px;vertical-align:baseline}
 .actions{max-width:840px;margin:18px auto 0;text-align:center}
 .actions button,.actions a{background:var(--inv-primary);color:#fff;border:0;padding:12px 26px;border-radius:9px;font-size:14px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block;margin:0 4px}
 @page{size:A4;margin:8mm}@media print{body{background:#fff;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{box-shadow:none;border-radius:0;max-width:100%}.actions{display:none}.sheet,.head,.parties,.sumwrap,.signs{page-break-inside:avoid}}
@@ -85,9 +90,9 @@ table.items tbody tr:nth-child(even){background:#fafbfd}
   </div>
 
   <div class="cinfo">
-    {% if c_phone %}<span>📞 <b>{{ c_phone }}</b></span>{% endif %}
-    {% if c_email %}<span>✉️ <b>{{ c_email }}</b></span>{% endif %}
-    {% if c_website %}<span>🌐 <b>{{ c_website }}</b></span>{% endif %}
+    {% if c_phone %}<span>هاتف: <b>{{ c_phone }}</b></span>{% endif %}
+    {% if c_email %}<span>بريد: <b>{{ c_email }}</b></span>{% endif %}
+    {% if c_website %}<span>موقع: <b>{{ c_website }}</b></span>{% endif %}
     {% if c_trn %}<span>TRN: <b>{{ c_trn }}</b></span>{% endif %}
     {% if c_license %}<span>رخصة: <b>{{ c_license }}</b></span>{% endif %}
   </div>
@@ -129,7 +134,7 @@ table.items tbody tr:nth-child(even){background:#fafbfd}
     <div class="totals">
       <div class="row"><span>الإجمالي الفرعي</span><span>{{ inv.subtotal }} {{ inv.currency|upper }}</span></div>
       <div class="row"><span>الضريبة ({{ inv.tax_rate }}%)</span><span>{{ inv.tax_amount }} {{ inv.currency|upper }}</span></div>
-      <div class="row grand"><span>الإجمالي المستحق</span><span>{{ inv.total }} {{ inv.currency|upper }}</span></div>
+      <div class="row grand"><span>الإجمالي المستحق</span><span style="direction:ltr;unicode-bidi:embed">{{ inv.total }} <small style="font-size:12px;font-weight:600;color:#7a8699">{{ inv.currency|upper }}</small></span></div>
     </div>
   </div>
 

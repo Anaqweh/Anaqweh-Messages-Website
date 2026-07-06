@@ -1,0 +1,14 @@
+{% extends "dashboard/base.html" %}
+{% block heading %}العملاء{% endblock %}
+{% block content %}
+<div class="searchbar"><form method="get" style="display:flex;gap:10px;flex:1"><input name="q" value="{{ q }}" placeholder="ابحث بالاسم أو البريد..."><button type="submit"><i class="bi bi-search"></i> بحث</button></form><a href="/dashboard/customers/add/" style="background:#0f9d58;color:#fff;border-radius:10px;padding:11px 20px;text-decoration:none;font-weight:500;white-space:nowrap"><i class="bi bi-plus-lg"></i> إضافة عميل</a></div>
+<div class="panel">
+<table><thead><tr><th>الاسم</th><th>الشركة</th><th>البريد</th><th>الهاتف</th><th>إجراءات</th></tr></thead><tbody>
+{% for c in page_obj %}<tr><td>{{ c.full_name }}</td><td>{{ c.company.name|default:"-" }}</td><td>{{ c.email|default:"-" }}</td><td>{{ c.phone|default:"-" }}</td><td style="white-space:nowrap"><a href="/dashboard/customers/{{ c.id }}/edit/" title="تعديل" style="color:#0b4ea2;margin-left:10px;font-size:1.05rem"><i class="bi bi-pencil-square"></i></a><a href="/dashboard/customers/{{ c.id }}/delete/" title="حذف" style="color:#e24b4a;font-size:1.05rem"><i class="bi bi-trash"></i></a></td></tr>
+{% empty %}<tr><td colspan="5" class="empty">لا يوجد عملاء</td></tr>{% endfor %}
+</tbody></table><div class="pager">
+{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">السابق</a>{% endif %}
+<span class="cur">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">التالي</a>{% endif %}
+</div></div>
+{% endblock %}

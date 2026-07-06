@@ -1,0 +1,23 @@
+{% extends "dashboard/base.html" %}
+{% block heading %}{% if mode == "add" %}إضافة عميل{% else %}تعديل عميل{% endif %}{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:700px">
+  {% if error %}<div style="background:#fdecec;color:#e24b4a;padding:12px 16px;border-radius:10px;margin-bottom:16px">{{ error }}</div>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="grid-column:1/-1"><label style="display:block;margin-bottom:6px;font-size:.9rem;color:#475569">الاسم الكامل *</label><input name="full_name" value="{{ data.full_name }}" required style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px"></div>
+      <div><label style="display:block;margin-bottom:6px;font-size:.9rem;color:#475569">المسمّى الوظيفي</label><input name="job_title" value="{{ data.job_title }}" style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px"></div>
+      <div><label style="display:block;margin-bottom:6px;font-size:.9rem;color:#475569">البريد</label><input name="email" type="email" value="{{ data.email }}" style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px"></div>
+      <div><label style="display:block;margin-bottom:6px;font-size:.9rem;color:#475569">الهاتف</label><input name="phone" value="{{ data.phone }}" style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px"></div>
+      <div><label style="display:block;margin-bottom:6px;font-size:.9rem;color:#475569">واتساب</label><input name="whatsapp" value="{{ data.whatsapp }}" style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px"></div>
+      <div><label style="display:block;margin-bottom:6px;font-size:.9rem;color:#475569">المصدر</label><input name="source" value="{{ data.source }}" style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px"></div>
+      <div style="grid-column:1/-1"><label style="display:block;margin-bottom:6px;font-size:.9rem;color:#475569">ملاحظات</label><textarea name="notes" rows="3" style="width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px">{{ data.notes }}</textarea></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button type="submit" style="background:#0b4ea2;color:#fff;border:0;border-radius:9px;padding:11px 26px;font-weight:500;cursor:pointer"><i class="bi bi-check-lg"></i> حفظ</button>
+      <a href="/dashboard/customers/" style="background:#eef2f7;color:#475569;border-radius:9px;padding:11px 26px;text-decoration:none">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

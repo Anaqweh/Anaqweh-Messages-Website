@@ -1,0 +1,16 @@
+{% extends "dashboard/base.html" %}
+{% block heading %}حذف عميل{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:520px">
+  <div style="text-align:center;padding:10px">
+    <div style="font-size:2.5rem;color:#e24b4a;margin-bottom:12px"><i class="bi bi-exclamation-triangle"></i></div>
+    <h2 style="color:#1e3a6e;margin-bottom:8px">تأكيد الحذف</h2>
+    <p style="color:#64748b;margin-bottom:22px">هل تريد حذف العميل <strong>{{ obj.full_name }}</strong>؟ لا يمكن التراجع.</p>
+    <form method="post" style="display:flex;gap:10px;justify-content:center">
+      {% csrf_token %}
+      <button type="submit" style="background:#e24b4a;color:#fff;border:0;border-radius:9px;padding:11px 26px;font-weight:500;cursor:pointer"><i class="bi bi-trash"></i> نعم، احذف</button>
+      <a href="/dashboard/customers/" style="background:#eef2f7;color:#475569;border-radius:9px;padding:11px 26px;text-decoration:none">إلغاء</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

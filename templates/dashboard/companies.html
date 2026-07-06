@@ -1,0 +1,14 @@
+{% extends "dashboard/base.html" %}
+{% block heading %}الشركات{% endblock %}
+{% block content %}
+<div class="searchbar"><form method="get" style="display:flex;gap:10px;flex:1"><input name="q" value="{{ q }}" placeholder="ابحث باسم الشركة..."><button type="submit"><i class="bi bi-search"></i> بحث</button></form></div>
+<div class="panel">
+<table><thead><tr><th>#</th><th>الاسم</th><th>الحالة</th></tr></thead><tbody>
+{% for t in page_obj %}<tr><td>{{ t.id }}</td><td>{{ t.name }}</td><td><span class="badge ok">{{ t.get_status_display|default:t.status|default:"-" }}</span></td></tr>
+{% empty %}<tr><td colspan="3" class="empty">لا توجد شركات</td></tr>{% endfor %}
+</tbody></table><div class="pager">
+{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">السابق</a>{% endif %}
+<span class="cur">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">التالي</a>{% endif %}
+</div></div>
+{% endblock %}
