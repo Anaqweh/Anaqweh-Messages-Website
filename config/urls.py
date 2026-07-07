@@ -14,6 +14,7 @@ urlpatterns = [
     path('tasks/', include('apps.tasks.urls', namespace='tasks')),
     path('workspace/', include('apps.platform_core.workspace_urls', namespace='workspace')),
     path('platform/', include('apps.platform_core.urls', namespace='platform_core')),
+    path('subscription-expired/', __import__('apps.platform_core.views', fromlist=['subscription_expired']).subscription_expired, name='subscription_expired'),
     path('payments/', include('apps.payments.urls', namespace='payments')),
     path('accounting/', include('apps.accounting.urls', namespace='accounting')),
     path('django-admin/', admin.site.urls),

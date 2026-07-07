@@ -375,3 +375,38 @@ def landing_demo_requests(request):
         "new_count": LandingDemoRequest.objects.filter(status="new").count(),
     }
     return render(request, "dashboard/landing_demo_requests.html", context)
+
+def subscription_renew(request, pk):
+    """تجديد سريع: +30 يوم من الأبعد بين اليوم وتاريخ النهاية الحالي."""
+    from apps.platform_core.models import TenantSubscription
+    from django.shortcuts import redirect
+    from django.utils import timezone
+    import datetime
+    sub = TenantSubscription.objects.filter(pk=pk).first()
+    if sub and request.method == "POST":
+        base = max(sub.end_date, timezone.now().date())
+        sub.end_date = base + datetime.timedelta(days=30)
+        sub.status = "active"
+        sub.save()
+    return redirect("dashboard:subscriptions")
+
+
+def subscription_toggle(request, pk):
+    """تبديل الحالة نشط/موقوف."""
+    from apps.platform_core.models import TenantSubscription
+    from django.shortcuts import redirect
+    sub = TenantSubscription.objects.filter(pk=pk).first()
+    if sub and request.method == "POST":
+        sub.status = "suspended" if sub.status == "active" else "active"
+        sub.save()
+    return redirect("dashboard:subscriptions")
+
+def dismiss_onboarding(request):
+    from django.shortcuts import redirect
+    from apps.platform_core.navigation import active_membership_for
+    if request.method == "POST":
+        m = active_membership_for(request.user)
+        if m:
+            m.onboarding_seen = True
+            m.save()
+    return redirect(request.POST.get("next") or "dashboard:home")

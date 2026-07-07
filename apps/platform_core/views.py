@@ -761,3 +761,7 @@ def platform_payouts(request):
         "status_filter": status_filter,
         "pending_count": pending_count,
     })
+
+def subscription_expired(request):
+    from django.shortcuts import render
+    return render(request, "subscription_expired.html")

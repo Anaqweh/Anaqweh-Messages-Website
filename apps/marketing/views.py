@@ -121,6 +121,16 @@ def demo_request(request):
         ip_address=ip,
         user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:1000],
     )
+    try:
+        from apps.platform_core.models import AdminNotification
+        AdminNotification.objects.create(
+            title="طلب ديمو جديد",
+            body=f"{data['name']} — {data['company'] or 'بدون شركة'}",
+            icon="bi-person-lines-fill",
+            url="/dashboard/landing-demo-requests/",
+        )
+    except Exception:
+        pass
 
     whatsapp_url = _landing_demo_whatsapp_url(data)
 

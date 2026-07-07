@@ -7,6 +7,7 @@ urlpatterns = [
     path("landing-demo-requests/", views.landing_demo_requests, name="landing_demo_requests"),
     path('landing-page/', views.landing_page_admin, name='landing_page_admin'),
     path("", views.dashboard_home, name="home"),
+    path("dismiss-onboarding/", views.dismiss_onboarding, name="dismiss_onboarding"),
     path("companies/", views.companies, name="companies"),
     path("customers/", views.customers, name="customers"),
     path("registrations/", views.registrations, name="registrations"),
@@ -17,4 +18,6 @@ urlpatterns = [
     path("subscriptions/", views.subscriptions, name="subscriptions"),
     path("subscriptions/plan/add/", views.plan_add, name="plan_add"),
     path("subscriptions/save/", views.subscription_save, name="subscription_save"),
+    path("subscriptions/<int:pk>/renew/", views.subscription_renew, name="subscription_renew"),
+    path("subscriptions/<int:pk>/toggle/", views.subscription_toggle, name="subscription_toggle"),
 ]

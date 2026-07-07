@@ -6,6 +6,7 @@ app_name = "platform_core"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("subscription-expired/", views.subscription_expired, name="subscription_expired"),
     path("settings/", views.platform_settings, name="platform_settings"),
     path("finance/", views.platform_finance, name="platform_finance"),
     path("payouts/", views.platform_payouts, name="platform_payouts"),

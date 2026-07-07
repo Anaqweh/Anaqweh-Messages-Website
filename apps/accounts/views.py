@@ -24,6 +24,12 @@ def login_view(request):
                 auth_user = authenticate(request, username=login_value, password=password)
 
         if auth_user is not None:
+            from apps.platform_core.models import AdminTOTP
+            totp_rec = AdminTOTP.objects.filter(user=auth_user, is_enabled=True).first()
+            if auth_user.is_superuser and totp_rec:
+                request.session["pending_2fa_user_id"] = auth_user.id
+                request.session["pending_2fa_next"] = request.GET.get("next") or request.POST.get("next") or ""
+                return redirect("accounts:verify_2fa")
             auth_login(request, auth_user)
             next_url = request.GET.get("next") or request.POST.get("next")
             return redirect(next_url or dashboard_url_for_user(auth_user))
@@ -381,3 +387,54 @@ def forgot_username(request):
         msg.success(request, 'إذا كان البريد مسجلاً، سيصلك اسم المستخدم')
         return redirect('accounts:login')
     return render(request, 'accounts/forgot_username.html')
+
+def verify_2fa_view(request):
+    import pyotp
+    from apps.platform_core.models import AdminTOTP
+    from django.contrib.auth import get_user_model
+    uid = request.session.get("pending_2fa_user_id")
+    if not uid:
+        return redirect("accounts:login")
+    User = get_user_model()
+    user = User.objects.filter(pk=uid).first()
+    if not user:
+        return redirect("accounts:login")
+    error = None
+    if request.method == "POST":
+        code = (request.POST.get("code") or "").strip()
+        rec = AdminTOTP.objects.filter(user=user, is_enabled=True).first()
+        if rec and pyotp.TOTP(rec.secret).verify(code, valid_window=1):
+            auth_login(request, user)
+            next_url = request.session.pop("pending_2fa_next", "")
+            request.session.pop("pending_2fa_user_id", None)
+            return redirect(next_url or dashboard_url_for_user(user))
+        error = "الرمز غير صحيح، حاول مجدداً."
+    return render(request, "accounts/verify_2fa.html", {"error": error})
+
+
+@login_required
+def setup_2fa_view(request):
+    import pyotp, qrcode, io, base64
+    from apps.platform_core.models import AdminTOTP
+    if not request.user.is_superuser:
+        return redirect(dashboard_url_for_user(request.user))
+    rec, _ = AdminTOTP.objects.get_or_create(user=request.user, defaults={"secret": pyotp.random_base32()})
+    if request.method == "POST":
+        code = (request.POST.get("code") or "").strip()
+        action = request.POST.get("action")
+        if action == "disable":
+            rec.is_enabled = False
+            rec.save()
+            messages.success(request, "تم إيقاف التحقق بخطوتين.")
+        elif pyotp.TOTP(rec.secret).verify(code, valid_window=1):
+            rec.is_enabled = True
+            rec.save()
+            messages.success(request, "تم تفعيل التحقق بخطوتين بنجاح.")
+        else:
+            messages.error(request, "الرمز غير صحيح.")
+    uri = pyotp.TOTP(rec.secret).provisioning_uri(name=request.user.username, issuer_name="inexcsuite")
+    qr_img = qrcode.make(uri)
+    buf = io.BytesIO()
+    qr_img.save(buf, format="PNG")
+    qr_b64 = base64.b64encode(buf.getvalue()).decode()
+    return render(request, "accounts/setup_2fa.html", {"rec": rec, "qr_b64": qr_b64, "secret": rec.secret})

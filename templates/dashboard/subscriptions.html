@@ -9,12 +9,16 @@
 <div class="panel" style="margin-bottom:20px">
   <h2><i class="bi bi-people"></i> اشتراكات الشركات</h2>
   <table>
-    <thead><tr><th>الشركة</th><th>الباقة</th><th>النهاية</th><th>المتبقي</th><th>الحالة</th></tr></thead>
+    <thead><tr><th>الشركة</th><th>الباقة</th><th>النهاية</th><th>المتبقي</th><th>الحالة</th><th>إجراءات</th></tr></thead>
     <tbody>
     {% for s in subs %}
       <tr><td>{{ s.tenant.name }}</td><td>{{ s.plan.name|default:"-" }}</td><td>{{ s.end_date }}</td>
       <td>{% if s.is_expired %}<span class="badge" style="background:#fdecec;color:#e24b4a">منتهي</span>{% elif s.days_left <= 7 %}<span class="badge wait">{{ s.days_left }} أيام</span>{% else %}<span class="badge ok">{{ s.days_left }} يوم</span>{% endif %}</td>
-      <td>{{ s.get_status_display }}</td></tr>
+      <td>{{ s.get_status_display }}</td>
+      <td style="white-space:nowrap">
+        <form method="post" action="{% url 'dashboard:subscription_renew' s.pk %}" style="display:inline">{% csrf_token %}<button type="submit" style="background:#0f9d58;color:#fff;border:0;border-radius:7px;padding:6px 14px;font-size:.8rem;cursor:pointer">+30 يوم</button></form>
+        <form method="post" action="{% url 'dashboard:subscription_toggle' s.pk %}" style="display:inline;margin-right:4px">{% csrf_token %}<button type="submit" style="background:{% if s.status == 'active' %}#e24b4a{% else %}#0b4ea2{% endif %};color:#fff;border:0;border-radius:7px;padding:6px 14px;font-size:.8rem;cursor:pointer">{% if s.status == 'active' %}إيقاف{% else %}تفعيل{% endif %}</button></form>
+      </td></tr>
     {% empty %}<tr><td colspan="5" class="empty">لا توجد اشتراكات بعد</td></tr>{% endfor %}
     </tbody>
   </table>

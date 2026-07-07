@@ -145,7 +145,7 @@ body{background:#f0f4f8;min-height:100vh}
 
 {% if user.is_authenticated %}
 <nav class="sidebar" id="mainSidebar">
-  <div class="sidebar-brand"><div class="brand-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div><div><div class="brand-title">inexc<span style="color:#34d0ee">suite</span></div><div class="brand-sub">BUSINESS SUITE</div></div></div>
+  <a href="/platform/tenants/" class="sidebar-brand" style="text-decoration:none;cursor:pointer"><div class="brand-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div><div><div class="brand-title">inexc<span style="color:#34d0ee">suite</span></div><div class="brand-sub">BUSINESS SUITE</div></div></a>
 
   <form action="{% url 'set_language' %}" method="post" style="padding:10px 14px 0">
     {% csrf_token %}
@@ -260,10 +260,8 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="/platform/finance/" class="nav-link"><i class="bi bi-cash-stack"></i> {% trans "اللوحة المالية" %}</a>
       <a href="/platform/payouts/" class="nav-link"><i class="bi bi-cash-coin"></i> {% trans "طلبات السحب" %}</a>
       <a href="/platform/settings/" class="nav-link"><i class="bi bi-sliders"></i> {% trans "إعدادات المنصة" %}</a>
-      <a href="/dashboard/landing-page/" class="nav-link">صفحة الهبوط</a>
-<a href="/dashboard/landing-demo-requests/" style="display:flex;align-items:center;gap:10px;padding:10px 18px;color:inherit;text-decoration:none;border-radius:10px;">
-  <span>طلبات الديمو</span>
-</a>
+      <a href="/dashboard/landing-page/" class="nav-link"><i class="bi bi-window"></i> صفحة الهبوط</a>
+      <a href="/dashboard/landing-demo-requests/" class="nav-link"><i class="bi bi-inbox"></i> طلبات الديمو</a>
       <a href="/dashboard/landing-page/" class="nav-link"><i class="bi bi-file-earmark-lock"></i> الصفحات القانونية</a>
     </div>
   </div>
@@ -361,7 +359,37 @@ document.addEventListener('DOMContentLoaded',function(){
 {% endif %}
 <div class="{% if user.is_authenticated %}main-content{% endif %}">
   {% if user.is_authenticated %}
-  <div class="top-bar"><span class="page-title">{% block page_title %}{% endblock %}</span><div class="d-flex align-items-center gap-3"><span class="text-muted small"><i class="bi bi-person-circle me-1"></i>{{ user.username }}</span>{% block top_actions %}{% endblock %}</div></div>
+  <div class="top-bar"><span class="page-title">{% block page_title %}{% endblock %}</span><div class="d-flex align-items-center gap-3">
+{% if show_onboarding %}
+<div style="position:fixed;inset:0;background:rgba(15,36,68,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:18px;padding:34px 30px;max-width:420px;width:100%;text-align:center">
+    <div style="font-size:2.4rem;color:#0b4ea2;margin-bottom:14px"><i class="bi bi-stars"></i></div>
+    <h2 style="font-size:1.25rem;font-weight:800;color:#1e3a6e;margin-bottom:10px">مرحباً بك في inexcsuite</h2>
+    <p style="color:#64748b;font-size:.9rem;line-height:1.8;margin-bottom:20px">منظومتك جاهزة! ابدأ بإضافة عملائك من قسم "العملاء"، أنشئ أول فاتورة من "الفواتير"، أو أطلق أول حملة بريدية من "الحملات". كل قسم في القائمة الجانبية يرشدك خطوة بخطوة.</p>
+    <form method="post" action="/dashboard/dismiss-onboarding/">{% csrf_token %}
+      <button type="submit" style="background:#0b4ea2;color:#fff;border:0;border-radius:10px;padding:12px 32px;font-weight:700;cursor:pointer">ابدأ الآن</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% if user.is_superuser %}
+<div style="position:relative" id="notifWrap">
+  <button onclick="document.getElementById('notifMenu').style.display=document.getElementById('notifMenu').style.display==='block'?'none':'block'" style="background:none;border:0;position:relative;cursor:pointer;font-size:1.2rem;color:#1e3a6e;padding:6px">
+    <i class="bi bi-bell"></i>
+    {% if unread_notif_count %}<span style="position:absolute;top:0;left:0;background:#e24b4a;color:#fff;font-size:.65rem;font-weight:700;border-radius:999px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px">{{ unread_notif_count }}</span>{% endif %}
+  </button>
+  <div id="notifMenu" style="display:none;position:absolute;left:0;top:38px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);width:300px;max-height:360px;overflow-y:auto;z-index:1000">
+    <div style="padding:12px 16px;border-bottom:1px solid #eef2f7;font-weight:700;color:#1e3a6e;font-size:.9rem">الإشعارات</div>
+    {% for n in recent_notifications %}
+    <a href="{{ n.url|default:'#' }}" style="display:block;padding:10px 16px;border-bottom:1px solid #f4f6f9;text-decoration:none;color:inherit;{% if not n.is_read %}background:#f0f7ff{% endif %}">
+      <div style="display:flex;gap:8px;align-items:start"><i class="bi {{ n.icon }}" style="color:#0b4ea2;margin-top:2px"></i>
+      <div><div style="font-size:.85rem;font-weight:600">{{ n.title }}</div><div style="font-size:.78rem;color:#64748b">{{ n.body }}</div></div></div>
+    </a>
+    {% empty %}<div style="padding:20px;text-align:center;color:#94a3b8;font-size:.85rem">لا إشعارات</div>{% endfor %}
+  </div>
+</div>
+{% endif %}
+<span class="text-muted small"><i class="bi bi-person-circle me-1"></i>{{ user.username }}</span>{% block top_actions %}{% endblock %}</div></div>
   {% endif %}
   {% if messages %}<div class="messages-container">{% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}</div>{% endif %}
   <div class="{% if user.is_authenticated %}content-area{% endif %}">{% if active_tenant_context %}

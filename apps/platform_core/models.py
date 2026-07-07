@@ -153,6 +153,7 @@ class TenantMembership(models.Model):
     is_active = models.BooleanField(default=True)
 
     permissions = models.JSONField(default=default_permissions)
+    onboarding_seen = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -390,3 +391,34 @@ class LandingClient(models.Model):
 
     def __str__(self):
         return self.name
+
+class AdminTOTP(models.Model):
+    """رمز 2FA للمدير العام — منفصل عن User لعدم لمس نظام المصادقة الأساسي."""
+    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, related_name='totp')
+    secret = models.CharField(max_length=64)
+    is_enabled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "رمز التحقق بخطوتين"
+        verbose_name_plural = "رموز التحقق بخطوتين"
+
+    def __str__(self):
+        return f"2FA — {self.user.username}"
+
+class AdminNotification(models.Model):
+    """إشعار داخلي للمدير العام."""
+    title = models.CharField(max_length=200)
+    body = models.CharField(max_length=300, blank=True)
+    icon = models.CharField(max_length=40, default="bi-bell")
+    url = models.CharField(max_length=200, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "إشعار"
+        verbose_name_plural = "الإشعارات"
+
+    def __str__(self):
+        return self.title

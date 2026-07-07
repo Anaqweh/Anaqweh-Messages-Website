@@ -62,6 +62,14 @@ class TenantPermissionMiddleware:
             return self.get_response(request)
 
         membership = active_membership_for(user)
+        if membership and getattr(membership, "tenant", None):
+            try:
+                from apps.platform_core.models import TenantSubscription
+                sub = TenantSubscription.objects.filter(tenant=membership.tenant).first()
+                if sub and sub.is_expired and not path.startswith(("/subscription-expired/", "/accounts/logout/", "/static/", "/media/")):
+                    return redirect("subscription_expired")
+            except Exception:
+                pass
         permissions = permissions_for_membership(membership)
 
         if path.startswith(self.PLATFORM_ONLY_PREFIXES):
