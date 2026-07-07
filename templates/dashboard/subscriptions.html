@@ -38,6 +38,9 @@
       <div style="display:grid;gap:10px">
         <input name="name" required placeholder="اسم الباقة" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">
         <input name="price" type="number" step="0.01" placeholder="السعر الشهري" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">
+        <textarea name="features" rows="4" placeholder="المزايا — كل ميزة في سطر" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.9rem;color:#475569"><input type="checkbox" name="is_featured"> الأكثر شيوعاً (مميّزة)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:.9rem;color:#475569"><input type="checkbox" name="show_on_landing" checked> عرض في صفحة الهبوط</label>
         <button type="submit" style="background:#0f9d58;color:#fff;border:0;border-radius:9px;padding:11px;cursor:pointer">إضافة</button>
       </div>
     </form>

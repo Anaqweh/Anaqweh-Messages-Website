@@ -1,0 +1,86 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+<style>
+.demo-leads-page { padding: 22px; direction: rtl; }
+.demo-leads-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.demo-leads-title h1 { margin:0; font-size:28px; color:#12366d; font-weight:900; }
+.demo-leads-title p { margin:6px 0 0; color:#6b7890; }
+.demo-leads-stats { display:flex; gap:10px; flex-wrap:wrap; }
+.demo-stat { background:#fff; border:1px solid #dbe7f5; border-radius:14px; padding:12px 16px; min-width:120px; box-shadow:0 10px 24px rgba(22,52,98,.08); }
+.demo-stat b { display:block; font-size:22px; color:#1769ff; }
+.demo-table-card { background:#fff; border:1px solid #dbe7f5; border-radius:18px; overflow:auto; box-shadow:0 12px 30px rgba(22,52,98,.08); }
+.demo-table { width:100%; border-collapse:collapse; min-width:980px; }
+.demo-table th,.demo-table td { padding:14px 12px; border-bottom:1px solid #edf2f8; text-align:right; vertical-align:top; }
+.demo-table th { background:#f6f9fd; color:#19396f; font-weight:900; }
+.demo-badge { display:inline-flex; padding:6px 10px; border-radius:999px; background:#eef6ff; color:#1769ff; font-weight:800; }
+.demo-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.demo-actions select { border:1px solid #cfdcec; border-radius:10px; padding:7px 8px; }
+.demo-actions button,.demo-wa { border:0; border-radius:10px; padding:8px 12px; font-weight:800; cursor:pointer; }
+.demo-actions button { background:#1769ff; color:#fff; }
+.demo-wa { background:#16a36f; color:#fff; display:inline-block; }
+@media(max-width:700px) { .demo-leads-head { display:block; } .demo-leads-stats { margin-top:12px; } .demo-leads-page { padding:14px; } }
+</style>
+
+<div class="demo-leads-page">
+  <div class="demo-leads-head">
+    <div class="demo-leads-title">
+      <h1>طلبات الديمو</h1>
+      <p>الطلبات القادمة من صفحة الهبوط العامة.</p>
+    </div>
+    <div class="demo-leads-stats">
+      <div class="demo-stat"><span>الإجمالي</span><b>{{ total_count }}</b></div>
+      <div class="demo-stat"><span>الجديدة</span><b>{{ new_count }}</b></div>
+    </div>
+  </div>
+
+  <div class="demo-table-card">
+    <table class="demo-table">
+      <thead>
+        <tr>
+          <th>التاريخ</th>
+          <th>الاسم</th>
+          <th>الجهة</th>
+          <th>التواصل</th>
+          <th>الاهتمام</th>
+          <th>الملاحظة</th>
+          <th>الحالة</th>
+          <th>إجراء</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lead in leads %}
+        <tr>
+          <td>{{ lead.created_at|date:"Y-m-d H:i" }}</td>
+          <td><strong>{{ lead.name }}</strong></td>
+          <td>{{ lead.company|default:"-" }}</td>
+          <td>
+            <div>{{ lead.phone }}</div>
+            <div>{{ lead.email|default:"-" }}</div>
+          </td>
+          <td><span class="demo-badge">{{ lead.focus|default:"-" }}</span></td>
+          <td>{{ lead.message|default:"-"|linebreaksbr }}</td>
+          <td>{{ lead.get_status_display }}</td>
+          <td>
+            <div class="demo-actions">
+              {% if lead.whatsapp_url %}<a class="demo-wa" href="{{ lead.whatsapp_url }}" target="_blank" rel="noopener">واتساب</a>{% endif %}
+              <form method="post" action="">
+                {% csrf_token %}
+                <input type="hidden" name="lead_id" value="{{ lead.id }}">
+                <select name="status">
+                  {% for value,label in status_choices %}
+                    <option value="{{ value }}" {% if lead.status == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit">حفظ</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;color:#7a8798;padding:26px;">لا توجد طلبات حالياً.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

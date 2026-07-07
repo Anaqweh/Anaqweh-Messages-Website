@@ -1,0 +1,123 @@
+{% extends "dashboard/base.html" %}
+{% block heading %}إدارة صفحة الهبوط{% endblock %}
+{% block content %}
+{% if saved %}<div style="background:#e6f7ee;color:#0f9d58;padding:13px 18px;border-radius:12px;margin-bottom:18px"><i class="bi bi-check-circle"></i> تم حفظ التعديلات بنجاح</div>{% endif %}
+<div style="margin-bottom:16px"><a href="{{ public_url }}" target="_blank" style="color:#0b4ea2;text-decoration:none"><i class="bi bi-box-arrow-up-left"></i> معاينة صفحة الهبوط</a></div>
+<form method="post">{% csrf_token %}
+
+<div class="panel" style="margin-bottom:18px">
+  <h2><i class="bi bi-stars"></i> الواجهة الرئيسية (Hero)</h2>
+  <div style="display:grid;gap:12px">
+    <div><label style="font-size:.85rem;color:#475569">الشارة العلوية</label><input name="hero_badge" value="{{ lc.hero_badge }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+    <div><label style="font-size:.85rem;color:#475569">العنوان الرئيسي</label><input name="hero_title" value="{{ lc.hero_title }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+    <div><label style="font-size:.85rem;color:#475569">الوصف</label><textarea name="hero_desc" rows="2" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px">{{ lc.hero_desc }}</textarea></div>
+  </div>
+</div>
+
+<div class="panel" style="margin-bottom:18px">
+  <h2><i class="bi bi-columns-gap"></i> الركيزتان</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="display:grid;gap:8px">
+      <label style="font-size:.85rem;color:#0b4ea2;font-weight:600">الركيزة 1</label>
+      <input name="pillar1_title" value="{{ lc.pillar1_title }}" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">
+      <textarea name="pillar1_desc" rows="2" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">{{ lc.pillar1_desc }}</textarea>
+    </div>
+    <div style="display:grid;gap:8px">
+      <label style="font-size:.85rem;color:#0b4ea2;font-weight:600">الركيزة 2</label>
+      <input name="pillar2_title" value="{{ lc.pillar2_title }}" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">
+      <textarea name="pillar2_desc" rows="2" style="padding:10px;border:1px solid #cbd5e1;border-radius:9px">{{ lc.pillar2_desc }}</textarea>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-bottom:18px">
+  <h2><i class="bi bi-type"></i> عناوين الأقسام</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div><label style="font-size:.85rem;color:#475569">عنوان الركائز</label><input name="features_title" value="{{ lc.features_title }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+    <div><label style="font-size:.85rem;color:#475569">عنوان الخدمات</label><input name="services_title" value="{{ lc.services_title }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+    <div><label style="font-size:.85rem;color:#475569">عنوان الأسعار</label><input name="pricing_title" value="{{ lc.pricing_title }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+    <div><label style="font-size:.85rem;color:#475569">وصف الأسعار</label><input name="pricing_sub" value="{{ lc.pricing_sub }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+  </div>
+</div>
+
+<div class="panel" style="margin-bottom:18px">
+  <h2><i class="bi bi-telephone"></i> التذييل والتواصل</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div><label style="font-size:.85rem;color:#475569">اسم الشركة</label><input name="footer_company" value="{{ lc.footer_company }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+    <div><label style="font-size:.85rem;color:#475569">الموقع</label><input name="footer_location" value="{{ lc.footer_location }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+    <div><label style="font-size:.85rem;color:#475569">رقم واتساب (دون +)</label><input name="whatsapp_phone" value="{{ lc.whatsapp_phone }}" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:9px"></div>
+  </div>
+</div>
+
+<button type="submit" style="background:#0b4ea2;color:#fff;border:0;border-radius:11px;padding:14px 40px;font-weight:700;font-size:1.05rem;cursor:pointer"><i class="bi bi-check-lg"></i> حفظ التعديلات</button>
+</form>
+<div class="panel" style="margin-bottom:18px;margin-top:6px">
+  <h2><i class="bi bi-tags"></i> باقات الأسعار</h2>
+
+  {% for p in plans %}
+  <form method="post" style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px;background:#fbfcfe">{% csrf_token %}
+    <input type="hidden" name="action" value="plan_edit">
+    <input type="hidden" name="plan_id" value="{{ p.pk }}">
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div><label style="font-size:.8rem;color:#475569">اسم الباقة</label><input name="p_name" value="{{ p.name }}" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"></div>
+      <div><label style="font-size:.8rem;color:#475569">السعر</label><input name="p_price" type="number" step="0.01" value="{{ p.price_monthly }}" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"></div>
+      <div><label style="font-size:.8rem;color:#475569">العملة</label><input name="p_currency" value="{{ p.currency }}" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"></div>
+    </div>
+    <div style="margin-bottom:10px"><label style="font-size:.8rem;color:#475569">وصف قصير</label><input name="p_desc" value="{{ p.description }}" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px"></div>
+    <div style="margin-bottom:10px"><label style="font-size:.8rem;color:#475569">المزايا (كل ميزة في سطر)</label><textarea name="p_features" rows="4" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px">{{ p.features }}</textarea></div>
+    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem"><input type="checkbox" name="p_featured" {% if p.is_featured %}checked{% endif %}> الأكثر شيوعاً</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem"><input type="checkbox" name="p_landing" {% if p.show_on_landing %}checked{% endif %}> عرض في الهبوط</label>
+      <button type="submit" style="background:#0b4ea2;color:#fff;border:0;border-radius:8px;padding:9px 20px;font-weight:600;cursor:pointer;margin-right:auto">حفظ</button>
+    </div>
+  </form>
+  <form method="post" onsubmit="return confirm('حذف باقة {{ p.name }}؟')" style="margin-top:-8px;margin-bottom:16px;text-align:left">{% csrf_token %}
+    <input type="hidden" name="action" value="plan_delete"><input type="hidden" name="plan_id" value="{{ p.pk }}">
+    <button type="submit" style="background:none;border:0;color:#e24b4a;font-size:.82rem;cursor:pointer">✗ حذف هذه الباقة</button>
+  </form>
+  {% empty %}
+  <p style="color:#94a3b8;font-size:.9rem;margin-bottom:14px">لا توجد باقات بعد — أضف أول باقة أدناه. (حالياً تظهر باقات افتراضية في الهبوط)</p>
+  {% endfor %}
+
+  <div style="border:1.5px dashed #cbd5e1;border-radius:12px;padding:16px;margin-top:8px">
+    <div style="font-weight:700;color:#0b4ea2;margin-bottom:10px"><i class="bi bi-plus-circle"></i> إضافة باقة جديدة</div>
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="plan_add">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:10px">
+        <input name="p_name" required placeholder="اسم الباقة" style="padding:9px;border:1px solid #cbd5e1;border-radius:8px">
+        <input name="p_price" type="number" step="0.01" placeholder="السعر" style="padding:9px;border:1px solid #cbd5e1;border-radius:8px">
+        <input name="p_currency" value="AED" style="padding:9px;border:1px solid #cbd5e1;border-radius:8px">
+      </div>
+      <input name="p_desc" placeholder="وصف قصير" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px">
+      <textarea name="p_features" rows="3" placeholder="المزايا — كل ميزة في سطر" style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:10px"></textarea>
+      <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.85rem"><input type="checkbox" name="p_featured"> الأكثر شيوعاً</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.85rem"><input type="checkbox" name="p_landing" checked> عرض في الهبوط</label>
+        <button type="submit" style="background:#0f9d58;color:#fff;border:0;border-radius:8px;padding:9px 20px;font-weight:600;cursor:pointer;margin-right:auto">إضافة</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel" style="margin-bottom:18px">
+  <h2><i class="bi bi-buildings"></i> قطاعات نخدمها</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+    {% for cl in clients %}
+    <div style="display:flex;align-items:center;gap:8px;background:#f1f5f9;border-radius:9px;padding:8px 14px">
+      <span style="font-weight:600;color:#334155"><i class="bi {{ cl.icon }}"></i> {{ cl.name }}{% if cl.is_featured %} <i class="bi bi-star-fill" style="color:#f7b733;font-size:.8rem"></i>{% endif %}</span>
+      <form method="post" onsubmit="return confirm('حذف {{ cl.name }}؟')" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="action" value="client_delete"><input type="hidden" name="client_id" value="{{ cl.pk }}">
+        <button type="submit" style="background:none;border:0;color:#e24b4a;cursor:pointer;font-size:1rem;line-height:1">×</button>
+      </form>
+    </div>
+    {% empty %}<span style="color:#94a3b8;font-size:.9rem">لا توجد شركات بعد — أضف أول شركة أدناه</span>{% endfor %}
+  </div>
+  <form method="post" style="display:flex;gap:10px">{% csrf_token %}
+    <input type="hidden" name="action" value="client_add">
+    <input name="c_name" required placeholder="اسم القطاع (مثل: مؤسسات تعليمية)" style="flex:1;padding:10px;border:1px solid #cbd5e1;border-radius:9px"><input name="c_icon" placeholder="bi-building" value="bi-building" style="width:150px;padding:10px;border:1px solid #cbd5e1;border-radius:9px" title="أيقونة Bootstrap"><label style="display:flex;align-items:center;gap:6px;font-size:.85rem;white-space:nowrap"><input type="checkbox" name="c_featured"> مميّز</label>
+    <button type="submit" style="background:#0f9d58;color:#fff;border:0;border-radius:9px;padding:10px 24px;font-weight:600;cursor:pointer"><i class="bi bi-plus-lg"></i> إضافة</button>
+  </form>
+</div>
+
+<p style="margin-top:16px;color:#94a3b8;font-size:.85rem"><i class="bi bi-info-circle"></i> الخدمات التسع والباقات تُدار من صفحة الاشتراكات.</p>
+{% endblock %}

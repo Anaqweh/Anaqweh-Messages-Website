@@ -4,6 +4,8 @@ from . import views
 app_name = "dashboard"
 
 urlpatterns = [
+    path("landing-demo-requests/", views.landing_demo_requests, name="landing_demo_requests"),
+    path('landing-page/', views.landing_page_admin, name='landing_page_admin'),
     path("", views.dashboard_home, name="home"),
     path("companies/", views.companies, name="companies"),
     path("customers/", views.customers, name="customers"),

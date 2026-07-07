@@ -1,3 +1,4 @@
+from django.views.generic import RedirectView
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
@@ -6,6 +7,8 @@ from django.urls import re_path
 from django.views.static import serve
 
 urlpatterns = [
+    path("favicon.ico", RedirectView.as_view(url="/static/img/favicon.png", permanent=True)),
+    path('', include('apps.marketing.urls', namespace='marketing')),
     path('i18n/', include('django.conf.urls.i18n')),  # تبديل اللغة
     path('crm/', include('apps.crm.urls', namespace='crm')),
     path('tasks/', include('apps.tasks.urls', namespace='tasks')),

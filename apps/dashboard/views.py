@@ -1,3 +1,4 @@
+from django.http import HttpResponseForbidden
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 
@@ -210,7 +211,12 @@ def plan_add(request):
         price = (request.POST.get("price") or "0").strip()
         desc = (request.POST.get("description") or "").strip()
         if name:
-            SubscriptionPlan.objects.create(name=name, price_monthly=price or 0, description=desc)
+            SubscriptionPlan.objects.create(
+                name=name, price_monthly=price or 0, description=desc,
+                features=(request.POST.get("features") or "").strip(),
+                is_featured=bool(request.POST.get("is_featured")),
+                show_on_landing=bool(request.POST.get("show_on_landing")),
+            )
     return redirect("dashboard:subscriptions")
 
 
@@ -235,3 +241,132 @@ def subscription_save(request):
                     defaults={"plan": plan, "start_date": start, "end_date": end, "status": status},
                 )
     return redirect("dashboard:subscriptions")
+
+
+
+
+
+
+
+
+@login_required
+def landing_page_admin(request):
+    if not _is_admin(request.user):
+        return HttpResponseForbidden("Forbidden")
+    from apps.platform_core.models import LandingContent
+    obj = LandingContent.get_solo()
+    fields = ["hero_badge","hero_title","hero_desc","features_title","services_title",
+              "pricing_title","pricing_sub","pillar1_title","pillar1_desc",
+              "pillar2_title","pillar2_desc","footer_company","footer_location","whatsapp_phone"]
+    from apps.platform_core.models import SubscriptionPlan
+    saved = False
+    if request.method == "POST":
+        action = request.POST.get("action", "content")
+        if action == "content":
+            for f in fields:
+                setattr(obj, f, (request.POST.get(f) or "").strip())
+            obj.save()
+            saved = True
+        elif action == "plan_add":
+            name = (request.POST.get("p_name") or "").strip()
+            if name:
+                SubscriptionPlan.objects.create(
+                    name=name,
+                    price_monthly=(request.POST.get("p_price") or "0").strip() or 0,
+                    currency=(request.POST.get("p_currency") or "AED").strip() or "AED",
+                    description=(request.POST.get("p_desc") or "").strip(),
+                    features=(request.POST.get("p_features") or "").strip(),
+                    is_featured=bool(request.POST.get("p_featured")),
+                    show_on_landing=bool(request.POST.get("p_landing")),
+                )
+            saved = True
+        elif action == "plan_edit":
+            p = SubscriptionPlan.objects.filter(pk=request.POST.get("plan_id")).first()
+            if p:
+                p.name = (request.POST.get("p_name") or p.name).strip()
+                p.price_monthly = (request.POST.get("p_price") or "0").strip() or 0
+                p.currency = (request.POST.get("p_currency") or "AED").strip() or "AED"
+                p.description = (request.POST.get("p_desc") or "").strip()
+                p.features = (request.POST.get("p_features") or "").strip()
+                p.is_featured = bool(request.POST.get("p_featured"))
+                p.show_on_landing = bool(request.POST.get("p_landing"))
+                p.save()
+            saved = True
+        elif action == "plan_delete":
+            SubscriptionPlan.objects.filter(pk=request.POST.get("plan_id")).delete()
+            saved = True
+        elif action == "client_add":
+            from apps.platform_core.models import LandingClient
+            cname = (request.POST.get("c_name") or "").strip()
+            if cname:
+                LandingClient.objects.create(name=cname, icon=(request.POST.get("c_icon") or "bi-building").strip(), is_featured=bool(request.POST.get("c_featured")))
+            saved = True
+        elif action == "client_delete":
+            from apps.platform_core.models import LandingClient
+            LandingClient.objects.filter(pk=request.POST.get("client_id")).delete()
+            saved = True
+    plans = SubscriptionPlan.objects.all().order_by("sort_order", "price_monthly")
+    from apps.platform_core.models import LandingClient
+    clients = LandingClient.objects.all()
+    return render(request, "dashboard/landing_page.html", {
+        "public_url": "https://inexcsuite.com/landing/",
+        "lc": obj, "saved": saved, "plans": plans, "clients": clients,
+    })
+
+
+from django.contrib.auth.decorators import login_required as _landing_demo_login_required
+
+
+def _landing_demo_admin_allowed(user):
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+    try:
+        from apps.platform_core.navigation import is_platform_admin
+        return bool(is_platform_admin(user))
+    except Exception:
+        return False
+
+
+@_landing_demo_login_required
+def landing_demo_requests(request):
+    from django.http import HttpResponseForbidden
+    from django.shortcuts import get_object_or_404, redirect, render
+    import re
+    from apps.platform_core.models import LandingDemoRequest
+
+    if not _landing_demo_admin_allowed(request.user):
+        return HttpResponseForbidden("Forbidden")
+
+    if request.method == "POST":
+        lead = get_object_or_404(LandingDemoRequest, pk=request.POST.get("lead_id"))
+        status = request.POST.get("status")
+        allowed = dict(LandingDemoRequest.STATUS_CHOICES)
+        if status in allowed:
+            lead.status = status
+            lead.save(update_fields=["status", "updated_at"])
+        return redirect("dashboard:landing_demo_requests")
+
+    qs = LandingDemoRequest.objects.all()
+    status = (request.GET.get("status") or "").strip()
+    if status:
+        qs = qs.filter(status=status)
+
+    leads = list(qs[:200])
+    for lead in leads:
+        digits = re.sub(r"\\D+", "", lead.phone or "")
+        if digits.startswith("00"):
+            digits = digits[2:]
+        if digits.startswith("0"):
+            digits = "971" + digits[1:]
+        lead.whatsapp_url = ("https://wa.me/" + digits) if digits else ""
+
+    context = {
+        "leads": leads,
+        "status_filter": status,
+        "status_choices": LandingDemoRequest.STATUS_CHOICES,
+        "total_count": LandingDemoRequest.objects.count(),
+        "new_count": LandingDemoRequest.objects.filter(status="new").count(),
+    }
+    return render(request, "dashboard/landing_demo_requests.html", context)

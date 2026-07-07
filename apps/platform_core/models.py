@@ -250,6 +250,9 @@ class SubscriptionPlan(models.Model):
     currency = models.CharField("العملة", max_length=10, default="AED")
     description = models.TextField("الوصف/المزايا", blank=True)
     is_active = models.BooleanField("متاحة", default=True)
+    features = models.TextField("المزايا (كل ميزة في سطر)", blank=True)
+    is_featured = models.BooleanField("الأكثر شيوعاً", default=False)
+    show_on_landing = models.BooleanField("عرض في صفحة الهبوط", default=True)
     sort_order = models.PositiveIntegerField("الترتيب", default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -295,3 +298,89 @@ class TenantSubscription(models.Model):
     def days_left(self):
         from django.utils import timezone
         return (self.end_date - timezone.localdate()).days
+
+
+class LandingDemoRequest(models.Model):
+    STATUS_CHOICES = (
+        ("new", "جديد"),
+        ("contacted", "تم التواصل"),
+        ("qualified", "مهتم"),
+        ("closed", "مغلق"),
+    )
+
+    name = models.CharField(max_length=160)
+    company = models.CharField(max_length=180, blank=True)
+    phone = models.CharField(max_length=60)
+    email = models.EmailField(blank=True)
+    focus = models.CharField(max_length=140, blank=True)
+    message = models.TextField(blank=True)
+    source = models.CharField(max_length=80, default="landing")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new", db_index=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "-created_at"], name="idx_landing_demo_status"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} - {self.company or self.phone}"
+
+
+class LandingContent(models.Model):
+    """محتوى صفحة الهبوط القابل للتعديل — صفّ واحد فقط."""
+    # الهيرو
+    hero_badge = models.CharField(max_length=120, blank=True, default="منظومة أعمال متكاملة")
+    hero_title = models.CharField(max_length=250, blank=True, default="أدر حملاتك البريدية وفواتيرك من مكان واحد احترافي")
+    hero_desc = models.TextField(blank=True, default="inexcsuite تجمع قوة الحملات البريدية الاحترافية مع نظام فواتير ودفع متكامل.")
+    # عناوين الأقسام
+    features_title = models.CharField(max_length=150, blank=True, default="ركيزتان لنمو أعمالك")
+    services_title = models.CharField(max_length=150, blank=True, default="كل ما تحتاجه لإدارة أعمالك")
+    pricing_title = models.CharField(max_length=150, blank=True, default="باقات تناسب نموّك")
+    pricing_sub = models.CharField(max_length=200, blank=True, default="ابدأ بتجربة مجانية 14 يوماً — بلا التزام")
+    # الركيزتان
+    pillar1_title = models.CharField(max_length=120, blank=True, default="الحملات البريدية")
+    pillar1_desc = models.TextField(blank=True, default="صمّم وأرسل حملات بريدية احترافية تصل لعملائك في الوقت المناسب.")
+    pillar2_title = models.CharField(max_length=120, blank=True, default="الفواتير والدفع")
+    pillar2_desc = models.TextField(blank=True, default="أنشئ فواتير أنيقة وأرسلها لعملائك واستقبل مدفوعاتك بسلاسة.")
+    # التذييل / التواصل
+    footer_company = models.CharField(max_length=150, blank=True, default="شركة التميز الابتكاري")
+    footer_location = models.CharField(max_length=150, blank=True, default="الإمارات — دبي")
+    whatsapp_phone = models.CharField(max_length=40, blank=True, default="971543475500")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "محتوى صفحة الهبوط"
+        verbose_name_plural = "محتوى صفحة الهبوط"
+
+    def __str__(self):
+        return "محتوى صفحة الهبوط"
+
+    @classmethod
+    def get_solo(cls):
+        obj = cls.objects.first()
+        if obj is None:
+            obj = cls.objects.create()
+        return obj
+
+
+class LandingClient(models.Model):
+    """قطاع/جهة نخدمها — تُعرض في صفحة الهبوط."""
+    name = models.CharField("الاسم", max_length=160)
+    icon = models.CharField("الأيقونة (Bootstrap Icon)", max_length=60, blank=True, default="bi-building")
+    is_featured = models.BooleanField("مميّز", default=False)
+    is_active = models.BooleanField("ظاهرة", default=True)
+    sort_order = models.PositiveIntegerField("الترتيب", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        verbose_name = "شركة معتمِدة"
+        verbose_name_plural = "الشركات المعتمِدة"
+
+    def __str__(self):
+        return self.name
