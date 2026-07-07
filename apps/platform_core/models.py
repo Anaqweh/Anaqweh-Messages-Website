@@ -247,6 +247,7 @@ class SubscriptionPlan(models.Model):
     """باقات الاشتراك في المنصة."""
     name = models.CharField("اسم الباقة", max_length=80)
     price_monthly = models.DecimalField("السعر الشهري", max_digits=10, decimal_places=2, default=0)
+    price_yearly = models.DecimalField("السعر السنوي", max_digits=10, decimal_places=2, default=0)
     currency = models.CharField("العملة", max_length=10, default="AED")
     description = models.TextField("الوصف/المزايا", blank=True)
     is_active = models.BooleanField("متاحة", default=True)
@@ -349,6 +350,11 @@ class LandingContent(models.Model):
     pillar2_desc = models.TextField(blank=True, default="أنشئ فواتير أنيقة وأرسلها لعملائك واستقبل مدفوعاتك بسلاسة.")
     # التذييل / التواصل
     footer_company = models.CharField(max_length=150, blank=True, default="شركة التميز الابتكاري")
+    footer_tagline = models.CharField(max_length=200, blank=True, default="inexcsuite أحد أنظمة شركة التميز الابتكاري")
+    parent_logo = models.ImageField("شعار الشركة الأم", upload_to="landing/", blank=True, null=True)
+    show_parent_logo = models.BooleanField("عرض شعار الشركة الأم", default=True)
+    privacy_content = models.TextField("محتوى سياسة الخصوصية", blank=True)
+    terms_content = models.TextField("محتوى شروط الاستخدام", blank=True)
     footer_location = models.CharField(max_length=150, blank=True, default="الإمارات — دبي")
     whatsapp_phone = models.CharField(max_length=40, blank=True, default="971543475500")
     updated_at = models.DateTimeField(auto_now=True)

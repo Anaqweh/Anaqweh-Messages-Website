@@ -257,7 +257,7 @@ def landing_page_admin(request):
     obj = LandingContent.get_solo()
     fields = ["hero_badge","hero_title","hero_desc","features_title","services_title",
               "pricing_title","pricing_sub","pillar1_title","pillar1_desc",
-              "pillar2_title","pillar2_desc","footer_company","footer_location","whatsapp_phone"]
+              "pillar2_title","pillar2_desc","footer_company","footer_tagline","footer_location","whatsapp_phone","privacy_content","terms_content"]
     from apps.platform_core.models import SubscriptionPlan
     saved = False
     if request.method == "POST":
@@ -265,6 +265,9 @@ def landing_page_admin(request):
         if action == "content":
             for f in fields:
                 setattr(obj, f, (request.POST.get(f) or "").strip())
+            if request.FILES.get("parent_logo"):
+                obj.parent_logo = request.FILES["parent_logo"]
+            obj.show_parent_logo = bool(request.POST.get("show_parent_logo"))
             obj.save()
             saved = True
         elif action == "plan_add":
@@ -273,6 +276,7 @@ def landing_page_admin(request):
                 SubscriptionPlan.objects.create(
                     name=name,
                     price_monthly=(request.POST.get("p_price") or "0").strip() or 0,
+                    price_yearly=(request.POST.get("p_price_yearly") or "0").strip() or 0,
                     currency=(request.POST.get("p_currency") or "AED").strip() or "AED",
                     description=(request.POST.get("p_desc") or "").strip(),
                     features=(request.POST.get("p_features") or "").strip(),
@@ -285,6 +289,7 @@ def landing_page_admin(request):
             if p:
                 p.name = (request.POST.get("p_name") or p.name).strip()
                 p.price_monthly = (request.POST.get("p_price") or "0").strip() or 0
+                p.price_yearly = (request.POST.get("p_price_yearly") or "0").strip() or 0
                 p.currency = (request.POST.get("p_currency") or "AED").strip() or "AED"
                 p.description = (request.POST.get("p_desc") or "").strip()
                 p.features = (request.POST.get("p_features") or "").strip()

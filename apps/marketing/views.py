@@ -170,3 +170,20 @@ setTimeout(function(){{ window.location.href = {script_url}; }}, 1600);
 </script>
 </body>
 </html>""")
+
+def _legal_lc():
+    try:
+        from apps.platform_core.models import LandingContent
+        return LandingContent.get_solo()
+    except Exception:
+        return None
+
+
+def privacy(request):
+    from django.shortcuts import render
+    return render(request, "marketing/legal.html", {"page": "privacy", "lc": _legal_lc()})
+
+
+def terms(request):
+    from django.shortcuts import render
+    return render(request, "marketing/legal.html", {"page": "terms", "lc": _legal_lc()})

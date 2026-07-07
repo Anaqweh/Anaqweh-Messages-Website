@@ -20,3 +20,4 @@ django-ratelimit==4.1.0
 stripe==15.2.1
 qrcode==8.0
 weasyprint==69.0
+sentry-sdk==2.64.0

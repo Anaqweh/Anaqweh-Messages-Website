@@ -169,6 +169,13 @@ body{background:#fff;color:var(--ink);overflow-x:hidden}
   .fcard .ic,.svc .si{width:52px;height:52px}
   .client-chip{padding:10px 15px;font-size:.85rem}
 }
+.bill-toggle{display:flex;justify-content:center;gap:0;margin:0 auto 30px;background:#eef2f7;border-radius:999px;padding:5px;width:fit-content}
+.bill-toggle button{border:0;background:none;padding:9px 24px;border-radius:999px;font-family:'Tajawal';font-weight:700;font-size:.92rem;color:#64748b;cursor:pointer;transition:.2s}
+.bill-toggle button.on{background:#fff;color:var(--blue);box-shadow:0 2px 8px rgba(30,58,110,.12)}
+.bill-save{color:#0f9d58;font-size:.78rem;font-weight:700;margin-right:4px}
+.pprice .yr{display:none}
+body.yearly .pprice .mo{display:none}
+body.yearly .pprice .yr{display:inline}
 </style>
 </head>
 <body>
@@ -181,7 +188,7 @@ body{background:#fff;color:var(--ink);overflow-x:hidden}
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <div class="tag"><i class="bi bi-stars"></i> {{ lc.hero_badge|default:"منظومة أعمال متكاملة" }}</div>
+  <div class="tag"><i class="bi bi-grid-3x3-gap-fill"></i> {{ lc.hero_badge|default:"منظومة أعمال متكاملة" }}</div>
   <h1>{{ lc.hero_title|default:"أدر حملاتك البريدية وفواتيرك من مكان واحد احترافي" }}</h1>
   <p>{{ lc.hero_desc|default:"inexcsuite تجمع قوة الحملات البريدية الاحترافية مع نظام فواتير ودفع متكامل — تجربة واحدة سلسة تدير بها تواصلك مع عملائك وتحصيل مستحقاتك بثقة." }}</p>
   <div class="btns"><a href="#demo" class="btn-p">اطلب عرضاً توضيحياً</a><a href="#features" class="btn-g">تعرّف أكثر</a></div>
@@ -243,12 +250,13 @@ body{background:#fff;color:var(--ink);overflow-x:hidden}
 
 <section class="sec" id="pricing" style="padding-top:0"><div class="wrap">
   <div class="sec-h"><div class="k">الأسعار</div><h2>{{ lc.pricing_title|default:"باقات تناسب نموّك" }}</h2><p>{{ lc.pricing_sub|default:"ابدأ بتجربة مجانية 14 يوماً — بلا التزام" }}</p></div>
-  {% if plans %}<div class="pricing">
+  {% if plans %}<div class="bill-toggle"><button type="button" class="on" onclick="document.body.classList.remove('yearly');this.classList.add('on');this.nextElementSibling.classList.remove('on')">شهري</button><button type="button" onclick="document.body.classList.add('yearly');this.classList.add('on');this.previousElementSibling.classList.remove('on')">سنوي <span class="bill-save">شهران مجاناً</span></button></div>
+  <div class="pricing">
     {% for p in plans %}
     <div class="pcard{% if p.is_featured %} feat{% endif %}">
       {% if p.is_featured %}<div class="pop">الأكثر شيوعاً</div>{% endif %}
       <div class="pname">{{ p.name }}</div>
-      <div class="pprice">{{ p.price_monthly|floatformat:"-2" }} <small>{{ p.currency }}/شهر</small></div>
+      <div class="pprice"><span class="mo">{{ p.price_monthly|floatformat:"-2" }} <small>{{ p.currency }}/شهر</small></span><span class="yr">{{ p.price_yearly|floatformat:"-2" }} <small>{{ p.currency }}/سنة</small></span></div>
       <div class="pdesc">{{ p.description }}</div>
       <ul>
         {% for f in p.feature_list %}<li><i class="bi bi-check-circle-fill"></i> {{ f }}</li>{% endfor %}
@@ -347,9 +355,11 @@ body{background:#fff;color:var(--ink);overflow-x:hidden}
 
 <footer class="ft"><div class="wrap">
   <div class="fb"><div class="logo"><i class="bi bi-grid-3x3-gap-fill"></i></div><div class="bt">inexc<span>suite</span></div></div>
+  {% if lc.parent_logo and lc.show_parent_logo %}<div style="margin-bottom:14px"><img src="{{ lc.parent_logo.url }}" alt="شركة التميز الابتكاري" style="max-height:70px"></div>{% endif %}
   <div class="prod">ضمن منظومة {{ lc.footer_company|default:"شركة التميز الابتكاري" }}</div>
   <div class="loc"><i class="bi bi-geo-alt"></i> {{ lc.footer_location|default:"الإمارات — دبي" }}</div>
-  <div class="cp">© inexcsuite — جميع الحقوق محفوظة</div>
+  <div style="margin-bottom:12px"><a href="/privacy/" style="color:#8aa3c0;text-decoration:none;margin:0 10px">سياسة الخصوصية</a><a href="/terms/" style="color:#8aa3c0;text-decoration:none;margin:0 10px">شروط الاستخدام</a></div>
+  <div class="cp">{{ lc.footer_tagline|default:"inexcsuite أحد أنظمة شركة التميز الابتكاري" }}<br style="margin:4px 0">© inexcsuite — جميع الحقوق محفوظة</div>
 </div></footer>
 
 <script>
