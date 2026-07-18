@@ -170,7 +170,7 @@ function _delSnippet(i){
   var id=window._htmlTargetId;document.getElementById('htmlModal').remove();rteInsertHtml(id);
 }
 function _cleanBlockHtml(h){var d=document.createElement('div');d.innerHTML=h||'';d.querySelectorAll('.rte-toolbar,.rte-btn,.rte-sep,.block-controls').forEach(function(x){x.remove();});d.querySelectorAll('[contenteditable]').forEach(function(x){x.removeAttribute('contenteditable');});return d.innerHTML;}
-function _sanitizeBlocks(){try{blocks.forEach(function(b){if(b&&b.html){b.html=_cleanBlockHtml(b.html);}});}catch(e){}}
+function _sanitizeBlocks(){try{blocks.forEach(function(b){if(b&&b.html){b.html=_cleanBlockHtml(b.html).replace(/>\s+</g,'><').replace(/\n+/g,' ').replace(/\s{2,}/g,' ');}});}catch(e){}}
 function saveTextContent(){const b=blocks.find(x=>x.id===selectedId);if(b&&b.type==='text'){const el=document.getElementById('rte_'+b.id);if(el){const clone=el.cloneNode(true);clone.querySelectorAll('.rte-toolbar,.rte-btn,.rte-sep').forEach(x=>x.remove());b.html=clone.innerHTML;_syncWin&&_syncWin();autosave();}}}
 function toolbar(id){return '<div class="rte-toolbar" onclick="event.stopPropagation()">'+
   '<button class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd(\'bold\')" title="تعريض"><b>B</b></button>'+

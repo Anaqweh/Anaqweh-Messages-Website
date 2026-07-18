@@ -40,6 +40,52 @@ def _owned(qs, request):
         return qs.filter(owner_id__in=_company_user_ids(request))
     return qs.filter(owner_id__in=_platform_user_ids())
 
+import re as _rte_re, json as _rte_json
+
+def _rte_strip(html):
+    classes=['rte-toolbar','rte-btn','rte-sep','block-controls']
+    for _ in range(3):
+        out=[]; i=0; n=len(html); changed=False
+        while True:
+            m=None
+            for cls in classes:
+                for tag in ('div','button','label','select','span'):
+                    idx=html.find('<%s class="%s"'%(tag,cls), i)
+                    if idx!=-1 and (m is None or idx<m[0]): m=(idx,tag)
+            if m is None:
+                out.append(html[i:]); break
+            idx,tag=m; changed=True
+            out.append(html[i:idx])
+            gt=html.find('>',idx)
+            if gt==-1: break
+            depth=1; j=gt+1; ot='<'+tag; ct='</'+tag+'>'
+            while depth>0 and j<n:
+                no=html.find(ot,j); nc=html.find(ct,j)
+                if nc==-1: j=n; break
+                if no!=-1 and no<nc:
+                    depth+=1; g2=html.find('>',no); j=(g2+1) if g2!=-1 else n
+                else:
+                    depth-=1; j=nc+len(ct)
+            i=j
+        html=''.join(out)
+        if not changed: break
+    return _rte_re.sub(r'\s*contenteditable="(true|false)"','',html)
+
+def _rte_clean(v):
+    if not v: return v
+    if 'rte-' not in v and 'contenteditable' not in v: return v
+    try:
+        obj=_rte_json.loads(v)
+        def w(o):
+            if isinstance(o,str): return _rte_strip(o)
+            if isinstance(o,list): return [w(x) for x in o]
+            if isinstance(o,dict): return {k:w(x) for k,x in o.items()}
+            return o
+        return _rte_json.dumps(w(obj), ensure_ascii=False)
+    except Exception:
+        return _rte_strip(v)
+
+
 @login_required
 def template_list(request):
     return render(request, 'templates_mgr/template_list.html', {'templates': _owned(EmailTemplate.objects.all(), request)})
@@ -49,7 +95,7 @@ def template_create(request):
     if request.method == 'POST':
         name = request.POST.get('name','').strip()
         subject = request.POST.get('subject','').strip()
-        body_html = request.POST.get('body_html','').strip()
+        body_html = _rte_clean(request.POST.get('body_html','').strip())
         body_text = request.POST.get('body_text','').strip()
         if not name or not subject or not body_html:
             messages.error(request, 'يرجى ملء جميع الحقول.')
@@ -70,7 +116,7 @@ def template_edit(request, pk):
     if request.method == 'POST':
         t.name = request.POST.get('name','').strip()
         t.subject = request.POST.get('subject','').strip()
-        t.body_html = request.POST.get('body_html','').strip()
+        t.body_html = _rte_clean(request.POST.get('body_html','').strip())
         t.body_text = request.POST.get('body_text','').strip()
         t.save()
         messages.success(request, 'تم التحديث.')
@@ -113,9 +159,9 @@ def builder(request):
     if request.method == 'POST':
         name = request.POST.get('name','').strip()
         subject = request.POST.get('subject','').strip()
-        body_html = request.POST.get('body_html','').strip()
+        body_html = _rte_clean(request.POST.get('body_html','').strip())
         if name and subject and body_html:
-            t = EmailTemplate.objects.create(owner=request.user, name=name, subject=subject, body_html=body_html, blocks_json=request.POST.get('blocks_json',''))
+            t = EmailTemplate.objects.create(owner=request.user, name=name, subject=subject, body_html=body_html, blocks_json=_rte_clean(request.POST.get('blocks_json','')))
             messages.success(request, f'تم حفظ القالب "{name}".')
             return redirect('templates_mgr:template_detail', pk=t.pk)
     edit_pk = request.GET.get('edit')

@@ -310,7 +310,16 @@ def send_via_emailjs(to_email, to_name, subject, body_html, body_text='', extra_
         payload['accessToken'] = private_key
 
     try:
-        r = requests.post('https://api.emailjs.com/api/v1.0/email/send', json=payload, timeout=25)
+        import json as _ej_json
+        _tp = payload.get('template_params') or {}
+        import json as _szj
+        if len(_szj.dumps(_tp, ensure_ascii=False)) > 48000:
+            _full = _tp.get('html') or _tp.get('body_html') or _tp.get('message') or ''
+            _tp['message'] = _full
+            _tp['html'] = ''
+            _tp['body_html'] = ''
+            payload['template_params'] = _tp
+        r = requests.post('https://api.emailjs.com/api/v1.0/email/send', data=_ej_json.dumps(payload, ensure_ascii=False).encode('utf-8'), headers={'Content-Type': 'application/json'}, timeout=25)
         ok = 200 <= r.status_code < 300
         return {
             'success': ok,
