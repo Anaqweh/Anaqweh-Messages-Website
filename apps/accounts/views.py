@@ -403,7 +403,7 @@ def verify_2fa_view(request):
     if request.method == "POST":
         code = (request.POST.get("code") or "").strip()
         rec = AdminTOTP.objects.filter(user=user, is_enabled=True).first()
-        if rec and pyotp.TOTP(rec.secret).verify(code, valid_window=1):
+        if rec and pyotp.TOTP(rec.secret).verify(code, valid_window=4):
             auth_login(request, user)
             next_url = request.session.pop("pending_2fa_next", "")
             request.session.pop("pending_2fa_user_id", None)
@@ -426,7 +426,7 @@ def setup_2fa_view(request):
             rec.is_enabled = False
             rec.save()
             messages.success(request, "تم إيقاف التحقق بخطوتين.")
-        elif pyotp.TOTP(rec.secret).verify(code, valid_window=1):
+        elif pyotp.TOTP(rec.secret).verify(code, valid_window=4):
             rec.is_enabled = True
             rec.save()
             messages.success(request, "تم تفعيل التحقق بخطوتين بنجاح.")
@@ -438,3 +438,26 @@ def setup_2fa_view(request):
     qr_img.save(buf, format="PNG")
     qr_b64 = base64.b64encode(buf.getvalue()).decode()
     return render(request, "accounts/setup_2fa.html", {"rec": rec, "qr_b64": qr_b64, "secret": rec.secret})
+
+@login_required
+def change_password_view(request):
+    from django.contrib.auth import update_session_auth_hash
+    if not request.user.is_superuser:
+        return redirect(dashboard_url_for_user(request.user))
+    if request.method == "POST":
+        current = request.POST.get("current_password") or ""
+        new1 = request.POST.get("new_password1") or ""
+        new2 = request.POST.get("new_password2") or ""
+        if not request.user.check_password(current):
+            messages.error(request, "كلمة المرور الحالية غير صحيحة.")
+        elif len(new1) < 8:
+            messages.error(request, "كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.")
+        elif new1 != new2:
+            messages.error(request, "كلمتا المرور الجديدتان غير متطابقتين.")
+        else:
+            request.user.set_password(new1)
+            request.user.save()
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "تم تغيير كلمة المرور بنجاح.")
+            return redirect("accounts:change_password")
+    return render(request, "accounts/change_password.html")

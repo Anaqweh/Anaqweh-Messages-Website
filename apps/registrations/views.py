@@ -650,3 +650,104 @@ def ocr_id_image_disabled(request):
         return JsonResponse({'success': True, 'result': {'fields': fields, 'raw': text[:300]}})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def clients_page(request):
+    from .models import RegClient, RegEmployee
+    from django.utils import timezone
+    import datetime, json
+    from apps.platform_core.models import TenantMembership
+    _t = _reg_user_tenant(request)
+    if _t and not (_t.modules or {}).get("registrations", False):
+        return redirect("dashboard:home")
+
+    membership = None
+    limited = False
+    can_manage = False
+    if _t:
+        membership = TenantMembership.objects.filter(tenant=_t, user=request.user).first()
+        if membership:
+            limited = bool((membership.permissions or {}).get("reg_clients_limited"))
+            can_manage = bool(membership.is_tenant_admin)
+
+    def _own_clients():
+        qs = RegClient.objects.select_related("employee", "created_by")
+        return qs.filter(tenant=_t) if _t else qs.filter(tenant__isnull=True)
+
+    def _own_employees():
+        qs = RegEmployee.objects.all()
+        return qs.filter(tenant=_t) if _t else qs.filter(tenant__isnull=True)
+
+    if request.method == "POST":
+        action = request.POST.get("action", "")
+        if action == "save_client":
+            pk = request.POST.get("client_id")
+            if limited:
+                if pk:
+                    _own_clients().filter(pk=pk).update(
+                        notes=(request.POST.get("notes") or "").strip(),
+                        reminder_date=(request.POST.get("reminder_date") or None) or None,
+                    )
+                return redirect("registrations:clients_page")
+            name = (request.POST.get("name") or "").strip()
+            phone = (request.POST.get("phone") or "").strip()
+            if name and phone:
+                emp = _own_employees().filter(pk=request.POST.get("employee") or 0).first()
+                data = dict(
+                    name=name, phone=phone,
+                    status=request.POST.get("status") or "potential",
+                    employee=emp,
+                    notes=(request.POST.get("notes") or "").strip(),
+                    reminder_date=(request.POST.get("reminder_date") or None) or None,
+                )
+                if pk:
+                    _own_clients().filter(pk=pk).update(**data)
+                else:
+                    RegClient.objects.create(tenant=_t, created_by=request.user, **data)
+            return redirect("registrations:clients_page")
+        elif action == "delete_client" and not limited:
+            _own_clients().filter(pk=request.POST.get("client_id")).delete()
+            return redirect("registrations:clients_page")
+        elif action == "add_employee" and not limited:
+            ename = (request.POST.get("emp_name") or "").strip()
+            if ename and not _own_employees().filter(name=ename).exists():
+                RegEmployee.objects.create(tenant=_t, name=ename)
+            return redirect("registrations:clients_page")
+        elif action == "delete_employee" and not limited:
+            _own_employees().filter(pk=request.POST.get("emp_id")).delete()
+            return redirect("registrations:clients_page")
+        elif action == "toggle_limited" and can_manage:
+            mb = TenantMembership.objects.filter(tenant=_t, pk=request.POST.get("member_id")).first()
+            if mb and not mb.is_tenant_admin:
+                p = dict(mb.permissions or {})
+                p["reg_clients_limited"] = not p.get("reg_clients_limited", False)
+                mb.permissions = p
+                mb.save()
+            return redirect("registrations:clients_page")
+        return redirect("registrations:clients_page")
+
+    today = timezone.localdate()
+    tomorrow = today + datetime.timedelta(days=1)
+    reminders = _own_clients().filter(reminder_date__in=[today, tomorrow]).order_by("reminder_date")
+
+    edit_client = None
+    if request.GET.get("edit"):
+        edit_client = _own_clients().filter(pk=request.GET["edit"]).first()
+
+    members = TenantMembership.objects.filter(tenant=_t).select_related("user") if (can_manage and _t) else []
+
+    phones_map = {cl.phone: {"name": cl.name, "id": cl.pk} for cl in _own_clients()}
+    return render(request, "registrations/clients.html", {
+        "phones_json": json.dumps(phones_map, ensure_ascii=False),
+        "clients": _own_clients(),
+        "employees": _own_employees(),
+        "reminders": reminders,
+        "reminders_count": reminders.count(),
+        "edit_client": edit_client,
+        "status_choices": RegClient.STATUS_CHOICES,
+        "today": today,
+        "limited": limited,
+        "can_manage": can_manage,
+        "members": members,
+    })

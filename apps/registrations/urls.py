@@ -7,6 +7,7 @@ app_name = "registrations"
 urlpatterns = [
     path('templates/<int:pk>/spark-fill/', tenant_access_views.spark_fill_form, name='spark_fill_form'),
     path("", views.dashboard, name="dashboard"),
+    path("clients/", views.clients_page, name="clients_page"),
     path("ocr/", views.ocr_id_image_disabled, name="ocr_id_image"),
     path("templates/new/", views.template_create, name="template_create"),
     path("templates/<int:pk>/edit/", views.template_edit, name="template_edit"),

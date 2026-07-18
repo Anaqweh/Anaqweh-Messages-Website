@@ -1,0 +1,176 @@
+{% extends "base/base.html" %}
+{% block title %}إضافة عميل{% endblock %}
+{% block page_title %}إضافة عميل{% endblock %}
+{% block content %}
+<style>
+.cl-wrap{max-width:1100px}
+.cl-badge{display:inline-flex;align-items:center;justify-content:center;background:#e24b4a;color:#fff;font-size:.7rem;font-weight:800;border-radius:999px;min-width:20px;height:20px;padding:0 6px}
+.cl-status{padding:4px 12px;border-radius:999px;font-size:.75rem;font-weight:700;white-space:nowrap}
+.st-potential{background:#eef2ff;color:#4f46e5}.st-followup{background:#fff7e6;color:#b45309}.st-deposit{background:#e0f2fe;color:#0369a1}.st-registered{background:#e6f7ee;color:#0f9d58}.st-client{background:#dcfce7;color:#15803d}.st-not_interested{background:#f1f5f9;color:#64748b}
+.cl-form input,.cl-form select,.cl-form textarea{width:100%;padding:11px 12px;border:1.5px solid #dbe4ef;border-radius:10px;font-family:inherit;font-size:.92rem;background:#fbfdff;transition:border .15s}
+.cl-form input:focus,.cl-form select:focus,.cl-form textarea:focus{border-color:#0b4ea2;outline:none;background:#fff}
+.cl-form label{font-size:.82rem;color:#334155;font-weight:700;display:block;margin-bottom:6px}
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.btn-blue{background:#0b4ea2;color:#fff;border:0;border-radius:10px;padding:11px 26px;font-weight:700;cursor:pointer;font-size:.9rem;transition:.15s}
+.btn-blue:hover{background:#1e3a6e}
+.btn-red{background:#fff1f1;color:#e24b4a;border:1px solid #fbd5d5;border-radius:8px;padding:7px 14px;font-size:.8rem;cursor:pointer;font-weight:700}
+.btn-red:hover{background:#e24b4a;color:#fff}
+.btn-gray{background:#eef2f7;color:#334155;border:0;border-radius:8px;padding:7px 14px;font-size:.8rem;cursor:pointer;text-decoration:none;display:inline-block;font-weight:700}
+.rem-box{background:linear-gradient(135deg,#1e3a6e,#0b4ea2);border-radius:16px;padding:16px 20px;margin-bottom:20px;color:#fff;box-shadow:0 6px 18px rgba(30,58,110,.25)}
+.rem-head{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1rem;margin-bottom:4px}
+.rem-item{padding:9px 0;border-top:1px solid rgba(255,255,255,.15);font-size:.88rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:center}
+.rem-item .cl-status{background:rgba(255,255,255,.92)}
+.rem-when{background:rgba(255,255,255,.15);border-radius:8px;padding:4px 12px;font-weight:700;font-size:.8rem}
+.rem-emp{background:rgba(255,255,255,.15);border-radius:8px;padding:3px 10px;font-size:.78rem;font-weight:700}
+.cl-search{width:100%;max-width:420px;padding:11px 14px;border:1.5px solid #dbe4ef;border-radius:12px;font-family:inherit;font-size:.9rem;margin-bottom:14px;background:#fbfdff}
+.cl-search:focus{border-color:#0b4ea2;outline:none;background:#fff}
+.cl-tbl{width:100%;border-collapse:collapse}
+.cl-tbl th{background:#f8fafc;padding:11px 12px;font-size:.78rem;color:#475569;text-align:right;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+.cl-tbl td{padding:11px 12px;border-bottom:1px solid #f1f5f9;font-size:.88rem;vertical-align:middle}
+.cl-actions{display:flex;gap:6px;flex-wrap:wrap}
+.cl-meta{font-size:.72rem;color:#94a3b8}
+@media(max-width:768px){
+  .cl-tbl thead{display:none}
+  .cl-tbl,.cl-tbl tbody,.cl-tbl tr,.cl-tbl td{display:block;width:100%}
+  .cl-tbl tr{background:#fff;border:1px solid #e8eef5;border-radius:14px;margin-bottom:12px;padding:6px 4px;box-shadow:0 2px 8px rgba(15,36,68,.05)}
+  .cl-tbl td{border:none;padding:7px 12px;text-align:right}
+  .cl-tbl td[data-l]::before{content:attr(data-l);font-size:.72rem;color:#94a3b8;font-weight:700;display:block;margin-bottom:2px}
+  .rem-item{flex-direction:column;align-items:flex-start}
+  .btn-blue{width:100%}
+}
+</style>
+<div class="cl-wrap">
+
+{% if reminders_count %}
+<div class="rem-box">
+  <div class="rem-head">
+    <span style="position:relative;font-size:1.35rem"><i class="bi bi-bell-fill"></i><span class="cl-badge" style="position:absolute;top:-7px;left:-11px">{{ reminders_count }}</span></span>
+    تذكيرات المتابعة
+  </div>
+  {% for r in reminders %}
+  <div class="rem-item">
+    <span><b>{{ r.name }}</b> — <span dir="ltr">{{ r.phone }}</span> &nbsp;<span class="cl-status st-{{ r.status }}">{{ r.get_status_display }}</span>
+      {% if r.employee %}&nbsp;<span class="rem-emp">👤 المسؤول: {{ r.employee.name }}</span>{% endif %}
+    </span>
+    <span class="rem-when">{% if r.reminder_date == today %}❗ اليوم{% else %}⏰ غداً{% endif %} • {{ r.reminder_date }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="panel" style="margin-bottom:20px;border-radius:16px">
+  {% if not limited %}<button onclick="var f=document.getElementById('clForm');f.style.display=f.style.display==='none'?'block':'none'" class="btn-blue" style="max-width:280px"><i class="bi bi-person-plus"></i> إضافة عميل</button>{% endif %}
+
+  <div id="clForm" style="display:{% if edit_client %}block{% else %}none{% endif %};margin-top:20px;border-top:1px solid #eef2f7;padding-top:18px">
+    <form method="post" class="cl-form" onsubmit="return checkDup(this)">{% csrf_token %}
+      <input type="hidden" name="action" value="save_client">
+      <input type="hidden" name="client_id" value="{{ edit_client.pk|default:'' }}">
+      <div class="cl-grid">
+        <div><label>الاسم</label><input type="text" name="name" required {% if limited %}disabled{% endif %} value="{{ edit_client.name|default:'' }}" placeholder="اسم العميل"></div>
+        <div><label>رقم الجوال</label><input type="tel" name="phone" required {% if limited %}disabled{% endif %} value="{{ edit_client.phone|default:'' }}" placeholder="05xxxxxxxx" dir="ltr" style="text-align:right"></div>
+        <div><label>حالة العميل</label>
+          <select name="status" {% if limited %}disabled{% endif %}>{% for k,v in status_choices %}<option value="{{ k }}" {% if edit_client.status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select>
+        </div>
+        <div><label>اسم الموظف</label>
+          <select name="employee" {% if limited %}disabled{% endif %}><option value="">— اختر —</option>{% for e in employees %}<option value="{{ e.pk }}" {% if edit_client.employee_id == e.pk %}selected{% endif %}>{{ e.name }}</option>{% endfor %}</select>
+        </div>
+        <div><label>تاريخ التذكير 📅</label><input type="date" name="reminder_date" value="{{ edit_client.reminder_date|date:'Y-m-d'|default:'' }}"></div>
+      </div>
+      <div style="margin-top:14px"><label>ملاحظات</label><textarea name="notes" rows="3" placeholder="أي تفاصيل إضافية...">{{ edit_client.notes|default:'' }}</textarea></div>
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button type="submit" class="btn-blue" style="max-width:200px"><i class="bi bi-check-lg"></i> حفظ</button>
+        {% if edit_client %}<a href="{% url 'registrations:clients_page' %}" class="btn-gray" style="padding:11px 22px">إلغاء التعديل</a>{% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel" style="margin-bottom:20px;border-radius:16px">
+  <h3 style="font-size:1rem;font-weight:800;color:#1e3a6e;margin-bottom:14px"><i class="bi bi-people"></i> العملاء ({{ clients.count }})</h3>
+  <input id="clSearch" class="cl-search" oninput="clFilter()" placeholder="🔍 ابحث بالاسم أو رقم الجوال...">
+  <div style="overflow-x:auto">
+  <table class="cl-tbl">
+    <thead><tr><th>الاسم</th><th>رقم الجوال</th><th>الحالة</th><th>الموظف</th><th>التذكير</th><th>أضافه</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
+    <tbody>
+    {% for cl in clients %}
+      <tr>
+        <td data-l="الاسم" style="font-weight:700">{{ cl.name }}</td>
+        <td data-l="رقم الجوال" dir="ltr" style="text-align:right">{{ cl.phone }}</td>
+        <td data-l="الحالة"><span class="cl-status st-{{ cl.status }}">{{ cl.get_status_display }}</span></td>
+        <td data-l="الموظف">{{ cl.employee.name|default:"—" }}</td>
+        <td data-l="التذكير">{% if cl.reminder_date %}📅 {{ cl.reminder_date }}{% else %}—{% endif %}</td>
+        <td data-l="أضافه">{% if cl.created_by %}{{ cl.created_by.get_full_name|default:cl.created_by.username }}{% else %}—{% endif %}<br><span class="cl-meta">{{ cl.created_at|date:"Y-m-d • H:i" }}</span></td>
+        <td data-l="ملاحظات" style="max-width:200px" title="{{ cl.notes }}">{{ cl.notes|default:"—"|truncatechars:40 }}</td>
+        <td>
+          <div class="cl-actions">
+            <a href="?edit={{ cl.pk }}#clForm" class="btn-gray"><i class="bi bi-pencil"></i> تعديل</a>
+            {% if not limited %}<form method="post" style="display:inline" onsubmit="return confirm('حذف العميل {{ cl.name }}؟')">{% csrf_token %}
+              <input type="hidden" name="action" value="delete_client"><input type="hidden" name="client_id" value="{{ cl.pk }}">
+              <button type="submit" class="btn-red"><i class="bi bi-trash"></i> حذف</button>
+            </form>{% endif %}
+          </div>
+        </td>
+      </tr>
+    {% empty %}<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:28px">لا يوجد عملاء بعد — اضغط "إضافة عميل" للبدء</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% if can_manage %}
+<div class="panel" style="max-width:520px;border-radius:16px;margin-bottom:20px">
+  <h3 style="font-size:.95rem;font-weight:800;color:#1e3a6e;margin-bottom:6px"><i class="bi bi-shield-lock"></i> صلاحيات الموظفين</h3>
+  <p style="font-size:.78rem;color:#64748b;margin-bottom:12px">الموظف المقيّد يعدّل التاريخ والملاحظات فقط</p>
+  {% for mb in members %}
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9">
+    <span style="font-weight:600">{{ mb.user.get_full_name|default:mb.user.username }}{% if mb.is_tenant_admin %} <span style="font-size:.68rem;color:#0b4ea2;font-weight:800">(مدير)</span>{% endif %}</span>
+    {% if not mb.is_tenant_admin %}
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="toggle_limited"><input type="hidden" name="member_id" value="{{ mb.pk }}">
+      {% if mb.permissions.reg_clients_limited %}
+      <button type="submit" style="background:#fff7e6;color:#b45309;border:1px solid #fde3b8;border-radius:8px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer">مقيّد — إلغاء التقييد</button>
+      {% else %}
+      <button type="submit" style="background:#eef2f7;color:#334155;border:0;border-radius:8px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer">تقييد (تاريخ + ملاحظات)</button>
+      {% endif %}
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% if not limited %}<div class="panel" style="max-width:520px;border-radius:16px">
+  <h3 style="font-size:.95rem;font-weight:800;color:#1e3a6e;margin-bottom:14px"><i class="bi bi-person-badge"></i> إدارة أسماء الموظفين</h3>
+  <form method="post" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">{% csrf_token %}
+    <input type="hidden" name="action" value="add_employee">
+    <input type="text" name="emp_name" placeholder="اسم الموظف" required style="flex:1;min-width:180px;padding:10px;border:1.5px solid #dbe4ef;border-radius:10px">
+    <button type="submit" class="btn-blue" style="padding:10px 22px">إضافة</button>
+  </form>
+  {% for e in employees %}
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid #f1f5f9">
+    <span style="font-weight:600">{{ e.name }}</span>
+    <form method="post" onsubmit="return confirm('حذف الموظف {{ e.name }}؟')">{% csrf_token %}
+      <input type="hidden" name="action" value="delete_employee"><input type="hidden" name="emp_id" value="{{ e.pk }}">
+      <button type="submit" class="btn-red" style="padding:4px 12px;font-size:.72rem">حذف</button>
+    </form>
+  </div>
+  {% empty %}<div style="color:#94a3b8;font-size:.85rem">لم تُضف أسماء بعد</div>{% endfor %}
+</div>{% endif %}
+</div>
+<script>
+const PHONES = {{ phones_json|safe }};
+function checkDup(f){
+  const ph=(f.phone.value||'').trim();
+  const cid=String(f.client_id.value||'');
+  if(PHONES[ph] && String(PHONES[ph].id)!==cid){
+    return confirm('⚠️ هذا الرقم مسجل مسبقاً باسم: '+PHONES[ph].name+'\nهل تريد الاستمرار؟');
+  }
+  return true;
+}
+function clFilter(){
+  const q=document.getElementById('clSearch').value.trim().toLowerCase();
+  document.querySelectorAll('.cl-tbl tbody tr').forEach(function(tr){
+    var ws=q.split(/\s+/).filter(Boolean);var t=tr.textContent.toLowerCase();tr.style.display=ws.every(function(w){if(w.slice(0,2)=='\u0627\u0644'&&w.length>3)w=w.slice(2);return t.indexOf(w)>-1;})?'':'none';
+  });
+}
+</script>
+{% endblock %}

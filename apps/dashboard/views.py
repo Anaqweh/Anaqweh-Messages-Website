@@ -410,3 +410,73 @@ def dismiss_onboarding(request):
             m.onboarding_seen = True
             m.save()
     return redirect(request.POST.get("next") or "dashboard:home")
+
+def global_search(request):
+    from django.http import JsonResponse
+    import re as _re
+    if not request.user.is_authenticated:
+        return JsonResponse({"results": []})
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 2:
+        return JsonResponse({"results": []})
+
+    def _norm(p):
+        d = _re.sub("[^0-9]", "", p or "")
+        if d.startswith("00"): d = d[2:]
+        for cc in ("971", "962", "966", "965", "968", "974", "973", "20"):
+            if d.startswith(cc) and len(d) > len(cc) + 6:
+                d = d[len(cc):]
+                break
+        return d.lstrip("0")
+
+    def _ar(s):
+        s = (s or "").lower()
+        for a, b in (("\u0623","\u0627"),("\u0625","\u0627"),("\u0622","\u0627"),("\u0629","\u0647"),("\u0649","\u064a")):
+            s = s.replace(a, b)
+        return s
+
+    nq = _norm(q)
+    is_num = len(nq) >= 4
+    toks = []
+    for t in _ar(q).split():
+        if t.startswith("\u0627\u0644") and len(t) > 3:
+            t = t[2:]
+        toks.append(t)
+
+    def _match(name, phone):
+        nn = _ar(name)
+        if toks and all(t in nn for t in toks):
+            return True
+        if is_num:
+            np = _norm(phone)
+            return bool(np) and (nq in np or np in nq)
+        return False
+
+    from apps.platform_core.navigation import active_membership_for
+    m = active_membership_for(request.user)
+    _t = m.tenant if m else None
+    results = []
+    try:
+        from apps.registrations.models import RegClient
+        qs = RegClient.objects.filter(tenant=_t) if _t else RegClient.objects.filter(tenant__isnull=True)
+        for r in qs:
+            if _match(r.name, r.phone):
+                results.append({"type": "\u0639\u0645\u0644\u0627\u0621 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629", "color": "#4f46e5", "name": r.name, "sub": r.phone, "url": "/registrations/clients/?edit=%d#clForm" % r.pk})
+                if len(results) >= 15: break
+    except Exception:
+        pass
+    try:
+        from apps.crm.models import CRMContact, CRMCompany
+        qs = CRMContact.objects.filter(tenant=_t) if _t else CRMContact.objects.filter(tenant__isnull=True)
+        for r in qs:
+            if _match(r.full_name, r.phone):
+                results.append({"type": "\u062c\u0647\u0627\u062a \u0627\u062a\u0635\u0627\u0644 CRM", "color": "#0f9d58", "name": r.full_name, "sub": r.phone or "", "url": "/crm/contacts/"})
+                if len(results) >= 15: break
+        qs2 = CRMCompany.objects.filter(tenant=_t) if _t else CRMCompany.objects.filter(tenant__isnull=True)
+        for r in qs2:
+            if _match(r.name, r.phone):
+                results.append({"type": "\u0634\u0631\u0643\u0627\u062a CRM", "color": "#b45309", "name": r.name, "sub": r.phone or "", "url": "/crm/companies/"})
+                if len(results) >= 15: break
+    except Exception:
+        pass
+    return JsonResponse({"results": results[:15]})

@@ -169,7 +169,7 @@ function _delSnippet(i){
   // نعيد فتح النافذة لتحديث القائمة
   var id=window._htmlTargetId;document.getElementById('htmlModal').remove();rteInsertHtml(id);
 }
-function saveTextContent(){const b=blocks.find(x=>x.id===selectedId);if(b&&b.type==='text'){const el=document.getElementById('rte_'+b.id);if(el){b.html=el.innerHTML;_syncWin&&_syncWin();autosave();}}}
+function saveTextContent(){const b=blocks.find(x=>x.id===selectedId);if(b&&b.type==='text'){const el=document.getElementById('rte_'+b.id);if(el){const clone=el.cloneNode(true);clone.querySelectorAll('.rte-toolbar,.rte-btn,.rte-sep').forEach(x=>x.remove());b.html=clone.innerHTML;_syncWin&&_syncWin();autosave();}}}
 function toolbar(id){return '<div class="rte-toolbar" onclick="event.stopPropagation()">'+
   '<button class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd(\'bold\')" title="تعريض"><b>B</b></button>'+
   '<button class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd(\'italic\')" title="مائل"><i>I</i></button>'+

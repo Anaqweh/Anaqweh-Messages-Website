@@ -7,6 +7,7 @@ urlpatterns = [
     path("landing-demo-requests/", views.landing_demo_requests, name="landing_demo_requests"),
     path('landing-page/', views.landing_page_admin, name='landing_page_admin'),
     path("", views.dashboard_home, name="home"),
+    path("search/", views.global_search, name="global_search"),
     path("dismiss-onboarding/", views.dismiss_onboarding, name="dismiss_onboarding"),
     path("companies/", views.companies, name="companies"),
     path("customers/", views.customers, name="customers"),

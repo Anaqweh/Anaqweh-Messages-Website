@@ -669,8 +669,17 @@ def tenant_wizard(request):
         modules = default_tenant_modules()
         for code, _ in MODULE_CHOICES:
             modules[code] = (request.POST.get(f"module_{code}") == "on")
+        from django.utils.text import slugify
+        import uuid as _uuid
+        base_slug = slugify(company_name, allow_unicode=False) or ("company-" + _uuid.uuid4().hex[:8])
+        candidate = base_slug
+        i = 1
+        while Tenant.objects.filter(slug=candidate).exists():
+            i += 1
+            candidate = f"{base_slug}-{i}"
         tenant = Tenant.objects.create(
             name=company_name,
+            slug=candidate,
             owner_name=mgr_full_name,
             owner_email=mgr_email,
             modules=modules,

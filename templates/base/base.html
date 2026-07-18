@@ -231,6 +231,7 @@ body{background:#f0f4f8;min-height:100vh}
     </div>
   </div>
   {% endif %}
+  {% if user.is_superuser or tenant_modules.registrations %}
   <div class="nav-group">
     <div class="nav-group-header" onclick="toggleGroup('grp-registrations')">
       <span><i class="bi bi-file-earmark-text me-2"></i>{% trans "النماذج والتسجيل" %}</span>
@@ -241,8 +242,10 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="/registrations/templates/3/spark-fill/" class="nav-link"><i class="bi bi-mortarboard"></i> {% trans "نموذج معهد سبارك" %}</a>
       {% endif %}
       <a href="/registrations/" class="nav-link"><i class="bi bi-list-check"></i> {% trans "لوحة التسجيلات" %}</a>
+      <a href="/registrations/clients/" class="nav-link"><i class="bi bi-person-plus"></i> إضافة عميل</a>
     </div>
   </div>
+  {% endif %}
 
 
   {% if user.is_staff or user.is_superuser %}
@@ -260,6 +263,8 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="/platform/finance/" class="nav-link"><i class="bi bi-cash-stack"></i> {% trans "اللوحة المالية" %}</a>
       <a href="/platform/payouts/" class="nav-link"><i class="bi bi-cash-coin"></i> {% trans "طلبات السحب" %}</a>
       <a href="/platform/settings/" class="nav-link"><i class="bi bi-sliders"></i> {% trans "إعدادات المنصة" %}</a>
+      <a href="/accounts/setup-2fa/" class="nav-link"><i class="bi bi-shield-lock"></i> إلغاء الدخول بخطوتين</a>
+      <a href="/accounts/change-password/" class="nav-link"><i class="bi bi-key"></i> تغيير كلمة المرور</a>
       <a href="/dashboard/landing-page/" class="nav-link"><i class="bi bi-window"></i> صفحة الهبوط</a>
       <a href="/dashboard/landing-demo-requests/" class="nav-link"><i class="bi bi-inbox"></i> طلبات الديمو</a>
       <a href="/dashboard/landing-page/" class="nav-link"><i class="bi bi-file-earmark-lock"></i> الصفحات القانونية</a>
@@ -360,6 +365,31 @@ document.addEventListener('DOMContentLoaded',function(){
 <div class="{% if user.is_authenticated %}main-content{% endif %}">
   {% if user.is_authenticated %}
   <div class="top-bar"><span class="page-title">{% block page_title %}{% endblock %}</span><div class="d-flex align-items-center gap-3">
+<div style="position:relative" id="gsWrap">
+  <input id="gsInput" oninput="gsSearch()" placeholder="ابحث عن الرقم أو الاسم" style="width:230px;padding:8px 12px;border:1.5px solid #dbe4ef;border-radius:10px;font-size:.85rem;font-family:inherit" autocomplete="off">
+  <div id="gsResults" style="display:none;position:absolute;left:0;top:42px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.13);width:340px;max-height:380px;overflow-y:auto;z-index:1200"></div>
+</div>
+<script>
+let gsT=null;
+function gsSearch(){
+  clearTimeout(gsT);
+  gsT=setTimeout(function(){
+    var q=document.getElementById('gsInput').value.trim();
+    var box=document.getElementById('gsResults');
+    if(q.length<2){box.style.display='none';return;}
+    fetch('/dashboard/search/?q='+encodeURIComponent(q)).then(r=>r.json()).then(function(d){
+      if(!d.results.length){box.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:.85rem">\u0644\u0627 \u0646\u062a\u0627\u0626\u062c</div>';box.style.display='block';return;}
+      box.innerHTML=d.results.map(function(r){
+        return '<a href="'+r.url+'" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #f4f6f9;text-decoration:none;color:inherit">'
+        +'<span><span style="background:'+r.color+'18;color:'+r.color+';border-radius:999px;padding:2px 10px;font-size:.68rem;font-weight:800">'+r.type+'</span><br><b style="font-size:.85rem">'+r.name+'</b> <span dir="ltr" style="font-size:.8rem;color:#64748b">'+r.sub+'</span></span>'
+        +'<span style="background:#0b4ea2;color:#fff;border-radius:8px;padding:5px 12px;font-size:.75rem;font-weight:700;white-space:nowrap">\u0641\u062a\u062d</span></a>';
+      }).join('');
+      box.style.display='block';
+    });
+  },300);
+}
+document.addEventListener('click',function(e){if(!document.getElementById('gsWrap').contains(e.target)){document.getElementById('gsResults').style.display='none';}});
+</script>
 {% if show_onboarding %}
 <div style="position:fixed;inset:0;background:rgba(15,36,68,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:18px;padding:34px 30px;max-width:420px;width:100%;text-align:center">

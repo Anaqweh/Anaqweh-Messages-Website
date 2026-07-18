@@ -94,3 +94,48 @@ class RegistrationSubmission(models.Model):
 
     def __str__(self):
         return self.student_name or f"Registration #{self.pk}"
+
+
+class RegEmployee(models.Model):
+    """موظف متابعة العملاء — لكل شركة موظفوها."""
+    tenant = models.ForeignKey('platform_core.Tenant', on_delete=models.CASCADE, null=True, blank=True, related_name='reg_employees')
+    name = models.CharField("اسم الموظف", max_length=120)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "موظف متابعة"
+        verbose_name_plural = "موظفو المتابعة"
+
+    def __str__(self):
+        return self.name
+
+
+class RegClient(models.Model):
+    """عميل متابعة في قسم التسجيلات — معزول لكل شركة."""
+    STATUS_CHOICES = [
+        ("potential", "عميل محتمل"),
+        ("followup", "متابعة"),
+        ("deposit", "دفعة مدفوعة"),
+        ("registered", "تم التسجيل"),
+        ("client", "عميل"),
+        ("not_interested", "غير مهتم"),
+    ]
+    tenant = models.ForeignKey('platform_core.Tenant', on_delete=models.CASCADE, null=True, blank=True, related_name='reg_clients')
+    name = models.CharField("الاسم", max_length=160)
+    phone = models.CharField("رقم الجوال", max_length=40)
+    status = models.CharField("حالة العميل", max_length=20, choices=STATUS_CHOICES, default="potential")
+    employee = models.ForeignKey(RegEmployee, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="اسم الموظف", related_name="clients")
+    notes = models.TextField("ملاحظات", blank=True)
+    reminder_date = models.DateField("تاريخ التذكير", null=True, blank=True)
+    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='reg_clients_created', verbose_name="أضافه")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "عميل متابعة"
+        verbose_name_plural = "عملاء المتابعة"
+
+    def __str__(self):
+        return f"{self.name} ({self.get_status_display()})"
