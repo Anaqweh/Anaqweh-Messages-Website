@@ -126,6 +126,7 @@ class RegClient(models.Model):
     phone = models.CharField("رقم الجوال", max_length=40)
     status = models.CharField("حالة العميل", max_length=20, choices=STATUS_CHOICES, default="potential")
     employee = models.ForeignKey(RegEmployee, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="اسم الموظف", related_name="clients")
+    registered_by = models.ForeignKey(RegEmployee, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="سجّله", related_name="registered_clients")
     notes = models.TextField("ملاحظات", blank=True)
     reminder_date = models.DateField("تاريخ التذكير", null=True, blank=True)
     created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='reg_clients_created', verbose_name="أضافه")

@@ -694,8 +694,10 @@ def clients_page(request):
             phone = (request.POST.get("phone") or "").strip()
             if name and phone:
                 emp = _own_employees().filter(pk=request.POST.get("employee") or 0).first()
+                reg_emp = _own_employees().filter(pk=request.POST.get("registered_by") or 0).first()
                 data = dict(
                     name=name, phone=phone,
+                    registered_by=reg_emp,
                     status=request.POST.get("status") or "potential",
                     employee=emp,
                     notes=(request.POST.get("notes") or "").strip(),

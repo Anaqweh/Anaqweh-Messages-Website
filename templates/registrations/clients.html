@@ -74,6 +74,9 @@
         <div><label>اسم الموظف</label>
           <select name="employee" {% if limited %}disabled{% endif %}><option value="">— اختر —</option>{% for e in employees %}<option value="{{ e.pk }}" {% if edit_client.employee_id == e.pk %}selected{% endif %}>{{ e.name }}</option>{% endfor %}</select>
         </div>
+        <div><label>سجّله الموظف</label>
+          <select name="registered_by" {% if limited %}disabled{% endif %}><option value="">— اختر —</option>{% for e in employees %}<option value="{{ e.pk }}" {% if edit_client.registered_by_id == e.pk %}selected{% endif %}>{{ e.name }}</option>{% endfor %}</select>
+        </div>
         <div><label>تاريخ التذكير 📅</label><input type="date" name="reminder_date" value="{{ edit_client.reminder_date|date:'Y-m-d'|default:'' }}"></div>
       </div>
       <div style="margin-top:14px"><label>ملاحظات</label><textarea name="notes" rows="3" placeholder="أي تفاصيل إضافية...">{{ edit_client.notes|default:'' }}</textarea></div>
@@ -99,7 +102,7 @@
         <td data-l="الحالة"><span class="cl-status st-{{ cl.status }}">{{ cl.get_status_display }}</span></td>
         <td data-l="الموظف">{{ cl.employee.name|default:"—" }}</td>
         <td data-l="التذكير">{% if cl.reminder_date %}📅 {{ cl.reminder_date }}{% else %}—{% endif %}</td>
-        <td data-l="أضافه">{% if cl.created_by %}{{ cl.created_by.get_full_name|default:cl.created_by.username }}{% else %}—{% endif %}<br><span class="cl-meta">{{ cl.created_at|date:"Y-m-d • H:i" }}</span></td>
+        <td data-l="أضافه">{% if cl.registered_by %}{{ cl.registered_by.name }}{% elif cl.created_by %}{{ cl.created_by.get_full_name|default:cl.created_by.username }}{% else %}—{% endif %}<br><span class="cl-meta">{{ cl.created_at|date:"Y-m-d • H:i" }}</span></td>
         <td data-l="ملاحظات" style="max-width:200px" title="{{ cl.notes }}">{{ cl.notes|default:"—"|truncatechars:40 }}</td>
         <td>
           <div class="cl-actions">

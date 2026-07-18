@@ -412,7 +412,9 @@ def dismiss_onboarding(request):
     return redirect(request.POST.get("next") or "dashboard:home")
 
 def global_search(request):
+    """بحث ديناميكي شامل: كل جدول معزول بشركة + كل حقوله النصية، بذكاء عربي وتطبيع أرقام."""
     from django.http import JsonResponse
+    from django.apps import apps as dj_apps
     import re as _re
     if not request.user.is_authenticated:
         return JsonResponse({"results": []})
@@ -443,40 +445,76 @@ def global_search(request):
             t = t[2:]
         toks.append(t)
 
-    def _match(name, phone):
-        nn = _ar(name)
+    def _match(text):
+        nn = _ar(text)
         if toks and all(t in nn for t in toks):
             return True
         if is_num:
-            np = _norm(phone)
-            return bool(np) and (nq in np or np in nq)
+            for grp in _re.findall(r"[0-9+][0-9()\s-]{5,}", text or ""):
+                npv = _norm(grp)
+                if npv and (nq in npv or npv in nq):
+                    return True
         return False
 
     from apps.platform_core.navigation import active_membership_for
     m = active_membership_for(request.user)
     _t = m.tenant if m else None
+
+    URL_MAP = {
+        "RegClient": lambda r: "/registrations/clients/?edit=%d#clForm" % r.pk,
+        "RegEmployee": lambda r: "/registrations/clients/",
+        "CRMContact": lambda r: "/crm/contacts/",
+        "CRMCompany": lambda r: "/crm/companies/",
+        "CRMDeal": lambda r: "/crm/",
+        "CRMTask": lambda r: "/crm/tasks/",
+        "CRMQuote": lambda r: "/crm/",
+        "RegistrationSubmission": lambda r: "/registrations/submissions/%d/" % r.pk,
+    }
+    COLORS = ["#4f46e5", "#0f9d58", "#b45309", "#0369a1", "#7c3aed", "#be185d", "#0b4ea2", "#15803d"]
+    SKIP_APPS = ("payments", "campaigns", "admin", "auth", "contenttypes", "sessions")
+    SKIP_MODELS = ("TenantSubscription",)
+
     results = []
-    try:
-        from apps.registrations.models import RegClient
-        qs = RegClient.objects.filter(tenant=_t) if _t else RegClient.objects.filter(tenant__isnull=True)
-        for r in qs:
-            if _match(r.name, r.phone):
-                results.append({"type": "\u0639\u0645\u0644\u0627\u0621 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629", "color": "#4f46e5", "name": r.name, "sub": r.phone, "url": "/registrations/clients/?edit=%d#clForm" % r.pk})
-                if len(results) >= 15: break
-    except Exception:
-        pass
-    try:
-        from apps.crm.models import CRMContact, CRMCompany
-        qs = CRMContact.objects.filter(tenant=_t) if _t else CRMContact.objects.filter(tenant__isnull=True)
-        for r in qs:
-            if _match(r.full_name, r.phone):
-                results.append({"type": "\u062c\u0647\u0627\u062a \u0627\u062a\u0635\u0627\u0644 CRM", "color": "#0f9d58", "name": r.full_name, "sub": r.phone or "", "url": "/crm/contacts/"})
-                if len(results) >= 15: break
-        qs2 = CRMCompany.objects.filter(tenant=_t) if _t else CRMCompany.objects.filter(tenant__isnull=True)
-        for r in qs2:
-            if _match(r.name, r.phone):
-                results.append({"type": "\u0634\u0631\u0643\u0627\u062a CRM", "color": "#b45309", "name": r.name, "sub": r.phone or "", "url": "/crm/companies/"})
-                if len(results) >= 15: break
-    except Exception:
-        pass
-    return JsonResponse({"results": results[:15]})
+    ci = 0
+    for model in dj_apps.get_models():
+        if len(results) >= 20:
+            break
+        meta = model._meta
+        if meta.app_label in SKIP_APPS or meta.object_name in SKIP_MODELS:
+            continue
+        fields = meta.fields
+        if not any(f.name == "tenant" for f in fields):
+            continue
+        text_fields = [f.name for f in fields if f.get_internal_type() in ("CharField", "EmailField", "TextField") and f.name not in ("slug", "status")]
+        if not text_fields:
+            continue
+        try:
+            qs = model.objects.filter(tenant=_t) if _t else model.objects.filter(tenant__isnull=True)
+        except Exception:
+            continue
+        badge = str(meta.verbose_name_plural)
+        color = COLORS[ci % len(COLORS)]
+        ci += 1
+        urlf = URL_MAP.get(meta.object_name, lambda r, _a=meta.app_label: "/%s/" % _a)
+        try:
+            for r in qs[:400]:
+                text = " ".join(str(getattr(r, n, "") or "") for n in text_fields)
+                if _match(text):
+                    name = ""
+                    for cand in ("name", "full_name", "title", "subject"):
+                        v = getattr(r, cand, "")
+                        if v:
+                            name = str(v); break
+                    if not name:
+                        name = str(r)
+                    sub = ""
+                    for cand in ("phone", "email", "mobile"):
+                        v = getattr(r, cand, "")
+                        if v:
+                            sub = str(v); break
+                    results.append({"type": badge, "color": color, "name": name, "sub": sub, "url": urlf(r)})
+                    if len(results) >= 20:
+                        break
+        except Exception:
+            continue
+    return JsonResponse({"results": results[:20]})
