@@ -169,6 +169,8 @@ function _delSnippet(i){
   // نعيد فتح النافذة لتحديث القائمة
   var id=window._htmlTargetId;document.getElementById('htmlModal').remove();rteInsertHtml(id);
 }
+function _cleanBlockHtml(h){var d=document.createElement('div');d.innerHTML=h||'';d.querySelectorAll('.rte-toolbar,.rte-btn,.rte-sep,.block-controls').forEach(function(x){x.remove();});d.querySelectorAll('[contenteditable]').forEach(function(x){x.removeAttribute('contenteditable');});return d.innerHTML;}
+function _sanitizeBlocks(){try{blocks.forEach(function(b){if(b&&b.html){b.html=_cleanBlockHtml(b.html);}});}catch(e){}}
 function saveTextContent(){const b=blocks.find(x=>x.id===selectedId);if(b&&b.type==='text'){const el=document.getElementById('rte_'+b.id);if(el){const clone=el.cloneNode(true);clone.querySelectorAll('.rte-toolbar,.rte-btn,.rte-sep').forEach(x=>x.remove());b.html=clone.innerHTML;_syncWin&&_syncWin();autosave();}}}
 function toolbar(id){return '<div class="rte-toolbar" onclick="event.stopPropagation()">'+
   '<button class="rte-btn" onmousedown="event.preventDefault()" onclick="rteCmd(\'bold\')" title="تعريض"><b>B</b></button>'+
@@ -236,12 +238,12 @@ function _cleanHtml(h){
   });
   return d.innerHTML;
 }
-function generateHTML(){return '<div style="max-width:600px;margin:0 auto;background:#ffffff;direction:rtl">'+blocks.map(exportHtml).join('')+'<div style="text-align:center;padding:15px;color:#999;font-size:12px">© INEXC · <a href="/recipients/unsubscribe/{{email}}/" style="color:#999">إلغاء الاشتراك</a></div></div>';}
+function generateHTML(){_sanitizeBlocks();return '<div style="max-width:600px;margin:0 auto;background:#ffffff;direction:rtl">'+blocks.map(exportHtml).join('')+'<div style="text-align:center;padding:15px;color:#999;font-size:12px">© INEXC · <a href="/recipients/unsubscribe/{{email}}/" style="color:#999">إلغاء الاشتراك</a></div></div>';}
 function saveTemplate(){saveTextContent();const n=document.getElementById('tmplName').value.trim(),s=document.getElementById('tmplSubject').value.trim();if(!n||!s){alert('أدخل اسم القالب وعنوان الرسالة');return;}if(!blocks.length){alert('أضف عنصراً واحداً على الأقل');return;}document.getElementById('f_name').value=n;document.getElementById('f_subject').value=s;document.getElementById('f_html').value=generateHTML();document.getElementById('f_blocks').value=JSON.stringify(blocks);document.getElementById('saveForm').submit();}
 let ast=null;function autosave(){clearTimeout(ast);ast=setTimeout(()=>{try{const data={blocks,name:document.getElementById('tmplName').value,subject:document.getElementById('tmplSubject').value};document.cookie='builder_draft='+encodeURIComponent(JSON.stringify(data)).substring(0,3800)+';path=/;max-age=86400';document.getElementById('saveHint').textContent='✓ حُفظت المسودة';setTimeout(()=>document.getElementById('saveHint').textContent='',2000);}catch(e){}},900);}
 const READY={welcome:[{type:'text',html:'<h1 style="color:#1e3a6e;text-align:center">مرحباً بك في INEXC 👋</h1>'},{type:'text',html:'عزيزنا {{name}}، يسعدنا انضمامك إلينا.'},{type:'button',text:'ابدأ الآن',url:'#',bg:'#1e3a6e',color:'#fff',align:'center'}],promo:[{type:'text',html:'<h1 style="color:#e4405f;text-align:center">🎁 عرض خاص</h1>'},{type:'text',html:'مرحباً {{name}}، خصم حصري على {{course_name}}.'},{type:'payment',text:'احصل على العرض',url:'',bg:'#10b981',color:'#fff',align:'center',amount:''}],event:[{type:'text',html:'<h1 style="color:#1e3a6e;text-align:center">📅 دعوة خاصة</h1>'},{type:'text',html:'عزيزنا {{name}}، ندعوك لحضور فعاليتنا.'},{type:'button',text:'سجّل حضورك',url:'#',bg:'#1e3a6e',color:'#fff',align:'center'}]};
 function loadReady(k){if(blocks.length&&!confirm('سيُستبدل المحتوى الحالي. متابعة؟'))return;blocks=READY[k].map(o=>{const nb=defaultBlock(o.type);Object.assign(nb,o);blockCounter++;nb.id='b'+blockCounter;return nb;});selectedId=null;renderCanvas();renderProps();autosave();}
-(function(){try{const m=document.cookie.match(/builder_draft=([^;]+)/);if(m){const d=JSON.parse(decodeURIComponent(m[1]));if(d.blocks&&d.blocks.length&&confirm('وُجدت مسودة محفوظة. استعادتها؟')){blocks=d.blocks;blockCounter=blocks.length;document.getElementById('tmplName').value=d.name||'';document.getElementById('tmplSubject').value=d.subject||'';renderCanvas();}}}catch(e){}})();
+(function(){try{const m=document.cookie.match(/builder_draft=([^;]+)/);if(m){const d=JSON.parse(decodeURIComponent(m[1]));if(d.blocks&&d.blocks.length&&confirm('وُجدت مسودة محفوظة. استعادتها؟')){blocks=d.blocks;_sanitizeBlocks();blockCounter=blocks.length;document.getElementById('tmplName').value=d.name||'';document.getElementById('tmplSubject').value=d.subject||'';renderCanvas();}}}catch(e){}})();
 
 
 /* ===== BUILDER ADDONS ===== */
