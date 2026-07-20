@@ -6,7 +6,11 @@ from django.conf.urls.static import static
 from django.urls import re_path
 from django.views.static import serve
 
+from apps.marketing.views import seo_sitemap, seo_robots
+
 urlpatterns = [
+    path("sitemap.xml", seo_sitemap),
+    path("robots.txt", seo_robots),
     path("favicon.ico", RedirectView.as_view(url="/static/img/favicon.png", permanent=True)),
     path('', include('apps.marketing.urls', namespace='marketing')),
     path('i18n/', include('django.conf.urls.i18n')),  # تبديل اللغة

@@ -197,3 +197,38 @@ def privacy(request):
 def terms(request):
     from django.shortcuts import render
     return render(request, "marketing/legal.html", {"page": "terms", "lc": _legal_lc()})
+
+def seo_sitemap(request):
+    from django.http import HttpResponse
+    import datetime
+    base = "https://inexcsuite.com"
+    today = datetime.date.today().isoformat()
+    urls = [(base + "/", "1.0", "weekly")]
+    try:
+        from apps.platform_core.models import LegalPage
+        for slug in LegalPage.objects.values_list("slug", flat=True)[:20]:
+            urls.append((base + "/legal/" + slug + "/", "0.6", "monthly"))
+    except Exception:
+        pass
+    items = "".join(
+        f"<url><loc>{u}</loc><lastmod>{today}</lastmod><changefreq>{cf}</changefreq><priority>{p}</priority></url>"
+        for u, p, cf in urls
+    )
+    xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + items + "</urlset>"
+    return HttpResponse(xml, content_type="application/xml")
+
+
+def seo_robots(request):
+    from django.http import HttpResponse
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/", "Disallow: /dashboard/", "Disallow: /platform/",
+        "Disallow: /campaigns/", "Disallow: /crm/", "Disallow: /accounting/",
+        "Disallow: /registrations/", "Disallow: /templates/", "Disallow: /recipients/",
+        "Disallow: /smart-send/", "Disallow: /accounts/", "Disallow: /payments/",
+        "Disallow: /tasks/", "Disallow: /reports/",
+        "",
+        "Sitemap: https://inexcsuite.com/sitemap.xml",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")
