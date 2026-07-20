@@ -103,3 +103,28 @@ class EmailLog(models.Model):
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
     def get_status_color(self):
         return {'pending':'warning','sending':'info','sent':'success','failed':'danger','bounced':'secondary','opened':'primary','clicked':'purple'}.get(self.status,'secondary')
+
+class SmartSendBatch(models.Model):
+    owner = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='smart_batches')
+    subject = models.CharField(max_length=300, blank=True)
+    body_html = models.TextField(blank=True)
+    total = models.IntegerField(default=0)
+    success = models.IntegerField(default=0)
+    failed = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default='running')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'دفعة إرسال ذكي'
+
+
+class SmartSendRecipientLog(models.Model):
+    batch = models.ForeignKey(SmartSendBatch, on_delete=models.CASCADE, related_name='logs')
+    email = models.CharField(max_length=254)
+    name = models.CharField(max_length=200, blank=True)
+    status = models.CharField(max_length=12, default='pending')
+    error = models.CharField(max_length=200, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('batch', 'email')

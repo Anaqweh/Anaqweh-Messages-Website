@@ -185,6 +185,62 @@
 
 <script>
 let recipients = [];
+// ==== SmartSend Log Layer (دفعات + سجل + استئناف) ====
+var _ssResume=null;
+(function(){
+  var origFetch=window.fetch.bind(window);
+  function csrf(){var m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:'';}
+  function jpost(u,d){return origFetch(u,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},body:JSON.stringify(d)}).then(function(r){return r.json();});}
+  function bar(msg){var b=document.getElementById('ssProg');if(!msg){if(b)b.remove();return;}if(!b){b=document.createElement('div');b.id='ssProg';b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#0b4ea2;color:#fff;padding:9px;text-align:center;font-weight:800';document.body.appendChild(b);}b.textContent=msg;}
+  window.fetch=function(url,opts){
+    if(typeof url==='string'&&url.indexOf('/smart-send/do-send/')>-1&&opts&&(opts.method||'').toUpperCase()==='POST'){
+      return (async function(){
+        var payload={};try{payload=JSON.parse(opts.body||'{}');}catch(e){}
+        var subj=payload.subject,body=payload.body_html,delay=payload.delay||0;
+        var list=payload.recipients||[];
+        var batchId=null;
+        if(_ssResume){subj=_ssResume.subject;body=_ssResume.body_html;list=_ssResume.pending.slice();batchId=_ssResume.batch_id;}
+        else{try{var st=await jpost('/smart-send/log-start/',{subject:subj,body_html:body,recipients:list});batchId=st.batch_id;}catch(e){}}
+        var agg={success:0,failed:0,errors:[]};
+        for(var i=0;i<list.length;i+=10){
+          var chunk=list.slice(i,i+10);
+          bar('\u062c\u0627\u0631\u064d \u0627\u0644\u0625\u0631\u0633\u0627\u0644... '+Math.min(i+10,list.length)+' / '+list.length);
+          var d={};
+          try{
+            var r=await origFetch('/smart-send/do-send/',{method:'POST',headers:opts.headers,body:JSON.stringify({subject:subj,body_html:body,recipients:chunk,delay:delay})});
+            d=await r.json();
+          }catch(e){d={success:0,failed:chunk.length,errors:chunk.map(function(c2){return {email:c2.email,error:'network'};})};}
+          agg.success+=(d.success||0);agg.failed+=(d.failed||0);(d.errors||[]).forEach(function(e2){agg.errors.push(e2);});
+          if(batchId){
+            var results=chunk.map(function(c2){var er=(d.errors||[]).find(function(x){return x.email===c2.email;});return {email:c2.email,ok:!er,err:er?(er.error||''):''};});
+            try{await jpost('/smart-send/log-update/',{batch_id:batchId,results:results});}catch(e){}
+          }
+        }
+        bar('');_ssResume=null;
+        return new Response(JSON.stringify(agg),{status:200,headers:{'Content-Type':'application/json'}});
+      })();
+    }
+    return origFetch(url,opts);
+  };
+  function boot(){
+    var a=document.createElement('a');a.href='/smart-send/history/';
+    a.textContent='\U0001F4DC \u0633\u062c\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644';
+    a.style.cssText='position:fixed;bottom:18px;left:18px;z-index:9998;background:#1e3a6e;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px rgba(30,58,110,.35)';
+    document.body.appendChild(a);
+    var rid=new URLSearchParams(location.search).get('resume');
+    if(rid){
+      origFetch('/smart-send/batch-pending/?batch_id='+rid).then(function(r){return r.json();}).then(function(d){
+        if(d.error){alert(d.error);return;}
+        _ssResume=d;
+        (d.pending||[]).forEach(function(p){if(!recipients.find(function(x){return x.email===p.email;}))recipients.push({email:p.email,name:p.name||'',status:''});});
+        renderTable();
+        bar('\u0627\u0633\u062a\u0626\u0646\u0627\u0641 \u0627\u0644\u062f\u0641\u0639\u0629 \u2014 \u0645\u062a\u0628\u0642\u064d: '+d.pending.length+' \u2014 \u0627\u0636\u063a\u0637 \u0625\u0631\u0633\u0627\u0644 \u0644\u0644\u062c\u0645\u064a\u0639');
+      });
+    }
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',boot);}else{boot();}
+})();
+
 
 function showMsgTab(tab) {
   document.getElementById('msg-template').style.display = tab==='template' ? 'block' : 'none';

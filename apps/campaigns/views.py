@@ -454,3 +454,94 @@ def smart_send_list_recipients(request):
         return JsonResponse({'error': 'أرقام غير صالحة'}, status=400)
     data = [{'email': r.email, 'name': r.name or ''} for r in qs[:5000]]
     return JsonResponse({'total': total, 'returned': len(data), 'recipients': data})
+
+@login_required
+def smart_send_log_start(request):
+    import json as _j
+    from django.http import JsonResponse
+    from .models import SmartSendBatch, SmartSendRecipientLog
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST'}, status=405)
+    try:
+        d = _j.loads(request.body)
+        recs = d.get('recipients', [])
+        b = SmartSendBatch.objects.create(owner=request.user, subject=(d.get('subject') or '')[:300], body_html=d.get('body_html') or '', total=len(recs))
+        seen = set()
+        rows = []
+        for r in recs:
+            em = (r.get('email') or '').strip()
+            if em and em not in seen:
+                seen.add(em)
+                rows.append(SmartSendRecipientLog(batch=b, email=em, name=(r.get('name') or '')[:200]))
+        SmartSendRecipientLog.objects.bulk_create(rows, ignore_conflicts=True)
+        return JsonResponse({'batch_id': b.pk})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def smart_send_log_update(request):
+    import json as _j
+    from django.http import JsonResponse
+    from .models import SmartSendBatch, SmartSendRecipientLog
+    try:
+        d = _j.loads(request.body)
+        b = SmartSendBatch.objects.filter(owner=request.user, pk=d.get('batch_id')).first()
+        if not b:
+            return JsonResponse({'error': 'batch'}, status=404)
+        for r in d.get('results', []):
+            SmartSendRecipientLog.objects.filter(batch=b, email=(r.get('email') or '').strip()).update(
+                status='sent' if r.get('ok') else 'failed', error=(r.get('err') or '')[:200])
+        b.success = b.logs.filter(status='sent').count()
+        b.failed = b.logs.filter(status='failed').count()
+        pending = b.logs.filter(status='pending').count()
+        b.status = 'done' if pending == 0 else 'partial'
+        b.save()
+        return JsonResponse({'success': b.success, 'failed': b.failed, 'pending': pending})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def smart_send_batch_pending(request):
+    from django.http import JsonResponse
+    from .models import SmartSendBatch
+    b = SmartSendBatch.objects.filter(owner=request.user, pk=request.GET.get('batch_id') or 0).first()
+    if not b:
+        return JsonResponse({'error': 'الدفعة غير موجودة'}, status=404)
+    pend = list(b.logs.filter(status='pending').values('email', 'name'))
+    return JsonResponse({'batch_id': b.pk, 'subject': b.subject, 'body_html': b.body_html, 'pending': pend})
+
+
+@login_required
+def smart_send_history(request):
+    from django.http import HttpResponse
+    from .models import SmartSendBatch
+    rows = ''
+    for b in SmartSendBatch.objects.filter(owner=request.user).order_by('-id')[:30]:
+        pend = b.total - b.success - b.failed
+        resume = ('<a href="/smart-send/?resume=%d" style="background:#b45309;color:#fff;border-radius:8px;padding:5px 14px;text-decoration:none;font-size:12px;font-weight:700">\u0627\u0633\u062a\u0626\u0646\u0627\u0641 (%d)</a>' % (b.pk, pend)) if pend > 0 else '<span style="color:#0f9d58;font-weight:700">\u2713 \u0645\u0643\u062a\u0645\u0644</span>'
+        rows += ('<tr><td style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:13px">%s</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:700">%s</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9">%d</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9;color:#0f9d58;font-weight:700">%d</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9;color:#e24b4a;font-weight:700">%d</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9">%s</td></tr>') % (
+                 b.created_at.strftime('%Y-%m-%d %H:%M'), (b.subject or '\u2014')[:45], b.total, b.success, b.failed, resume)
+    html = ('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>\u0633\u062c\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644</title>'
+            '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet"></head>'
+            '<body style="font-family:Tajawal,Arial;background:#f6f9fc;margin:0;padding:26px">'
+            '<div style="max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(15,36,68,.07)">'
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+            '<h2 style="margin:0;color:#1e3a6e">\U0001F4DC \u0633\u062c\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0630\u0643\u064a</h2>'
+            '<a href="/smart-send/" style="background:#0b4ea2;color:#fff;border-radius:10px;padding:9px 18px;text-decoration:none;font-weight:700">\u2190 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0630\u0643\u064a</a></div>'
+            '<table style="width:100%%;border-collapse:collapse"><thead><tr style="background:#f8fafc">'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u062a\u0627\u0631\u064a\u062e</th>'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u0645\u0648\u0636\u0648\u0639</th>'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th>'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0646\u062c\u062d</th>'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0641\u0634\u0644</th>'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u062d\u0627\u0644\u0629</th>'
+            '</tr></thead><tbody>%s</tbody></table>'
+            '%s</div></body></html>') % (rows, '' if rows else '<p style="text-align:center;color:#94a3b8;padding:30px">\u0644\u0627 \u0625\u0631\u0633\u0627\u0644\u0627\u062a \u0645\u0633\u062c\u0644\u0629 \u0628\u0639\u062f</p>')
+    return HttpResponse(html)
