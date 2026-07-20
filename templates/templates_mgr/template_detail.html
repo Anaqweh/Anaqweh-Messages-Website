@@ -1,7 +1,7 @@
 {% extends "base/base.html" %}
 {% block title %}{{ t.name }} – INEXC{% endblock %}
 {% block page_title %}<i class="bi bi-file-earmark-richtext me-2"></i>{{ t.name }}{% endblock %}
-{% block top_actions %}<a href="{% url 'templates_mgr:builder' %}?edit={{ t.pk }}" class="btn btn-success btn-sm">تعديل بصري</a> <a href="{% url 'templates_mgr:template_edit' t.pk %}" class="btn btn-inexc btn-sm">تعديل</a>{% endblock %}
+{% block top_actions %}<a href="{% url 'templates_mgr:builder' %}?edit={{ t.pk }}" class="btn btn-success btn-sm">تعديل بصري</a> <a href="{% url 'templates_mgr:builder' %}?edit={{ t.pk }}" class="btn btn-primary btn-sm" style="margin-left:6px"><i class="bi bi-magic"></i> تعديل مرئي</a><a href="{% url 'templates_mgr:template_edit' t.pk %}" class="btn btn-inexc btn-sm">تعديل</a>{% endblock %}
 {% block content %}
 <div class="row g-3">
   <div class="col-lg-8"><div class="form-card">

@@ -188,6 +188,7 @@ def builder(request):
                 ctx['edit_template'] = _tpl
         except EmailTemplate.DoesNotExist:
             pass
+    ctx['edit_tpl'] = ctx.get('edit_template')
     return render(request, 'templates_mgr/builder.html', ctx)
 
 
@@ -594,3 +595,16 @@ def countdown_image(request):
     resp['Pragma'] = 'no-cache'
     resp['Expires'] = '0'
     return resp
+
+@login_required
+def builder_save(request, pk):
+    t = get_object_or_404(_owned(EmailTemplate.objects.all(), request), pk=pk)
+    if request.method == 'POST':
+        t.name = request.POST.get('name','').strip() or t.name
+        t.subject = request.POST.get('subject','').strip() or t.subject
+        t.body_html = _rte_clean(request.POST.get('body_html','').strip())
+        t.blocks_json = _rte_clean(request.POST.get('blocks_json',''))
+        t.save()
+        messages.success(request, 'تم تحديث القالب.')
+        return redirect('templates_mgr:template_detail', pk=t.pk)
+    return redirect('templates_mgr:builder')

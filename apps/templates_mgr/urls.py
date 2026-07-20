@@ -9,6 +9,7 @@ urlpatterns = [
     path('<int:pk>/edit/', views.template_edit, name='template_edit'),
     path('<int:pk>/delete/', views.template_delete, name='template_delete'),
     path('builder/', views.builder, name='builder'),
+    path('builder/save/<int:pk>/', views.builder_save, name='builder_save'),
     path('builder/upload-image/', views.upload_image, name='upload_image'),
     path('countdown.png', views.countdown_image, name='countdown_image'),
     path('builder/upload-document/', views.upload_document, name='upload_document'),
