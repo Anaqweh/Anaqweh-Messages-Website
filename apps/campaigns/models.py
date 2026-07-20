@@ -112,6 +112,8 @@ class SmartSendBatch(models.Model):
     success = models.IntegerField(default=0)
     failed = models.IntegerField(default=0)
     status = models.CharField(max_length=20, default='running')
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    delay = models.IntegerField(default=3)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

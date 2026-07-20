@@ -174,6 +174,7 @@ body{background:#f0f4f8;min-height:100vh}
       <a href="{% url 'campaigns:campaign_list' %}" class="nav-link"><i class="bi bi-megaphone"></i> {% trans "الحملات" %}</a>
       <a href="{% url 'campaigns:campaign_create' %}" class="nav-link"><i class="bi bi-plus-circle"></i> {% trans "حملة جديدة" %}</a>
       <a href="{% url 'campaigns:smart_send' %}" class="nav-link"><i class="bi bi-send"></i> {% trans "الإرسال الذكي" %}</a>
+      <a href="/smart-send/history/" class="nav-link"><i class="bi bi-clock-history"></i> سجل الإرسال</a>
       <a href="{% url 'templates_mgr:template_list' %}" class="nav-link"><i class="bi bi-file-earmark-richtext"></i> {% trans "القوالب" %}</a>
       <a href="{% url 'templates_mgr:builder' %}" class="nav-link"><i class="bi bi-palette"></i> {% trans "محرر مرئي" %}</a>
       <a href="{% url 'recipients:list_view' %}" class="nav-link"><i class="bi bi-people"></i> {% trans "القوائم" %}</a>

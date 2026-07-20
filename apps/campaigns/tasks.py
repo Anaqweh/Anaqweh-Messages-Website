@@ -276,3 +276,33 @@ def ensure_payment_links(body_html, log=None, base_url=''):
     _email = getattr(log, 'recipient_email', '') if log else ''
     _name = getattr(log, 'recipient_name', '') if log else ''
     return ensure_email_payment_links(body_html, cust_email=_email, cust_name=_name)
+
+@shared_task
+def run_scheduled_smart_batches():
+    """تنفيذ دفعات الإرسال الذكي المجدولة المستحقة (كل دقيقة)."""
+    import time
+    from django.utils import timezone as _tz
+    from .models import SmartSendBatch
+    from .emailjs_service import send_via_emailjs
+    done = []
+    for b in SmartSendBatch.objects.filter(status='scheduled', scheduled_at__lte=_tz.now())[:5]:
+        locked = SmartSendBatch.objects.filter(pk=b.pk, status='scheduled').update(status='running')
+        if not locked:
+            continue
+        for log in b.logs.filter(status='pending'):
+            try:
+                r = send_via_emailjs(to_email=log.email, to_name=log.name or log.email,
+                                     subject=b.subject, body_html=b.body_html, user=b.owner)
+                log.status = 'sent' if r.get('success') else 'failed'
+                log.error = (r.get('error') or '')[:200]
+            except Exception as e:
+                log.status = 'failed'; log.error = str(e)[:200]
+            log.save()
+            if b.delay:
+                time.sleep(b.delay)
+        b.success = b.logs.filter(status='sent').count()
+        b.failed = b.logs.filter(status='failed').count()
+        b.status = 'done' if b.logs.filter(status='pending').count() == 0 else 'partial'
+        b.save()
+        done.append({'batch': b.pk, 'sent': b.success, 'failed': b.failed})
+    return done

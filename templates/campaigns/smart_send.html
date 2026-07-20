@@ -196,6 +196,14 @@ var _ssResume=null;
     if(typeof url==='string'&&url.indexOf('/smart-send/do-send/')>-1&&opts&&(opts.method||'').toUpperCase()==='POST'){
       return (async function(){
         var payload={};try{payload=JSON.parse(opts.body||'{}');}catch(e){}
+        var whenEl=document.getElementById('ssWhen');
+        if(whenEl&&whenEl.value){
+          var sd=await jpost('/smart-send/schedule/',{subject:payload.subject,body_html:payload.body_html,recipients:payload.recipients||[],delay:payload.delay||3,scheduled_at:whenEl.value});
+          if(sd.error){bar('');alert(sd.error);return new Response(JSON.stringify({success:0,failed:0,errors:[]}),{status:200,headers:{'Content-Type':'application/json'}});}
+          whenEl.value='';bar('');
+          alert('\u062a\u0645\u062a \u0627\u0644\u062c\u062f\u0648\u0644\u0629 \u0628\u0646\u062c\u0627\u062d \u2014 \u0633\u062a\u064f\u0631\u0633\u0644 \u062a\u0644\u0642\u0627\u0626\u064a\u0627\u064b \u0641\u064a: '+sd.scheduled_at);
+          return new Response(JSON.stringify({success:0,failed:0,errors:[],scheduled:true}),{status:200,headers:{'Content-Type':'application/json'}});
+        }
         var subj=payload.subject,body=payload.body_html,delay=payload.delay||0;
         var list=payload.recipients||[];
         var batchId=null;
@@ -223,10 +231,16 @@ var _ssResume=null;
     return origFetch(url,opts);
   };
   function boot(){
-    var a=document.createElement('a');a.href='/smart-send/history/';
-    a.textContent='\U0001F4DC \u0633\u062c\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644';
-    a.style.cssText='position:fixed;bottom:18px;left:18px;z-index:9998;background:#1e3a6e;color:#fff;padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px rgba(30,58,110,.35)';
-    document.body.appendChild(a);
+    
+    var btn=Array.from(document.querySelectorAll('button')).find(function(x){return (x.textContent||'').indexOf('\u0625\u0631\u0633\u0627\u0644 \u0644\u0644\u062c\u0645\u064a\u0639')>-1;});
+    if(btn){
+      var w=document.createElement('div');
+      w.style.cssText='background:#fff7e6;border:1.5px solid #fde3b8;border-radius:12px;padding:10px 14px;margin:0 0 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+      w.innerHTML='<span style="font-weight:800;color:#b45309">\u062c\u062f\u0648\u0644\u0629 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a):</span>'
+        +'<input type="datetime-local" id="ssWhen" style="padding:8px;border:1.5px solid #fde3b8;border-radius:8px;font-family:inherit">'
+        +'<span style="font-size:.75rem;color:#92620a">\u0627\u062a\u0631\u0643\u0647 \u0641\u0627\u0631\u063a\u0627\u064b \u0644\u0644\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0641\u0648\u0631\u064a</span>';
+      btn.parentNode.insertBefore(w,btn);btn.classList.remove('w-100','btn-lg');btn.style.setProperty('width','auto','important');btn.style.setProperty('min-width','260px','important');btn.style.setProperty('display','block','important');btn.style.setProperty('margin','4px auto 0','important');btn.style.setProperty('padding','12px 48px','important');
+    }
     var rid=new URLSearchParams(location.search).get('resume');
     if(rid){
       origFetch('/smart-send/batch-pending/?batch_id='+rid).then(function(r){return r.json();}).then(function(d){
@@ -420,16 +434,17 @@ document.getElementById('sendBtn').disabled = false;
   var ul=document.querySelector('.nav-tabs')||document.querySelector('ul.nav');
   var box=document.createElement('div');
   box.id='slBox';
-  box.style.cssText='background:#f0f6ff;border:1.5px solid #c9defb;border-radius:14px;padding:14px 16px;margin:12px 0';
-  box.innerHTML='<div style="font-weight:800;color:#0b4ea2;margin-bottom:10px">\U0001F4CB \u0645\u0646 \u0642\u0627\u0626\u0645\u0629 \u0645\u062d\u0641\u0648\u0638\u0629</div>'
-  +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-  +'<select id="slList" style="flex:1;min-width:200px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit"><option value="">\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644...</option></select>'
-  +'<input id="slCount" type="number" min="1" placeholder="\u0643\u0645 \u0639\u062f\u062f\u0627\u064b\u061f" style="width:110px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit">'
-  +'<span style="color:#64748b;font-size:.85rem">\u0623\u0648</span>'
-  +'<input id="slFrom" type="number" min="1" placeholder="\u0645\u0646" style="width:85px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit">'
-  +'<input id="slTo" type="number" min="1" placeholder="\u0625\u0644\u0649" style="width:85px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit">'
-  +'<button type="button" onclick="slLoad()" style="background:#0b4ea2;color:#fff;border:0;border-radius:9px;padding:9px 20px;font-weight:700;cursor:pointer;font-family:inherit">\u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0633\u062a\u0644\u0645\u064a\u0646</button>'
-  +'</div><div id="slInfo" style="font-size:.8rem;color:#0b4ea2;margin-top:8px"></div>';
+  box.style.cssText='background:#fbfdff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px 18px;margin:12px 0';
+  box.innerHTML='<div style="font-weight:800;color:#1e3a6e;font-size:.95rem;margin-bottom:12px">\u0627\u0644\u062a\u062d\u0645\u064a\u0644 \u0645\u0646 \u0642\u0627\u0626\u0645\u0629 \u0645\u062d\u0641\u0648\u0638\u0629</div>'
+  +'<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:stretch">'
+  +'<select id="slList" style="flex:2;min-width:180px;height:44px;padding:0 12px;border:1.5px solid #dbe4ef;border-radius:10px;font-family:inherit;font-size:.88rem;background:#fff;color:#334155"><option value="">\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644...</option></select>'
+  +'<input id="slCount" type="number" min="1" placeholder="\u0627\u0644\u0639\u062f\u062f" style="flex:1;min-width:90px;height:44px;padding:0 12px;border:1.5px solid #dbe4ef;border-radius:10px;font-family:inherit;font-size:.88rem;text-align:center">'
+  +'<input id="slFrom" type="number" min="1" placeholder="\u0645\u0646" style="flex:1;min-width:80px;height:44px;padding:0 12px;border:1.5px solid #dbe4ef;border-radius:10px;font-family:inherit;font-size:.88rem;text-align:center">'
+  +'<input id="slTo" type="number" min="1" placeholder="\u0625\u0644\u0649" style="flex:1;min-width:80px;height:44px;padding:0 12px;border:1.5px solid #dbe4ef;border-radius:10px;font-family:inherit;font-size:.88rem;text-align:center">'
+  +'<button type="button" onclick="slLoad()" style="height:44px;background:#0b4ea2;color:#fff;border:0;border-radius:10px;padding:0 26px;font-weight:700;cursor:pointer;font-family:inherit;font-size:.88rem;white-space:nowrap">\u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0633\u062a\u0644\u0645\u064a\u0646</button>'
+  +'</div>'
+  +'<div style="font-size:.75rem;color:#94a3b8;margin-top:8px">\u062d\u062f\u062f \u0627\u0644\u0639\u062f\u062f \u0627\u0644\u0645\u0637\u0644\u0648\u0628 \u0623\u0648 \u0646\u0637\u0627\u0642\u0627\u064b \u0645\u0646/\u0625\u0644\u0649 \u2014 \u0648\u0627\u062a\u0631\u0643\u0647\u0627 \u0641\u0627\u0631\u063a\u0629 \u0644\u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u0643\u0627\u0645\u0644\u0629</div>'
+  +'<div id="slInfo" style="font-size:.8rem;color:#0b4ea2;margin-top:8px;font-weight:700"></div>';
   if(ul&&ul.parentNode){ul.parentNode.insertBefore(box,ul);}else{document.body.appendChild(box);}
   fetch('/smart-send/lists/').then(function(r){return r.json();}).then(function(d){
     var s=document.getElementById('slList');

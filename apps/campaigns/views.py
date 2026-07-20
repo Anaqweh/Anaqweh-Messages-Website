@@ -533,7 +533,7 @@ def smart_send_history(request):
             '<body style="font-family:Tajawal,Arial;background:#f6f9fc;margin:0;padding:26px">'
             '<div style="max-width:900px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(15,36,68,.07)">'
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
-            '<h2 style="margin:0;color:#1e3a6e">\U0001F4DC \u0633\u062c\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0630\u0643\u064a</h2>'
+            '<h2 style="margin:0;color:#1e3a6e">\u0633\u062c\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0630\u0643\u064a</h2>'
             '<a href="/smart-send/" style="background:#0b4ea2;color:#fff;border-radius:10px;padding:9px 18px;text-decoration:none;font-weight:700">\u2190 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0630\u0643\u064a</a></div>'
             '<table style="width:100%%;border-collapse:collapse"><thead><tr style="background:#f8fafc">'
             '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u062a\u0627\u0631\u064a\u062e</th>'
@@ -545,3 +545,39 @@ def smart_send_history(request):
             '</tr></thead><tbody>%s</tbody></table>'
             '%s</div></body></html>') % (rows, '' if rows else '<p style="text-align:center;color:#94a3b8;padding:30px">\u0644\u0627 \u0625\u0631\u0633\u0627\u0644\u0627\u062a \u0645\u0633\u062c\u0644\u0629 \u0628\u0639\u062f</p>')
     return HttpResponse(html)
+
+@login_required
+def smart_send_schedule(request):
+    import json as _j
+    from django.http import JsonResponse
+    from django.utils import timezone as _tz
+    import datetime as _dt
+    from .models import SmartSendBatch, SmartSendRecipientLog
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST'}, status=405)
+    try:
+        d = _j.loads(request.body)
+        when = d.get('scheduled_at') or ''
+        naive = _dt.datetime.strptime(when, '%Y-%m-%dT%H:%M')
+        aware = _tz.make_aware(naive, _tz.get_current_timezone())
+        if aware <= _tz.now():
+            return JsonResponse({'error': 'اختر وقتاً مستقبلياً'}, status=400)
+        recs = d.get('recipients', [])
+        if not recs or not d.get('subject') or not d.get('body_html'):
+            return JsonResponse({'error': 'بيانات ناقصة'}, status=400)
+        b = SmartSendBatch.objects.create(owner=request.user, subject=(d.get('subject') or '')[:300],
+                                          body_html=d.get('body_html') or '', total=len(recs),
+                                          status='scheduled', scheduled_at=aware,
+                                          delay=max(0, min(int(d.get('delay') or 3), 30)))
+        seen = set(); rows = []
+        for r in recs:
+            em = (r.get('email') or '').strip()
+            if em and em not in seen:
+                seen.add(em)
+                rows.append(SmartSendRecipientLog(batch=b, email=em, name=(r.get('name') or '')[:200]))
+        SmartSendRecipientLog.objects.bulk_create(rows, ignore_conflicts=True)
+        return JsonResponse({'batch_id': b.pk, 'scheduled_at': aware.strftime('%Y-%m-%d %H:%M')})
+    except ValueError:
+        return JsonResponse({'error': 'صيغة الوقت غير صحيحة'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
