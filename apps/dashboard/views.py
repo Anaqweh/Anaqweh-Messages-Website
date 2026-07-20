@@ -518,3 +518,23 @@ def global_search(request):
         except Exception:
             continue
     return JsonResponse({"results": results[:20]})
+
+def healthz(request):
+    """نبض صحة: قاعدة البيانات + وسيط المهام. 200=سليم، 500=خلل (ليتدخل الحارس)."""
+    from django.http import HttpResponse
+    from django.db import connections
+    problems = []
+    try:
+        with connections["default"].cursor() as cur:
+            cur.execute("SELECT 1")
+    except Exception:
+        problems.append("db")
+    try:
+        from django.conf import settings as _s
+        import redis as _r
+        _r.from_url(getattr(_s, "CELERY_BROKER_URL", "redis://redis:6379/0"), socket_connect_timeout=3).ping()
+    except Exception:
+        problems.append("redis")
+    if problems:
+        return HttpResponse("FAIL:" + ",".join(problems), status=500, content_type="text/plain")
+    return HttpResponse("ok", content_type="text/plain")

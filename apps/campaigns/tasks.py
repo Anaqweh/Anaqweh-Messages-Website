@@ -285,6 +285,11 @@ def run_scheduled_smart_batches():
     from .models import SmartSendBatch
     from .emailjs_service import send_via_emailjs
     done = []
+    import datetime as _dt
+    stuck_cut = _tz.now() - _dt.timedelta(minutes=10)
+    for sb in SmartSendBatch.objects.filter(scheduled_at__isnull=False, status__in=["running", "partial"]):
+        if not sb.logs.filter(updated_at__gte=stuck_cut).exists():
+            SmartSendBatch.objects.filter(pk=sb.pk, status=sb.status).update(status="scheduled")
     for b in SmartSendBatch.objects.filter(status='scheduled', scheduled_at__lte=_tz.now())[:5]:
         locked = SmartSendBatch.objects.filter(pk=b.pk, status='scheduled').update(status='running')
         if not locked:
