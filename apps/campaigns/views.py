@@ -416,3 +416,41 @@ def do_smart_send(request):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+def smart_send_lists(request):
+    """قوائم المستخدم المحفوظة مع عدد المستلمين (قراءة فقط)."""
+    from django.http import JsonResponse
+    from django.db.models import Count
+    from apps.recipients.models import MailingList
+    qs = MailingList.objects.all() if request.user.is_superuser else MailingList.objects.filter(owner=request.user)
+    qs = qs.annotate(n=Count('recipients')).order_by('-updated_at')
+    return JsonResponse({'lists': [{'id': l.pk, 'name': l.name, 'count': l.n} for l in qs[:100]]})
+
+
+@login_required
+def smart_send_list_recipients(request):
+    """شريحة مستلمين من قائمة محفوظة: count أو from/to (قراءة فقط، معزولة بالمالك)."""
+    from django.http import JsonResponse
+    from apps.recipients.models import MailingList, Recipient
+    try:
+        list_id = int(request.GET.get('list_id') or 0)
+    except ValueError:
+        return JsonResponse({'error': 'bad list_id'}, status=400)
+    ql = MailingList.objects.all() if request.user.is_superuser else MailingList.objects.filter(owner=request.user)
+    ml = ql.filter(pk=list_id).first()
+    if not ml:
+        return JsonResponse({'error': 'قائمة غير موجودة'}, status=404)
+    qs = Recipient.objects.filter(mailing_list=ml).order_by('id')
+    total = qs.count()
+    f = request.GET.get('from'); t = request.GET.get('to'); cnt = request.GET.get('count')
+    try:
+        if f and t:
+            f = max(1, int(f)); t = min(int(t), total)
+            qs = qs[f-1:t]
+        elif cnt:
+            qs = qs[:max(0, min(int(cnt), total))]
+    except ValueError:
+        return JsonResponse({'error': 'أرقام غير صالحة'}, status=400)
+    data = [{'email': r.email, 'name': r.name or ''} for r in qs[:5000]]
+    return JsonResponse({'total': total, 'returned': len(data), 'recipients': data})

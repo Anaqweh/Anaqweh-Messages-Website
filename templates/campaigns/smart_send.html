@@ -358,4 +358,45 @@ document.getElementById('sendBtn').disabled = false;
     </div>`;
 }
 </script>
+
+<script>
+(function(){
+  var ul=document.querySelector('.nav-tabs')||document.querySelector('ul.nav');
+  var box=document.createElement('div');
+  box.id='slBox';
+  box.style.cssText='background:#f0f6ff;border:1.5px solid #c9defb;border-radius:14px;padding:14px 16px;margin:12px 0';
+  box.innerHTML='<div style="font-weight:800;color:#0b4ea2;margin-bottom:10px">\U0001F4CB \u0645\u0646 \u0642\u0627\u0626\u0645\u0629 \u0645\u062d\u0641\u0648\u0638\u0629</div>'
+  +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+  +'<select id="slList" style="flex:1;min-width:200px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit"><option value="">\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644...</option></select>'
+  +'<input id="slCount" type="number" min="1" placeholder="\u0643\u0645 \u0639\u062f\u062f\u0627\u064b\u061f" style="width:110px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit">'
+  +'<span style="color:#64748b;font-size:.85rem">\u0623\u0648</span>'
+  +'<input id="slFrom" type="number" min="1" placeholder="\u0645\u0646" style="width:85px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit">'
+  +'<input id="slTo" type="number" min="1" placeholder="\u0625\u0644\u0649" style="width:85px;padding:9px;border:1.5px solid #dbe4ef;border-radius:9px;font-family:inherit">'
+  +'<button type="button" onclick="slLoad()" style="background:#0b4ea2;color:#fff;border:0;border-radius:9px;padding:9px 20px;font-weight:700;cursor:pointer;font-family:inherit">\u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0645\u0633\u062a\u0644\u0645\u064a\u0646</button>'
+  +'</div><div id="slInfo" style="font-size:.8rem;color:#0b4ea2;margin-top:8px"></div>';
+  if(ul&&ul.parentNode){ul.parentNode.insertBefore(box,ul);}else{document.body.appendChild(box);}
+  fetch('/smart-send/lists/').then(function(r){return r.json();}).then(function(d){
+    var s=document.getElementById('slList');
+    s.innerHTML='<option value="">\u2014 \u0627\u062e\u062a\u0631 \u0627\u0644\u0642\u0627\u0626\u0645\u0629 \u2014</option>';
+    (d.lists||[]).forEach(function(l){var o=document.createElement('option');o.value=l.id;o.textContent=l.name+' \u2014 '+l.count;s.appendChild(o);});
+  }).catch(function(){});
+  window.slLoad=function(){
+    var id=document.getElementById('slList').value;
+    if(!id){alert('\u0627\u062e\u062a\u0631 \u0642\u0627\u0626\u0645\u0629 \u0623\u0648\u0644\u0627\u064b');return;}
+    var q='list_id='+id;
+    var f=document.getElementById('slFrom').value,t=document.getElementById('slTo').value,cn=document.getElementById('slCount').value;
+    if(f&&t){q+='&from='+f+'&to='+t;}else if(cn){q+='&count='+cn;}
+    document.getElementById('slInfo').textContent='\u062c\u0627\u0631\u064d \u0627\u0644\u062a\u062d\u0645\u064a\u0644...';
+    fetch('/smart-send/list-recipients/?'+q).then(function(r){return r.json();}).then(function(d){
+      if(d.error){document.getElementById('slInfo').textContent='\u062e\u0637\u0623: '+d.error;return;}
+      var added=0;
+      (d.recipients||[]).forEach(function(r){
+        if(!recipients.find(function(x){return x.email===r.email;})){recipients.push({email:r.email,name:r.name,status:''});added++;}
+      });
+      renderTable();
+      document.getElementById('slInfo').textContent='\u2705 \u0623\u064f\u0636\u064a\u0641 '+added+' \u0645\u0633\u062a\u0644\u0645\u0627\u064b (\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629: '+d.total+')';
+    }).catch(function(e){document.getElementById('slInfo').textContent='\u062e\u0637\u0623 \u0628\u0627\u0644\u0627\u062a\u0635\u0627\u0644';});
+  };
+})();
+</script>
 {% endblock %}

@@ -15,4 +15,6 @@ urlpatterns = [
     path('smart-send/', views.smart_send, name='smart_send'),
     path("smart-send/parse-excel/", views.parse_excel, name="parse_excel"),
     path('smart-send/do-send/', views.do_smart_send, name='do_smart_send'),
+    path('smart-send/lists/', views.smart_send_lists, name='smart_send_lists'),
+    path('smart-send/list-recipients/', views.smart_send_list_recipients, name='smart_send_list_recipients'),
 ]
