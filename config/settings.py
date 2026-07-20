@@ -47,6 +47,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.platform_core.maintenance.MaintenanceMiddleware',
     'apps.platform_core.permission_middleware.TenantPermissionMiddleware',
     'apps.platform_core.tenant_context.TenantContextMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',

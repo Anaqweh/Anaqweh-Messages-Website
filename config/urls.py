@@ -14,6 +14,7 @@ urlpatterns = [
     path("sitemap.xml", seo_sitemap),
     path("robots.txt", seo_robots),
     path("healthz", healthz),
+    path("maintenance-preview/", lambda r: __import__("django.shortcuts", fromlist=["render"]).render(r, "maintenance.html")),
     path("favicon.ico", RedirectView.as_view(url="/static/img/favicon.png", permanent=True)),
     path('', include('apps.marketing.urls', namespace='marketing')),
     path('i18n/', include('django.conf.urls.i18n')),  # تبديل اللغة
