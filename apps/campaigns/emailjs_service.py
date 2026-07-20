@@ -312,6 +312,18 @@ def send_via_emailjs(to_email, to_name, subject, body_html, body_text='', extra_
     try:
         import json as _ej_json
         _tp = payload.get('template_params') or {}
+        if not (_tp.get('body_text') or '').strip():
+            import re as _btr
+            _src = _tp.get('html') or _tp.get('body_html') or _tp.get('message') or ''
+            _txt = _btr.sub(r'<(style|script)[^>]*>.*?</\1>', ' ', _src, flags=_btr.DOTALL|_btr.IGNORECASE)
+            _txt = _btr.sub(r'<br\s*/?>', '\n', _txt, flags=_btr.IGNORECASE)
+            _txt = _btr.sub(r'</(p|div|tr|h[1-6]|li)>', '\n', _txt, flags=_btr.IGNORECASE)
+            _txt = _btr.sub(r'<[^>]+>', ' ', _txt)
+            _txt = _txt.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+            _txt = _btr.sub(r'[ \t]{2,}', ' ', _txt)
+            _txt = _btr.sub(r'\n{3,}', '\n\n', _txt).strip()
+            _tp['body_text'] = _txt[:5000]
+            payload['template_params'] = _tp
         import json as _szj
         if len(_szj.dumps(_tp, ensure_ascii=False)) > 48000:
             _full = _tp.get('html') or _tp.get('body_html') or _tp.get('message') or ''
