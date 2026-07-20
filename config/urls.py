@@ -9,6 +9,7 @@ from django.views.static import serve
 from apps.marketing.views import seo_sitemap, seo_robots
 
 urlpatterns = [
+    path("google082e6b72ef146463.html", lambda r: __import__("django.http", fromlist=["HttpResponse"]).HttpResponse("google-site-verification: google082e6b72ef146463.html", content_type="text/html")),
     path("sitemap.xml", seo_sitemap),
     path("robots.txt", seo_robots),
     path("favicon.ico", RedirectView.as_view(url="/static/img/favicon.png", permanent=True)),
