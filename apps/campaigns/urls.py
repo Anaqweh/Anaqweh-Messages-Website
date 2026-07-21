@@ -15,11 +15,13 @@ urlpatterns = [
     path('smart-send/', views.smart_send, name='smart_send'),
     path("smart-send/parse-excel/", views.parse_excel, name="parse_excel"),
     path('smart-send/do-send/', views.do_smart_send, name='do_smart_send'),
+    path('t/o/<int:pk>/<str:sig>/', views.track_open, name='track_open'),
     path('smart-send/schedule/', views.smart_send_schedule, name='smart_send_schedule'),
     path('smart-send/log-start/', views.smart_send_log_start, name='smart_send_log_start'),
     path('smart-send/log-update/', views.smart_send_log_update, name='smart_send_log_update'),
     path('smart-send/batch-pending/', views.smart_send_batch_pending, name='smart_send_batch_pending'),
     path('smart-send/history/', views.smart_send_history, name='smart_send_history'),
+    path('smart-send/history/<int:pk>/', views.smart_send_batch_detail, name='smart_send_batch_detail'),
     path('smart-send/lists/', views.smart_send_lists, name='smart_send_lists'),
     path('smart-send/list-recipients/', views.smart_send_list_recipients, name='smart_send_list_recipients'),
 ]

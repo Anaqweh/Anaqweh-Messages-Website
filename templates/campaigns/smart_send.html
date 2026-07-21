@@ -207,15 +207,17 @@ var _ssResume=null;
         var subj=payload.subject,body=payload.body_html,delay=payload.delay||0;
         var list=payload.recipients||[];
         var batchId=null;
-        if(_ssResume){subj=_ssResume.subject;body=_ssResume.body_html;list=_ssResume.pending.slice();batchId=_ssResume.batch_id;}
-        else{try{var st=await jpost('/smart-send/log-start/',{subject:subj,body_html:body,recipients:list});batchId=st.batch_id;}catch(e){}}
+        var _tk=null;
+        if(_ssResume){subj=_ssResume.subject;body=_ssResume.body_html;list=_ssResume.pending.slice();batchId=_ssResume.batch_id;_tk=_ssResume.track||null;}
+        else{try{var st=await jpost('/smart-send/log-start/',{subject:subj,body_html:body,recipients:list});batchId=st.batch_id;_tk=st.track||null;}catch(e){}}
         var agg={success:0,failed:0,errors:[]};
-        for(var i=0;i<list.length;i+=10){
-          var chunk=list.slice(i,i+10);
+        var _step=_tk?1:10;
+        for(var i=0;i<list.length;i+=_step){
+          var chunk=list.slice(i,i+_step);
           bar('\u062c\u0627\u0631\u064d \u0627\u0644\u0625\u0631\u0633\u0627\u0644... '+Math.min(i+10,list.length)+' / '+list.length);
           var d={};
           try{
-            var r=await origFetch('/smart-send/do-send/',{method:'POST',headers:opts.headers,body:JSON.stringify({subject:subj,body_html:body,recipients:chunk,delay:delay})});
+            var r=await origFetch('/smart-send/do-send/',{method:'POST',headers:opts.headers,body:JSON.stringify({subject:subj,body_html:(_tk&&chunk.length===1&&_tk[chunk[0].email])?(body+'<img src="https://inexcsuite.com/t/o/'+_tk[chunk[0].email][0]+'/'+_tk[chunk[0].email][1]+'/" width="1" height="1" alt="" style="display:none">'):body,recipients:chunk,delay:delay})});
             d=await r.json();
           }catch(e){d={success:0,failed:chunk.length,errors:chunk.map(function(c2){return {email:c2.email,error:'network'};})};}
           agg.success+=(d.success||0);agg.failed+=(d.failed||0);(d.errors||[]).forEach(function(e2){agg.errors.push(e2);});

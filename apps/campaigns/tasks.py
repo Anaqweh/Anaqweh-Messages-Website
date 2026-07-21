@@ -296,8 +296,10 @@ def run_scheduled_smart_batches():
             continue
         for log in b.logs.filter(status='pending'):
             try:
+                from apps.campaigns.views import _track_sig
+                _px = '<img src="https://inexcsuite.com/t/o/%d/%s/" width="1" height="1" alt="" style="display:none">' % (log.pk, _track_sig(log.pk))
                 r = send_via_emailjs(to_email=log.email, to_name=log.name or log.email,
-                                     subject=b.subject, body_html=b.body_html, user=b.owner)
+                                     subject=b.subject, body_html=b.body_html + _px, user=b.owner)
                 log.status = 'sent' if r.get('success') else 'failed'
                 log.error = (r.get('error') or '')[:200]
             except Exception as e:

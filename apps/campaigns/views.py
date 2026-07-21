@@ -474,7 +474,8 @@ def smart_send_log_start(request):
                 seen.add(em)
                 rows.append(SmartSendRecipientLog(batch=b, email=em, name=(r.get('name') or '')[:200]))
         SmartSendRecipientLog.objects.bulk_create(rows, ignore_conflicts=True)
-        return JsonResponse({'batch_id': b.pk})
+        track = {l['email']: [l['id'], _track_sig(l['id'])] for l in SmartSendRecipientLog.objects.filter(batch=b).values('id', 'email')}
+        return JsonResponse({'batch_id': b.pk, 'track': track})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
@@ -510,7 +511,8 @@ def smart_send_batch_pending(request):
     if not b:
         return JsonResponse({'error': 'الدفعة غير موجودة'}, status=404)
     pend = list(b.logs.filter(status='pending').values('email', 'name'))
-    return JsonResponse({'batch_id': b.pk, 'subject': b.subject, 'body_html': b.body_html, 'pending': pend})
+    track = {p['email']: [p['id'], _track_sig(p['id'])] for p in b.logs.filter(status='pending').values('id', 'email')}
+    return JsonResponse({'batch_id': b.pk, 'subject': b.subject, 'body_html': b.body_html, 'pending': pend, 'track': track})
 
 
 @login_required
@@ -520,14 +522,23 @@ def smart_send_history(request):
     rows = ''
     for b in SmartSendBatch.objects.filter(owner=request.user).order_by('-id')[:30]:
         pend = b.total - b.success - b.failed
+        _op = b.logs.filter(opened_at__isnull=False).count()
+        if b.success:
+            _rate = round(_op * 100 / b.success)
+            _rc = '#0f9d58' if _rate >= 15 else ('#b45309' if _rate >= 5 else '#e24b4a')
+            _rtxt = '%d%%' % _rate
+        else:
+            _rc, _rtxt = '#94a3b8', '\u2014'
         resume = ('<a href="/smart-send/?resume=%d" style="background:#b45309;color:#fff;border-radius:8px;padding:5px 14px;text-decoration:none;font-size:12px;font-weight:700">\u0627\u0633\u062a\u0626\u0646\u0627\u0641 (%d)</a>' % (b.pk, pend)) if pend > 0 else '<span style="color:#0f9d58;font-weight:700">\u2713 \u0645\u0643\u062a\u0645\u0644</span>'
         rows += ('<tr><td style="padding:10px;border-bottom:1px solid #f1f5f9;font-size:13px">%s</td>'
-                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:700">%s</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9;font-weight:700"><a href="/smart-send/history/%d/" style="color:#0b4ea2;text-decoration:none">%s</a></td>'
                  '<td style="padding:10px;border-bottom:1px solid #f1f5f9">%d</td>'
                  '<td style="padding:10px;border-bottom:1px solid #f1f5f9;color:#0f9d58;font-weight:700">%d</td>'
                  '<td style="padding:10px;border-bottom:1px solid #f1f5f9;color:#e24b4a;font-weight:700">%d</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9;color:#0369a1;font-weight:700">%d</td>'
+                 '<td style="padding:10px;border-bottom:1px solid #f1f5f9;color:%s;font-weight:800">%s</td>'
                  '<td style="padding:10px;border-bottom:1px solid #f1f5f9">%s</td></tr>') % (
-                 b.created_at.strftime('%Y-%m-%d %H:%M'), (b.subject or '\u2014')[:45], b.total, b.success, b.failed, resume)
+                 b.created_at.strftime('%Y-%m-%d %H:%M'), b.pk, (b.subject or '\u2014')[:45], b.total, b.success, b.failed, _op, _rc, _rtxt, resume)
     html = ('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>\u0633\u062c\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644</title>'
             '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet"></head>'
             '<body style="font-family:Tajawal,Arial;background:#f6f9fc;margin:0;padding:26px">'
@@ -541,6 +552,8 @@ def smart_send_history(request):
             '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th>'
             '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0646\u062c\u062d</th>'
             '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0641\u0634\u0644</th>'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0641\u064f\u062a\u062d</th>'
+            '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0646\u0633\u0628\u0629 \u0627\u0644\u0641\u062a\u062d</th>'
             '<th style="padding:10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u062d\u0627\u0644\u0629</th>'
             '</tr></thead><tbody>%s</tbody></table>'
             '%s</div></body></html>') % (rows, '' if rows else '<p style="text-align:center;color:#94a3b8;padding:30px">\u0644\u0627 \u0625\u0631\u0633\u0627\u0644\u0627\u062a \u0645\u0633\u062c\u0644\u0629 \u0628\u0639\u062f</p>')
@@ -581,3 +594,67 @@ def smart_send_schedule(request):
         return JsonResponse({'error': 'صيغة الوقت غير صحيحة'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+def _track_sig(pk):
+    import hashlib
+    from django.conf import settings as _s
+    return hashlib.sha1((str(pk) + _s.SECRET_KEY).encode()).hexdigest()[:10]
+
+
+def track_open(request, pk, sig):
+    from django.http import HttpResponse, Http404
+    from django.utils import timezone as _tz
+    from .models import SmartSendRecipientLog
+    if sig != _track_sig(pk):
+        raise Http404
+    log = SmartSendRecipientLog.objects.filter(pk=pk).first()
+    if log:
+        if not log.opened_at:
+            log.opened_at = _tz.now()
+        log.open_count = (log.open_count or 0) + 1
+        log.save(update_fields=["opened_at", "open_count", "updated_at"])
+    gif = b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+    r = HttpResponse(gif, content_type="image/gif")
+    r["Cache-Control"] = "no-store"
+    return r
+
+@login_required
+def smart_send_batch_detail(request, pk):
+    from django.http import HttpResponse, Http404
+    from .models import SmartSendBatch
+    q = SmartSendBatch.objects.all() if request.user.is_superuser else SmartSendBatch.objects.filter(owner=request.user)
+    b = q.filter(pk=pk).first()
+    if not b:
+        raise Http404
+    ST = {"sent": ("#e6f7ee", "#0f9d58", "\u0646\u062c\u062d"), "failed": ("#fdecec", "#e24b4a", "\u0641\u0634\u0644"), "pending": ("#f1f5f9", "#64748b", "\u0645\u0639\u0644\u0651\u0642")}
+    rows = ""
+    for i, l in enumerate(b.logs.order_by("id"), 1):
+        bg, fg, txt = ST.get(l.status, ST["pending"])
+        opened = ("\u2713 " + l.opened_at.strftime("%m-%d %H:%M") + " (\u00d7%d)" % (l.open_count or 1)) if l.opened_at else "\u2014"
+        oc = "#0369a1" if l.opened_at else "#94a3b8"
+        rows += ('<tr><td style="padding:9px 10px;border-bottom:1px solid #f1f5f9;color:#94a3b8">%d</td>'
+                 '<td style="padding:9px 10px;border-bottom:1px solid #f1f5f9;font-weight:700" dir="ltr">%s</td>'
+                 '<td style="padding:9px 10px;border-bottom:1px solid #f1f5f9">%s</td>'
+                 '<td style="padding:9px 10px;border-bottom:1px solid #f1f5f9"><span style="background:%s;color:%s;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700">%s</span></td>'
+                 '<td style="padding:9px 10px;border-bottom:1px solid #f1f5f9;color:%s;font-weight:700;font-size:13px">%s</td>'
+                 '<td style="padding:9px 10px;border-bottom:1px solid #f1f5f9;color:#e24b4a;font-size:12px">%s</td></tr>') % (
+                 i, l.email, l.name or "\u2014", bg, fg, txt, oc, opened, (l.error or "")[:60])
+    opened_n = b.logs.filter(opened_at__isnull=False).count()
+    html = ('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>\u062a\u0641\u0627\u0635\u064a\u0644 \u0627\u0644\u0625\u0631\u0633\u0627\u0644</title>'
+            '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet"></head>'
+            '<body style="font-family:Tajawal,Arial;background:#f6f9fc;margin:0;padding:26px">'
+            '<div style="max-width:980px;margin:0 auto;background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(15,36,68,.07)">'
+            '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:6px">'
+            '<h2 style="margin:0;color:#1e3a6e;font-size:1.2rem">%s</h2>'
+            '<a href="/smart-send/history/" style="background:#eef2f7;color:#334155;border-radius:10px;padding:8px 16px;text-decoration:none;font-weight:700">\u2190 \u0627\u0644\u0633\u062c\u0644</a></div>'
+            '<div style="color:#64748b;font-size:.85rem;margin-bottom:16px">%s &nbsp;\u2022&nbsp; \u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a: %d &nbsp;\u2022&nbsp; <span style="color:#0f9d58">\u0646\u062c\u062d: %d</span> &nbsp;\u2022&nbsp; <span style="color:#e24b4a">\u0641\u0634\u0644: %d</span> &nbsp;\u2022&nbsp; <span style="color:#0369a1">\u0641\u064f\u062a\u062d: %d</span></div>'
+            '<div style="overflow-x:auto"><table style="width:100%%;border-collapse:collapse;min-width:640px"><thead><tr style="background:#f8fafc">'
+            '<th style="padding:9px 10px;text-align:right;font-size:12px;color:#475569">#</th>'
+            '<th style="padding:9px 10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u0628\u0631\u064a\u062f</th>'
+            '<th style="padding:9px 10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u0627\u0633\u0645</th>'
+            '<th style="padding:9px 10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u062d\u0627\u0644\u0629</th>'
+            '<th style="padding:9px 10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u0641\u062a\u062d</th>'
+            '<th style="padding:9px 10px;text-align:right;font-size:12px;color:#475569">\u0627\u0644\u062e\u0637\u0623</th>'
+            '</tr></thead><tbody>%s</tbody></table></div></div></body></html>') % (
+            (b.subject or "\u0628\u0644\u0627 \u0645\u0648\u0636\u0648\u0639"), b.created_at.strftime("%Y-%m-%d %H:%M"), b.total, b.success, b.failed, opened_n, rows)
+    return HttpResponse(html)
