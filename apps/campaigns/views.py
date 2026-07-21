@@ -453,7 +453,30 @@ def smart_send_list_recipients(request):
     except ValueError:
         return JsonResponse({'error': 'أرقام غير صالحة'}, status=400)
     data = [{'email': r.email, 'name': r.name or ''} for r in qs[:5000]]
-    return JsonResponse({'total': total, 'returned': len(data), 'recipients': data})
+    # تنظيف الميت: استبعاد من فشل مرتين+ ولم ينجح قط في سجلات هذا المستخدم
+    from django.db.models import Count, Q as _Q
+    from .models import SmartSendRecipientLog as _L
+    emails = [d['email'] for d in data]
+    dead = set(
+        _L.objects.filter(batch__owner=request.user, email__in=emails)
+        .values('email')
+        .annotate(f=Count('id', filter=_Q(status='failed')), s=Count('id', filter=_Q(status='sent')))
+        .filter(f__gte=2, s=0)
+        .values_list('email', flat=True)
+    )
+    if dead:
+        data = [d for d in data if d['email'] not in dead]
+    unsub = set()
+    try:
+        from apps.recipients.models import UnsubscribeList as _UL, Recipient as _Rc
+        ems2 = [d['email'] for d in data]
+        unsub |= set(_UL.objects.filter(email__in=ems2).values_list('email', flat=True))
+        unsub |= set(_Rc.objects.filter(email__in=ems2, is_unsubscribed=True, mailing_list__owner=request.user).values_list('email', flat=True))
+    except Exception:
+        pass
+    if unsub:
+        data = [d for d in data if d['email'] not in unsub]
+    return JsonResponse({'total': total, 'returned': len(data), 'recipients': data, 'excluded_dead': len(dead), 'excluded_unsub': len(unsub)})
 
 @login_required
 def smart_send_log_start(request):
@@ -473,9 +496,20 @@ def smart_send_log_start(request):
             if em and em not in seen:
                 seen.add(em)
                 rows.append(SmartSendRecipientLog(batch=b, email=em, name=(r.get('name') or '')[:200]))
+        sup = set()
+        try:
+            from apps.recipients.models import UnsubscribeList as _UL, Recipient as _Rc
+            _ems = [r.email for r in rows]
+            sup |= set(_UL.objects.filter(email__in=_ems).values_list('email', flat=True))
+            sup |= set(_Rc.objects.filter(email__in=_ems, is_unsubscribed=True, mailing_list__owner=request.user).values_list('email', flat=True))
+        except Exception:
+            pass
+        rows = [r for r in rows if r.email not in sup]
+        b.total = len(rows)
+        b.save(update_fields=['total'])
         SmartSendRecipientLog.objects.bulk_create(rows, ignore_conflicts=True)
         track = {l['email']: [l['id'], _track_sig(l['id'])] for l in SmartSendRecipientLog.objects.filter(batch=b).values('id', 'email')}
-        return JsonResponse({'batch_id': b.pk, 'track': track})
+        return JsonResponse({'batch_id': b.pk, 'track': track, 'suppressed': list(sup)})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 

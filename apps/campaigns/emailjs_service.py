@@ -35,6 +35,24 @@ def send_via_emailjs(to_email, to_name, subject, body_html,
                      body_text='', extra_params=None,
                      service_id=None, template_id=None, user=None,
                      public_key=None, private_key=None):
+    # حارس إلغاء الاشتراك: من ألغى لا يُرسل له نهائياً من أي مسار
+    try:
+        from apps.recipients.models import UnsubscribeList as _UL, Recipient as _Rc
+        _em = (to_email or '').strip()
+        _blocked = _UL.objects.filter(email__iexact=_em).exists()
+        if not _blocked:
+            _rq = _Rc.objects.filter(email__iexact=_em, is_unsubscribed=True)
+            try:
+                if user is not None:
+                    _rq = _rq.filter(mailing_list__owner=user)
+            except Exception:
+                pass
+            _blocked = _rq.exists()
+        if _blocked:
+            return {'success': False, 'error': 'unsubscribed - \u0623\u0644\u063a\u0649 \u0627\u0644\u0627\u0634\u062a\u0631\u0627\u0643', 'message_id': '', 'raw_response': {}}
+    except Exception:
+        pass
+
     body_html = ensure_email_payment_links(body_html)
 
     if public_key and service_id and template_id:
@@ -159,6 +177,24 @@ def ensure_email_payment_links(body_html):
 
 # === FINAL FIX: EmailJS server sender override ===
 def send_via_emailjs(to_email, to_name, subject, body_html, body_text='', extra_params=None, service_id=None, template_id=None, user=None):
+    # حارس إلغاء الاشتراك: من ألغى لا يُرسل له نهائياً من أي مسار
+    try:
+        from apps.recipients.models import UnsubscribeList as _UL, Recipient as _Rc
+        _em = (to_email or '').strip()
+        _blocked = _UL.objects.filter(email__iexact=_em).exists()
+        if not _blocked:
+            _rq = _Rc.objects.filter(email__iexact=_em, is_unsubscribed=True)
+            try:
+                if user is not None:
+                    _rq = _rq.filter(mailing_list__owner=user)
+            except Exception:
+                pass
+            _blocked = _rq.exists()
+        if _blocked:
+            return {'success': False, 'error': 'unsubscribed - \u0623\u0644\u063a\u0649 \u0627\u0644\u0627\u0634\u062a\u0631\u0627\u0643', 'message_id': '', 'raw_response': {}}
+    except Exception:
+        pass
+
     import requests
     from django.conf import settings
 
@@ -245,6 +281,24 @@ def send_via_emailjs(to_email, to_name, subject, body_html, body_text='', extra_
 
 # === FINAL OVERRIDE: read EmailJS values directly from .env and ignore placeholders ===
 def send_via_emailjs(to_email, to_name, subject, body_html, body_text='', extra_params=None, service_id=None, template_id=None, user=None):
+    # حارس إلغاء الاشتراك: من ألغى لا يُرسل له نهائياً من أي مسار
+    try:
+        from apps.recipients.models import UnsubscribeList as _UL, Recipient as _Rc
+        _em = (to_email or '').strip()
+        _blocked = _UL.objects.filter(email__iexact=_em).exists()
+        if not _blocked:
+            _rq = _Rc.objects.filter(email__iexact=_em, is_unsubscribed=True)
+            try:
+                if user is not None:
+                    _rq = _rq.filter(mailing_list__owner=user)
+            except Exception:
+                pass
+            _blocked = _rq.exists()
+        if _blocked:
+            return {'success': False, 'error': 'unsubscribed - \u0623\u0644\u063a\u0649 \u0627\u0644\u0627\u0634\u062a\u0631\u0627\u0643', 'message_id': '', 'raw_response': {}}
+    except Exception:
+        pass
+
     import requests
     from pathlib import Path
 

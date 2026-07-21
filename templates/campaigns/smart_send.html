@@ -209,7 +209,16 @@ var _ssResume=null;
         var batchId=null;
         var _tk=null;
         if(_ssResume){subj=_ssResume.subject;body=_ssResume.body_html;list=_ssResume.pending.slice();batchId=_ssResume.batch_id;_tk=_ssResume.track||null;}
-        else{try{var st=await jpost('/smart-send/log-start/',{subject:subj,body_html:body,recipients:list});batchId=st.batch_id;_tk=st.track||null;}catch(e){}}
+        else{try{var st=await jpost('/smart-send/log-start/',{subject:subj,body_html:body,recipients:list});batchId=st.batch_id;_tk=st.track||null;
+          var _sup=st.suppressed||[];
+          if(_sup.length){
+            list=list.filter(function(r){return _sup.indexOf(r.email)===-1;});
+            recipients.forEach(function(r){if(_sup.indexOf(r.email)>-1)r.status='\u0645\u0644\u063a\u0649';});
+            renderTable();
+            bar('\u0627\u0633\u062a\u064f\u0628\u0639\u062f '+_sup.length+' (\u0625\u0644\u063a\u0627\u0621 \u0627\u0634\u062a\u0631\u0627\u0643) \u2014 \u0644\u0646 \u064a\u064f\u0631\u0633\u0644 \u0644\u0647\u0645');
+            await new Promise(function(rs){setTimeout(rs,2200);});
+          }
+        }catch(e){}}
         var agg={success:0,failed:0,errors:[]};
         var _step=_tk?1:10;
         for(var i=0;i<list.length;i+=_step){
@@ -467,7 +476,7 @@ document.getElementById('sendBtn').disabled = false;
         if(!recipients.find(function(x){return x.email===r.email;})){recipients.push({email:r.email,name:r.name,status:''});added++;}
       });
       renderTable();
-      document.getElementById('slInfo').textContent='\u2705 \u0623\u064f\u0636\u064a\u0641 '+added+' \u0645\u0633\u062a\u0644\u0645\u0627\u064b (\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629: '+d.total+')';
+      var _dx=(d.excluded_dead&&d.excluded_dead>0)?(' \u2014 \u0627\u0633\u062a\u064f\u0628\u0639\u062f '+d.excluded_dead+' \u0628\u0631\u064a\u062f\u0627\u064b \u0645\u064a\u062a\u0627\u064b \u0644\u062d\u0645\u0627\u064a\u0629 \u0633\u0645\u0639\u062a\u0643'):'';document.getElementById('slInfo').textContent='\u0623\u064f\u0636\u064a\u0641 '+added+' \u0645\u0633\u062a\u0644\u0645\u0627\u064b (\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629: '+d.total+')'+_dx+((d.excluded_unsub&&d.excluded_unsub>0)?(' \u2014 \u0627\u0633\u062a\u064f\u0628\u0639\u062f '+d.excluded_unsub+' (\u0625\u0644\u063a\u0627\u0621 \u0627\u0634\u062a\u0631\u0627\u0643)'):'');
     }).catch(function(e){document.getElementById('slInfo').textContent='\u062e\u0637\u0623 \u0628\u0627\u0644\u0627\u062a\u0635\u0627\u0644';});
   };
 })();
